@@ -73,7 +73,9 @@ func (i *Indexer) Index(option IndexOption.IndexOption) error {
 func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 	b, txs, err := i.blockIndexer.Index(height, option)
 	if err != nil {
-		raven.CaptureError(err, nil)
+		if err.Error() != "-8: Block height out of range" {
+			raven.CaptureError(err, nil)
+		}
 		return err
 	}
 

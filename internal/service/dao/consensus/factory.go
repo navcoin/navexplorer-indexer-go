@@ -5,14 +5,18 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
-func UpdateConsensus(cfundStats *navcoind.CFundStats, c *explorer.Consensus) {
-	c.BlocksPerVotingCycle = cfundStats.Consensus.BlocksPerVotingCycle
-	c.MinSumVotesPerVotingCycle = cfundStats.Consensus.MinSumVotesPerVotingCycle
-	c.MaxCountVotingCycleProposals = cfundStats.Consensus.MaxCountVotingCycleProposals
-	c.MaxCountVotingCyclePaymentRequests = cfundStats.Consensus.MaxCountVotingCyclePaymentRequests
-	c.VotesAcceptProposalPercentage = cfundStats.Consensus.VotesAcceptProposalPercentage
-	c.VotesRejectProposalPercentage = cfundStats.Consensus.VotesRejectProposalPercentage
-	c.VotesAcceptPaymentRequestPercentage = cfundStats.Consensus.VotesAcceptPaymentRequestPercentage
-	c.VotesRejectPaymentRequestPercentage = cfundStats.Consensus.VotesRejectPaymentRequestPercentage
-	c.ProposalMinimalFee = cfundStats.Consensus.ProposalMinimalFee
+func CreateConsensusParameter(consensusParameter navcoind.ConsensusParameter) *explorer.ConsensusParameter {
+	return &explorer.ConsensusParameter{
+		Id:          consensusParameter.Id,
+		Description: consensusParameter.Description,
+		Type:        explorer.ConsensusParameterType(consensusParameter.Type),
+		Value:       consensusParameter.Value,
+	}
+}
+
+func UpdateConsensus(consensusParameter navcoind.ConsensusParameter, c *explorer.ConsensusParameter) {
+	c.Id = consensusParameter.Id
+	c.Description = consensusParameter.Description
+	c.Type = explorer.ConsensusParameterType(consensusParameter.Type)
+	c.Value = consensusParameter.Value
 }

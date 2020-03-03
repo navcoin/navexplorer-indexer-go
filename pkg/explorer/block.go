@@ -40,20 +40,19 @@ type Block struct {
 }
 
 type BlockCycle struct {
-	Size   uint
-	Cycle  uint
-	Index  uint
-	Quorum uint
+	Size   int
+	Cycle  int
+	Index  int
+	Quorum int
 }
 
-func (b *Block) BlockCycle(size uint, quorum uint) *BlockCycle {
+func (b *Block) BlockCycle(size int) *BlockCycle {
 	cycle := GetCycleForHeight(b.Height, size)
 
 	return &BlockCycle{
-		Size:   size,
-		Cycle:  cycle,
-		Index:  GetCycleIndex(b.Height, cycle, size),
-		Quorum: GetQuorum(size, quorum),
+		Size:  size,
+		Cycle: cycle,
+		Index: GetCycleIndex(b.Height, cycle, size),
 	}
 }
 
@@ -61,15 +60,15 @@ func (b *BlockCycle) IsEnd() bool {
 	return b.Index == b.Size-1
 }
 
-func GetCycleForHeight(height uint64, size uint) uint {
-	return (uint(height) / size) + 1
+func GetCycleForHeight(height uint64, size int) int {
+	return (int(height) / size) + 1
 }
 
-func GetCycleIndex(height uint64, cycle uint, size uint) uint {
+func GetCycleIndex(height uint64, cycle int, size int) int {
 	base := (cycle * size) - size
-	return uint(height) - base
+	return int(height) - base
 }
 
-func GetQuorum(size uint, quorum uint) uint {
-	return uint((float64(quorum) / 100) * float64(size))
+func GetQuorum(size int, quorum int) int {
+	return int((float64(quorum) / 100) * float64(size))
 }

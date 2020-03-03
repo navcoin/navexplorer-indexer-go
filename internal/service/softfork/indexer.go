@@ -9,11 +9,11 @@ import (
 
 type Indexer struct {
 	elastic       *elastic_cache.Index
-	blocksInCycle uint
-	quorum        uint
+	blocksInCycle int
+	quorum        int
 }
 
-func NewIndexer(elastic *elastic_cache.Index, blocksInCycle uint, quorum uint) *Indexer {
+func NewIndexer(elastic *elastic_cache.Index, blocksInCycle int, quorum int) *Indexer {
 	return &Indexer{elastic, blocksInCycle, quorum}
 }
 
@@ -46,7 +46,7 @@ func (i *Indexer) updateSoftForks(signal *explorer.Signal, block *explorer.Block
 	if signal == nil || !signal.IsSignalling() {
 		return
 	}
-	blockCycle := block.BlockCycle(i.blocksInCycle, i.quorum)
+	blockCycle := block.BlockCycle(i.blocksInCycle)
 
 	for _, s := range signal.SoftForks {
 		softFork := SoftForks.GetSoftFork(s)

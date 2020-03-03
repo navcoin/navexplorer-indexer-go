@@ -4,6 +4,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/generated/dic"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consensus"
 	"github.com/getsentry/raven-go"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +21,8 @@ func Execute() {
 	container, _ = dic.NewContainer(dingo.App)
 
 	container.GetElastic().InstallMappings()
-	container.GetSoftforkService().LoadSoftForks()
+	container.GetSoftforkService().InitSoftForks()
+	container.GetDaoConsensusService().InitConsensusParameters()
 
 	if config.Get().Sentry.Active {
 		_ = raven.SetDSN(config.Get().Sentry.DSN)
@@ -33,16 +35,14 @@ func Execute() {
 	}
 
 	if indexer.LastBlockIndexed != 0 {
-		if block, err := container.GetBlockRepo().GetBlockByHeight(indexer.LastBlockIndexed); err != nil {
+		block, err := container.GetBlockRepo().GetBlockByHeight(indexer.LastBlockIndexed)
+		if err != nil {
 			log.WithError(err).Fatal("Failed to get block at height: ", indexer.LastBlockIndexed)
-		} else {
-			consensus, err := container.GetDaoConsensusRepo().GetConsensus()
-			if err == nil {
-				blockCycle := block.BlockCycle(consensus.BlocksPerVotingCycle, consensus.MinSumVotesPerVotingCycle)
-				container.GetDaoProposalService().LoadVotingProposals(block, blockCycle)
-				container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(block, blockCycle)
-			}
 		}
+
+		blockCycle := block.BlockCycle(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value)
+		container.GetDaoProposalService().LoadVotingProposals(block, blockCycle)
+		container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(block, blockCycle)
 	}
 
 	// Bulk index the backlog

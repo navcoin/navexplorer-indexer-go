@@ -14,8 +14,8 @@ type Config struct {
 	Reindex            bool
 	ReindexSize        uint
 	BulkIndexSize      uint
-	SoftForkBlockCycle uint
-	SoftForkQuorum     uint
+	SoftForkBlockCycle int
+	SoftForkQuorum     int
 	Navcoind           NavcoindConfig
 	ElasticSearch      ElasticSearchConfig
 	ZeroMq             ZeroMqConfig
@@ -60,8 +60,8 @@ func Init() {
 func Get() *Config {
 	return &Config{
 		Network:            getString("NAVCOIND_NETWORK", "mainnet"),
-		SoftForkBlockCycle: getUint("SOFTFORK_BLOCKCYCLE", 20160),
-		SoftForkQuorum:     getUint("SOFTFORK_QUORUM", 75),
+		SoftForkBlockCycle: getInt("SOFTFORK_BLOCKCYCLE", 20160),
+		SoftForkQuorum:     getInt("SOFTFORK_QUORUM", 75),
 		Debug:              getBool("DEBUG", false),
 		Reindex:            getBool("REINDEX", false),
 		ReindexSize:        getUint("REINDEX_SIZE", 200),

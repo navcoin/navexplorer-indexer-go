@@ -1,10 +1,9 @@
 package consensus
 
 import (
-	"context"
+	"fmt"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,28 +19,26 @@ func NewRewinder(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo 
 }
 
 func (r *Rewinder) Rewind() error {
-	log.Infof("Rewinding DAO consensus")
-
-	cfundStats, err := r.navcoin.CfundStats()
+	navcoindConsensusParameters, err := r.navcoin.GetConsensusParameters(true)
 	if err != nil {
 		raven.CaptureError(err, nil)
-		log.WithError(err).Error("Failed to get CfundStats from Navcoind")
+		log.WithError(err).Error("Failed to get consensus parameters")
 		return err
 	}
 
-	consensus, _ := r.repo.GetConsensus()
-	if consensus == nil {
-		consensus = new(explorer.Consensus)
-		UpdateConsensus(&cfundStats, consensus)
-		_, err := r.elastic.Client.Index().Index(elastic_cache.ConsensusIndex.Get()).BodyJson(consensus).Do(context.Background())
-		if err != nil {
-			raven.CaptureError(err, nil)
-			log.WithError(err).Fatalf("Failed to persist consensus")
+	consensusParameters, err := r.repo.GetConsensusParameters()
+	for _, navcoindConsensusParameter := range navcoindConsensusParameters {
+		for _, consensusParameter := range consensusParameters {
+			if navcoindConsensusParameter.Id == consensusParameter.Id {
+				UpdateConsensus(navcoindConsensusParameter, consensusParameter)
+				r.elastic.AddUpdateRequest(
+					elastic_cache.ConsensusIndex.Get(),
+					fmt.Sprintf("consensus_%d", consensusParameter.Id),
+					consensusParameter,
+					consensusParameter.MetaData.Id,
+				)
+			}
 		}
-	} else {
-		UpdateConsensus(&cfundStats, consensus)
-		log.Info("Index Update Cfund Consensus")
-		r.elastic.AddUpdateRequest(elastic_cache.ConsensusIndex.Get(), "consensus", consensus, consensus.MetaData.Id)
 	}
 
 	return nil

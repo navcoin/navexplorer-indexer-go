@@ -20,8 +20,8 @@ func New(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *Reposit
 	return &Service{navcoin, elastic, repo}
 }
 
-func (i *Service) LoadSoftForks() {
-	log.Info("Load SoftForks")
+func (i *Service) InitSoftForks() {
+	log.Info("Init SoftForks")
 
 	info, err := i.navcoin.GetBlockchainInfo()
 	if err != nil {

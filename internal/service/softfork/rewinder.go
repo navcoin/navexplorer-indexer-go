@@ -13,11 +13,11 @@ import (
 type Rewinder struct {
 	elastic       *elastic_cache.Index
 	signalRepo    *signal.Repository
-	blocksInCycle uint
-	quorum        uint
+	blocksInCycle int
+	quorum        int
 }
 
-func NewRewinder(elastic *elastic_cache.Index, signalRepo *signal.Repository, blocksInCycle uint, quorum uint) *Rewinder {
+func NewRewinder(elastic *elastic_cache.Index, signalRepo *signal.Repository, blocksInCycle int, quorum int) *Rewinder {
 	return &Rewinder{elastic, signalRepo, blocksInCycle, quorum}
 }
 

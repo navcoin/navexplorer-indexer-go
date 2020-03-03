@@ -23,7 +23,10 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphan
 func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []*explorer.BlockTransaction, error) {
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
-		raven.CaptureError(err, nil)
+		if err.Error() != "-8: Block height out of range" {
+			raven.CaptureError(err, nil)
+			log.WithFields(log.Fields{"height": height}).WithError(err).Error("Failed to GetBlockHash")
+		}
 		return nil, nil, err
 	}
 
@@ -96,10 +99,6 @@ func (i *Indexer) indexPreviousTxData(tx explorer.BlockTransaction) {
 func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 	hash, err := i.navcoin.GetBlockHash(height)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		if err.Error() != "-8: Block height out of range" {
-			log.WithFields(log.Fields{"hash": hash, "height": height}).WithError(err).Error("Failed to GetBlockHash")
-		}
 		return nil, err
 	}
 

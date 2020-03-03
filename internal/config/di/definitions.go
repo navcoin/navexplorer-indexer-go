@@ -9,6 +9,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consensus"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consultation"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/payment_request"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/proposal"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/vote"
@@ -141,10 +142,11 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.Indexer",
-		Build: func(proposalIndexer *proposal.Indexer, paymentRequestIndexer *payment_request.Indexer, voteIndexer *vote.Indexer, consensusIndexer *consensus.Indexer, navcoin *navcoind.Navcoind) (*dao.Indexer, error) {
+		Build: func(proposalIndexer *proposal.Indexer, paymentRequestIndexer *payment_request.Indexer, consultationIndexer *consultation.Indexer, voteIndexer *vote.Indexer, consensusIndexer *consensus.Indexer, navcoin *navcoind.Navcoind) (*dao.Indexer, error) {
 			return dao.NewIndexer(
 				proposalIndexer,
 				paymentRequestIndexer,
+				consultationIndexer,
 				voteIndexer,
 				consensusIndexer,
 				navcoin,
@@ -176,6 +178,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "dao.consultation.Indexer",
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index) (*consultation.Indexer, error) {
+			return consultation.NewIndexer(navcoin, elastic), nil
+		},
+	},
+	{
 		Name: "dao.vote.Indexer",
 		Build: func(elastic *elastic_cache.Index) (*vote.Indexer, error) {
 			return vote.NewIndexer(elastic), nil
@@ -185,6 +193,12 @@ var Definitions = []dingo.Def{
 		Name: "dao.Rewinder",
 		Build: func(elastic *elastic_cache.Index, consensusRewinder *consensus.Rewinder) (*dao.Rewinder, error) {
 			return dao.NewRewinder(elastic, consensusRewinder), nil
+		},
+	},
+	{
+		Name: "dao.consensus.Service",
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository) (*consensus.Service, error) {
+			return consensus.NewService(navcoin, elastic, repo), nil
 		},
 	},
 	{
