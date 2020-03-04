@@ -197,8 +197,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.consensus.Service",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository) (*consensus.Service, error) {
-			return consensus.NewService(navcoin, elastic, repo), nil
+		Build: func(elastic *elastic_cache.Index, repo *consensus.Repository) (*consensus.Service, error) {
+			return consensus.NewService(config.Get().Network, elastic, repo), nil
 		},
 	},
 	{
