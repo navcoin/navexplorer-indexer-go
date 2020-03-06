@@ -27,6 +27,10 @@ func (p *ConsensusParameters) Get(id int) *ConsensusParameter {
 	return nil
 }
 
+func (p *ConsensusParameters) All() []*ConsensusParameter {
+	return p.parameters
+}
+
 type ConsensusParameter struct {
 	MetaData MetaData `json:"-"`
 
