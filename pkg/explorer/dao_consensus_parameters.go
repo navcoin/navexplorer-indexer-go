@@ -17,6 +17,16 @@ func (p *ConsensusParameters) Add(c *ConsensusParameter) {
 	p.parameters = append(p.parameters, c)
 }
 
+func (p *ConsensusParameters) Get(id int) *ConsensusParameter {
+	for _, p := range p.parameters {
+		if p.Id == id {
+			return p
+		}
+	}
+
+	return nil
+}
+
 type ConsensusParameter struct {
 	MetaData MetaData `json:"-"`
 
