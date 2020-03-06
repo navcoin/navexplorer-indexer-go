@@ -9,6 +9,8 @@ var (
 	BoolType    ConsensusParameterType = 3
 )
 
+type ConsensusParameters []*ConsensusParameter
+
 type ConsensusParameter struct {
 	MetaData MetaData `json:"-"`
 
