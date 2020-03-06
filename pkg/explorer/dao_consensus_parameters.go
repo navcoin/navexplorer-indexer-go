@@ -9,7 +9,13 @@ var (
 	BoolType    ConsensusParameterType = 3
 )
 
-type ConsensusParameters []*ConsensusParameter
+type ConsensusParameters struct {
+	parameters []*ConsensusParameter
+}
+
+func (p *ConsensusParameters) Add(c *ConsensusParameter) {
+	p.parameters = append(p.parameters, c)
+}
 
 type ConsensusParameter struct {
 	MetaData MetaData `json:"-"`
