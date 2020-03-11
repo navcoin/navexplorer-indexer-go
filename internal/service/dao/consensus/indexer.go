@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -36,9 +35,8 @@ func (i *Indexer) Index() error {
 				UpdateConsensus(navcoindConsensusParameter, consensusParameter)
 				i.elastic.AddUpdateRequest(
 					elastic_cache.ConsensusIndex.Get(),
-					fmt.Sprintf("consensus_%d", consensusParameter.Id),
+					consensusParameter.Slug(),
 					consensusParameter,
-					consensusParameter.MetaData.Id,
 				)
 				c = append(c, consensusParameter)
 			}

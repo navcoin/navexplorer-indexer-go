@@ -37,7 +37,6 @@ func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) 
 		if err = json.Unmarshal(hit.Source, &address); err != nil {
 			return nil, err
 		}
-		address.MetaData = explorer.NewMetaData(hit.Id, hit.Index)
 		addresses = append(addresses, address)
 	}
 
@@ -84,11 +83,15 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 	var address *explorer.Address
 	if len(results.Hits.Hits) == 0 {
 		address = CreateAddress(hash)
-		resp, err := r.Client.Index().Index(elastic_cache.AddressIndex.Get()).BodyJson(address).Do(context.Background())
+		_, err := r.Client.
+			Index().
+			Index(elastic_cache.AddressIndex.Get()).
+			Id(address.Slug()).
+			BodyJson(address).
+			Do(context.Background())
 		if err != nil {
 			return nil, err
 		}
-		address.MetaData = explorer.NewMetaData(resp.Id, resp.Index)
 
 		return address, nil
 	}
@@ -96,7 +99,6 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 	if err = json.Unmarshal(results.Hits.Hits[0].Source, &address); err != nil {
 		return nil, err
 	}
-	address.MetaData = explorer.NewMetaData(results.Hits.Hits[0].Id, results.Hits.Hits[0].Index)
 
 	return address, nil
 }

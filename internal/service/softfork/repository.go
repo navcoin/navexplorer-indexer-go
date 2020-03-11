@@ -36,7 +36,6 @@ func (r *Repository) GetSoftForks() ([]*explorer.SoftFork, error) {
 		if err := json.Unmarshal(hit.Source, &softFork); err != nil {
 			log.WithError(err).Fatal("Failed to unmarshall soft fork")
 		}
-		softFork.MetaData = explorer.NewMetaData(hit.Id, hit.Index)
 		softForks = append(softForks, softFork)
 	}
 

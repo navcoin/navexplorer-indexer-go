@@ -69,6 +69,7 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction)
 		i.proposalIndexer.Update(blockCycle, block)
 		i.paymentRequestIndexer.Update(blockCycle, block)
 		i.consultationIndexer.Update(blockCycle, block)
+
 		_ = i.consensusIndexer.Index()
 	}
 }

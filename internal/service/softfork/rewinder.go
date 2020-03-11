@@ -30,7 +30,6 @@ func (r *Rewinder) Rewind(height uint64) error {
 
 	for idx, s := range SoftForks {
 		SoftForks[idx] = &explorer.SoftFork{
-			MetaData:  s.MetaData,
 			Name:      s.Name,
 			SignalBit: s.SignalBit,
 			State:     explorer.SoftForkDefined,
@@ -92,7 +91,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 	for _, sf := range SoftForks {
 		bulk.Add(elastic.NewBulkUpdateRequest().
 			Index(elastic_cache.SoftForkIndex.Get()).
-			Id(sf.MetaData.Id).
+			Id(sf.Slug()).
 			Doc(sf))
 	}
 

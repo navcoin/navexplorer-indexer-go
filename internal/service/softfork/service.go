@@ -36,13 +36,19 @@ func (i *Service) InitSoftForks() {
 	for name, bip9fork := range info.Bip9SoftForks {
 		if SoftForks.GetSoftFork(name) == nil {
 			softFork := &explorer.SoftFork{Name: name, SignalBit: bip9fork.Bit, State: explorer.SoftForkDefined}
-			resp, err := i.elastic.Client.Index().Index(elastic_cache.SoftForkIndex.Get()).BodyJson(softFork).Do(context.Background())
+
+			_, err := i.elastic.Client.
+				Index().
+				Index(elastic_cache.SoftForkIndex.Get()).
+				Id(softFork.Slug()).
+				BodyJson(softFork).
+				Do(context.Background())
+
 			if err != nil {
 				log.WithError(err).Fatal("Failed to save new softfork")
 			}
 
 			log.Info("Saving new softfork ", name)
-			softFork.MetaData = explorer.NewMetaData(resp.Id, resp.Index)
 			SoftForks = append(SoftForks, softFork)
 		}
 	}

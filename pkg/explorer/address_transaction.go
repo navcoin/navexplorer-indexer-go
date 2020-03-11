@@ -3,7 +3,7 @@ package explorer
 import "time"
 
 type AddressTransaction struct {
-	MetaData MetaData `json:"-"`
+	//MetaData MetaData `json:"-"`
 
 	Hash    string       `json:"hash"`
 	Txid    string       `json:"txid"`

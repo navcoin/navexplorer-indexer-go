@@ -33,13 +33,16 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 			consultation := CreateConsultation(navP)
 
 			index := elastic_cache.DaoConsultationIndex.Get()
-			resp, err := i.elastic.Client.Index().Index(index).BodyJson(consultation).Do(context.Background())
+			_, err := i.elastic.Client.Index().
+				Index(index).
+				Id(consultation.Slug()).
+				BodyJson(consultation).
+				Do(context.Background())
 			if err != nil {
 				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to save new payment request")
 			}
 
-			consultation.MetaData = explorer.NewMetaData(resp.Id, resp.Index)
 			Consultations = append(Consultations, consultation)
 		}
 	}

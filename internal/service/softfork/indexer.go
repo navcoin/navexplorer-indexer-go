@@ -1,7 +1,6 @@
 package softfork
 
 import (
-	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/softfork/signal"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -26,7 +25,7 @@ func (i *Indexer) Index(block *explorer.Block) {
 	i.updateState(block)
 
 	for _, softFork := range SoftForks {
-		i.elastic.AddUpdateRequest(elastic_cache.SoftForkIndex.Get(), softFork.Name, softFork, softFork.MetaData.Id)
+		i.elastic.AddUpdateRequest(elastic_cache.SoftForkIndex.Get(), softFork.Slug(), softFork)
 	}
 
 	if signal != nil {
@@ -36,7 +35,7 @@ func (i *Indexer) Index(block *explorer.Block) {
 			}
 		}
 		if len(signal.SoftForks) > 0 {
-			i.elastic.AddIndexRequest(elastic_cache.SignalIndex.Get(), fmt.Sprintf("%d", block.Height), signal)
+			i.elastic.AddIndexRequest(elastic_cache.SignalIndex.Get(), signal.Slug(), signal)
 		}
 	}
 

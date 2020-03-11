@@ -11,7 +11,7 @@ func CreateAddress(hash string) *explorer.Address {
 }
 
 func ResetAddress(address *explorer.Address) *explorer.Address {
-	return &explorer.Address{MetaData: address.MetaData, Hash: address.Hash}
+	return &explorer.Address{Hash: address.Hash}
 }
 
 func ApplyTxToAddress(address *explorer.Address, tx *explorer.AddressTransaction) {

@@ -28,7 +28,8 @@ func (s *Service) InitConsensusParameters() {
 	}
 
 	if len(p) != 0 {
-		log.WithError(err).Info("Consensus parameters already initialised")
+		log.Info("Consensus parameters already initialised")
+		Parameters = p
 		return
 	}
 
@@ -42,13 +43,16 @@ func (s *Service) InitConsensusParameters() {
 	}
 
 	for _, parameter := range parameters {
-		resp, err := s.elastic.Client.Index().Index(elastic_cache.ConsensusIndex.Get()).BodyJson(parameter).Do(context.Background())
+		_, err := s.elastic.Client.Index().
+			Index(elastic_cache.ConsensusIndex.Get()).
+			Id(parameter.Slug()).
+			BodyJson(parameter).
+			Do(context.Background())
 		if err != nil {
 			log.WithError(err).Fatal("Failed to save new softfork")
 		}
 
 		log.Info("Saving new consensus parameter: ", parameter.Description)
-		parameter.MetaData = explorer.NewMetaData(resp.Id, resp.Index)
 	}
 
 	Parameters = parameters

@@ -28,13 +28,15 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 		if navP, err := i.navcoin.GetProposal(tx.Hash); err == nil {
 			proposal := CreateProposal(navP, tx.Height)
 
-			resp, err := i.elastic.Client.Index().Index(elastic_cache.ProposalIndex.Get()).BodyJson(proposal).Do(context.Background())
+			_, err := i.elastic.Client.Index().
+				Index(elastic_cache.ProposalIndex.Get()).
+				Id(proposal.Slug()).
+				BodyJson(proposal).
+				Do(context.Background())
 			if err != nil {
 				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to save new proposal")
 			}
-
-			proposal.MetaData = explorer.NewMetaData(resp.Id, resp.Index)
 			Proposals = append(Proposals, proposal)
 		}
 	}
@@ -54,7 +56,7 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 
 		UpdateProposal(navP, block.Height, p)
 		if p.UpdatedOnBlock == block.Height {
-			i.elastic.AddUpdateRequest(elastic_cache.ProposalIndex.Get(), p.Hash, p, p.MetaData.Id)
+			i.elastic.AddUpdateRequest(elastic_cache.ProposalIndex.Get(), p.Slug(), p)
 		}
 
 		if p.Status == explorer.ProposalExpired || p.Status == explorer.ProposalRejected {

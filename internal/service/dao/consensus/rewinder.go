@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/getsentry/raven-go"
@@ -19,6 +18,7 @@ func NewRewinder(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo 
 }
 
 func (r *Rewinder) Rewind() error {
+	log.Debug("Rewind consensus")
 	navcoindConsensusParameters, err := r.navcoin.GetConsensusParameters(true)
 	if err != nil {
 		raven.CaptureError(err, nil)
@@ -33,13 +33,14 @@ func (r *Rewinder) Rewind() error {
 				UpdateConsensus(navcoindConsensusParameter, consensusParameter)
 				r.elastic.AddUpdateRequest(
 					elastic_cache.ConsensusIndex.Get(),
-					fmt.Sprintf("consensus_%d", consensusParameter.Id),
+					consensusParameter.Slug(),
 					consensusParameter,
-					consensusParameter.MetaData.Id,
 				)
 			}
 		}
 	}
+
+	log.Debug("Rewind consensus success")
 
 	return nil
 }

@@ -61,7 +61,6 @@ func (r *Repository) GetBlockByHeight(height uint64) (*explorer.Block, error) {
 		raven.CaptureError(err, nil)
 		return nil, err
 	}
-	block.MetaData = explorer.NewMetaData(hit.Id, hit.Index)
 
 	return block, nil
 }

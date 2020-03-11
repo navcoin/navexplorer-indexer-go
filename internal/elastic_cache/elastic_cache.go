@@ -24,10 +24,9 @@ type Index struct {
 type Request struct {
 	Height uint64
 	Index  string
-	Name   string
+	Id     string
 	Doc    interface{}
 	Type   RequestType
-	Id     string
 }
 
 type RequestType string
@@ -96,41 +95,35 @@ func (i *Index) InstallMappings() {
 	}
 }
 
-func (i *Index) AddIndexRequest(index string, name string, doc interface{}) {
-	i.AddRequest(index, name, doc, "index", "")
+func (i *Index) AddIndexRequest(index string, id string, doc interface{}) {
+	i.AddRequest(index, id, doc, IndexRequest)
 }
 
-func (i *Index) AddUpdateRequest(index string, name string, doc interface{}, id string) {
-	reqType := UpdateRequest
-	if id == "" {
-		reqType = IndexRequest
-	}
-
-	i.AddRequest(index, name, doc, reqType, id)
+func (i *Index) AddUpdateRequest(index string, id string, doc interface{}) {
+	i.AddRequest(index, id, doc, UpdateRequest)
 }
 
-func (i *Index) AddRequest(index string, name string, doc interface{}, reqType RequestType, id string) {
-	if request := i.GetRequest(index, name, id); request != nil {
+func (i *Index) AddRequest(index string, id string, doc interface{}, reqType RequestType) {
+	if request := i.GetRequest(index, id); request != nil {
 		request.Doc = doc
 	} else {
 		i.requests = append(i.requests, &Request{
 			Index: index,
-			Name:  name,
+			Id:    id,
 			Doc:   doc,
 			Type:  reqType,
-			Id:    id,
 		})
 	}
 }
 
-func (i *Index) GetRequest(index string, name string, id string) *Request {
+func (i *Index) GetRequest(index string, id string) *Request {
 	for _, r := range i.requests {
 		if r == nil {
-			logrus.WithFields(logrus.Fields{"index": index, "name": name}).Error("Request not found")
+			logrus.WithFields(logrus.Fields{"index": index, "id": id}).Error("Request not found")
 			return nil
 		}
 
-		if r.Index == index && r.Name == name && r.Id == id {
+		if r.Index == index && r.Id == id {
 			return r
 		}
 	}
@@ -151,7 +144,7 @@ func (i *Index) Persist() int {
 	bulk := i.Client.Bulk()
 	for _, r := range i.requests {
 		if r.Type == IndexRequest {
-			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Doc(r.Doc))
+			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Id).Doc(r.Doc))
 		} else if r.Type == UpdateRequest {
 			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Id).Doc(r.Doc))
 		}
@@ -160,17 +153,19 @@ func (i *Index) Persist() int {
 	actions := bulk.NumberOfActions()
 	if actions != 0 {
 		response, err := bulk.Do(context.Background())
+		if err != nil {
+			raven.CaptureError(err, nil)
+			logrus.WithError(err).Fatal("Failed to persist requests")
+		}
 		if response.Errors == true {
 			for _, failed := range response.Failed() {
 				raven.CaptureMessage(failed.Error.Reason, nil)
 				logrus.Fatal(failed.Error.Reason)
 			}
 		}
-		if err != nil {
-			raven.CaptureError(err, nil)
-			logrus.WithError(err).Fatal("Failed to persist requests")
-		}
 	}
+
+	logrus.Debug("Persisted requests")
 
 	i.requests = make([]*Request, 0)
 
@@ -183,12 +178,15 @@ func (i *Index) DeleteHeightGT(height uint64, indices ...string) error {
 		Do(context.Background())
 	if err != nil {
 		raven.CaptureError(err, nil)
-		logrus.WithError(err).Errorf("Could not rewind to %d", height)
+		logrus.WithError(err).Fatalf("Could not rewind to %d", height)
+		return err
 	}
 
 	i.Client.Flush(indices...)
 
-	return err
+	logrus.Debugf("Deleted height greater than %d", height)
+
+	return nil
 }
 
 func (i *Index) createIndex(index string, mapping []byte) error {

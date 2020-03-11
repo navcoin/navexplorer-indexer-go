@@ -25,6 +25,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 	}
 
 	return r.elastic.DeleteHeightGT(height,
+		elastic_cache.DaoConsultationIndex.Get(),
 		elastic_cache.ProposalIndex.Get(),
 		elastic_cache.PaymentRequestIndex.Get(),
 		elastic_cache.DaoVoteIndex.Get(),

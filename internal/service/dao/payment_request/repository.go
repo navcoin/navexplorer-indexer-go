@@ -39,7 +39,6 @@ func (r *Repository) GetPossibleVotingRequests(height uint64) ([]*explorer.Payme
 			if err := json.Unmarshal(hit.Source, &paymentRequest); err != nil {
 				log.WithError(err).Fatal("Failed to unmarshall payment request")
 			}
-			paymentRequest.MetaData = explorer.NewMetaData(hit.Id, hit.Index)
 			paymentRequests = append(paymentRequests, paymentRequest)
 		}
 	}

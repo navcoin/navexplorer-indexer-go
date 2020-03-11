@@ -1,8 +1,10 @@
 package explorer
 
-type Consultation struct {
-	MetaData MetaData `json:"-"`
+import (
+	"github.com/gosimple/slug"
+)
 
+type Consultation struct {
 	Version             uint32 `json:"version"`
 	Hash                string `json:"hash"`
 	BlockHash           string `json:"blockhash"`
@@ -14,6 +16,10 @@ type Consultation struct {
 	Status              string `json:"status"`
 	State               int    `json:"state"`
 	StateChangedOnBlock string `json:"stateChangedOnBlock"`
+}
+
+func (c *Consultation) Slug() string {
+	return slug.Make(c.Hash)
 }
 
 type Answer struct {

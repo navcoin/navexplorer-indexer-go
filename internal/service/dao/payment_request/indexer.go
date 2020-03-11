@@ -28,13 +28,15 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 			paymentRequest := CreatePaymentRequest(navP, tx.Height)
 
 			index := elastic_cache.PaymentRequestIndex.Get()
-			resp, err := i.elastic.Client.Index().Index(index).BodyJson(paymentRequest).Do(context.Background())
+			_, err := i.elastic.Client.Index().
+				Index(index).
+				Id(paymentRequest.Slug()).
+				BodyJson(paymentRequest).
+				Do(context.Background())
 			if err != nil {
 				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to save new payment request")
 			}
-
-			paymentRequest.MetaData = explorer.NewMetaData(resp.Id, resp.Index)
 			PaymentRequests = append(PaymentRequests, paymentRequest)
 		}
 	}
@@ -55,7 +57,7 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 		UpdatePaymentRequest(navP, block.Height, p)
 		if p.UpdatedOnBlock == block.Height {
 			log.Debugf("Payment Request %s updated on block %d", p.Hash, block.Height)
-			i.elastic.AddUpdateRequest(elastic_cache.PaymentRequestIndex.Get(), p.Hash, p, p.MetaData.Id)
+			i.elastic.AddUpdateRequest(elastic_cache.PaymentRequestIndex.Get(), p.Slug(), p)
 		}
 
 		if p.Status == explorer.PaymentRequestPaid || p.Status == explorer.PaymentRequestExpired || p.Status == explorer.PaymentRequestRejected {

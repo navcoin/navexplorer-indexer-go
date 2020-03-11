@@ -50,7 +50,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 		_, err = r.elastic.Client.Index().
 			Index(elastic_cache.AddressIndex.Get()).
 			BodyJson(address).
-			Id(address.MetaData.Id).
+			Id(address.Slug()).
 			Do(context.Background())
 		if err != nil {
 			raven.CaptureError(err, nil)

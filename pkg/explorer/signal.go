@@ -1,11 +1,18 @@
 package explorer
 
-type Signal struct {
-	MetaData MetaData `json:"-"`
+import (
+	"fmt"
+	"github.com/gosimple/slug"
+)
 
+type Signal struct {
 	Address   string   `json:"address"`
 	Height    uint64   `json:"height"`
 	SoftForks []string `json:"softforks"`
+}
+
+func (s *Signal) Slug() string {
+	return slug.Make(fmt.Sprintf("%s-%d", s.Address, s.Height))
 }
 
 func (s *Signal) IsSignalling() bool {

@@ -36,7 +36,6 @@ func (r *Repository) GetConsensusParameters() ([]*explorer.ConsensusParameter, e
 		if err = json.Unmarshal(hit.Source, &consensusParameter); err != nil {
 			return nil, err
 		}
-		consensusParameter.MetaData = explorer.NewMetaData(hit.Id, hit.Index)
 		consensusParameters = append(consensusParameters, consensusParameter)
 	}
 

@@ -50,6 +50,7 @@ func (r *Rewinder) RewindToHeight(height uint64) error {
 	}
 
 	LastBlockIndexed = height
+	log.Infof("Rewound to height: %d", height)
 	r.elastic.Persist()
 
 	return nil

@@ -35,20 +35,23 @@ func Execute() {
 	}
 
 	if indexer.LastBlockIndexed != 0 {
+		log.Debug("Resuming the index")
 		block, err := container.GetBlockRepo().GetBlockByHeight(indexer.LastBlockIndexed)
 		if err != nil {
 			log.WithError(err).Fatal("Failed to get block at height: ", indexer.LastBlockIndexed)
 		}
 
+		log.Debug("Get block cycle")
 		blockCycle := block.BlockCycle(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value)
+
 		container.GetDaoProposalService().LoadVotingProposals(block, blockCycle)
 		container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(block, blockCycle)
 	}
 
-	// Bulk index the backlog
+	log.Debug("Bulk index the backlog")
 	container.GetIndexer().BulkIndex()
 
-	// Subscribe to 0MQ
+	log.Debug("Subscribe to 0MQ")
 	container.GetSubscriber().Subscribe()
 }
 

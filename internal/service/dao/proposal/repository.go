@@ -42,7 +42,6 @@ func (r *Repository) GetPossibleVotingProposals(height uint64) ([]*explorer.Prop
 				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to unmarshall proposal")
 			}
-			proposal.MetaData = explorer.NewMetaData(hit.Id, hit.Index)
 			proposals = append(proposals, proposal)
 		}
 	}

@@ -1,6 +1,9 @@
 package consensus
 
-import "github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+import (
+	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"log"
+)
 
 type consensusParameters []*explorer.ConsensusParameter
 
@@ -48,6 +51,8 @@ func (p *consensusParameters) Get(parameter Parameter) *explorer.ConsensusParame
 			return c
 		}
 	}
+
+	log.Fatalf("Failed to get consensus parameter %s", string(parameter))
 
 	return nil
 }

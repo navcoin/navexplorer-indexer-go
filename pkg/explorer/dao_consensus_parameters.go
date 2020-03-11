@@ -1,5 +1,10 @@
 package explorer
 
+import (
+	"fmt"
+	"github.com/gosimple/slug"
+)
+
 type ConsensusParameterType int
 
 var (
@@ -32,10 +37,12 @@ func (p *ConsensusParameters) All() []*ConsensusParameter {
 }
 
 type ConsensusParameter struct {
-	MetaData MetaData `json:"-"`
-
 	Id          int                    `json:"id"`
 	Description string                 `json:"desc"`
 	Type        ConsensusParameterType `json:"type"`
 	Value       int                    `json:"value"`
+}
+
+func (cp *ConsensusParameter) Slug() string {
+	return slug.Make(fmt.Sprintf("%d", cp.Id))
 }

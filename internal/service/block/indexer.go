@@ -53,15 +53,15 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		applyCFundPayout(tx, block)
 		i.indexPreviousTxData(*tx)
 
-		if option == IndexOption.SingleIndex {
-			i.updateNextHashOfPreviousBlock(block)
-		}
-
 		txs = append(txs, tx)
-		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx.Hash, tx)
+		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx.Slug(), tx)
 	}
 
-	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block.Hash, block)
+	if option == IndexOption.SingleIndex {
+		i.updateNextHashOfPreviousBlock(block)
+	}
+
+	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block.Slug(), block)
 
 	return block, txs, err
 }
@@ -93,7 +93,7 @@ func (i *Indexer) indexPreviousTxData(tx explorer.BlockTransaction) {
 		vin[vdx].PreviousOutput.Height = prevTx.Height
 	}
 
-	i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx.Hash, tx)
+	i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx.Slug(), tx)
 }
 
 func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
@@ -114,7 +114,8 @@ func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 
 func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
 	if prevBlock, err := i.repository.GetBlockByHeight(block.Height - 1); err == nil {
+		log.Debugf("Update NextHash of PreviousBlock: %s", block.Hash)
 		prevBlock.Nextblockhash = block.Hash
-		i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), prevBlock.Hash, prevBlock, prevBlock.MetaData.Id)
+		i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), prevBlock.Slug(), prevBlock)
 	}
 }

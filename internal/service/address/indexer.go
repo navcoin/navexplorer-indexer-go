@@ -52,9 +52,8 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 		ApplyTxToAddress(addresses[addressTx.Hash], addressTx)
 		i.elastic.AddUpdateRequest(
 			elastic_cache.AddressIndex.Get(),
-			fmt.Sprintf("%s-%d", addressTx.Hash, addressTx.Height),
+			addresses[addressTx.Hash].Slug(),
 			addresses[addressTx.Hash],
-			addresses[addressTx.Hash].MetaData.Id,
 		)
 	}
 

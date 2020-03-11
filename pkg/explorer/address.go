@@ -1,8 +1,10 @@
 package explorer
 
-type Address struct {
-	MetaData MetaData `json:"-"`
+import (
+	"github.com/gosimple/slug"
+)
 
+type Address struct {
 	Hash   string `json:"hash"`
 	Height uint64 `json:"height"`
 
@@ -23,4 +25,8 @@ type Address struct {
 	ColdBalance       uint64 `json:"coldBalance"`
 
 	Position uint `json:"position"`
+}
+
+func (a *Address) Slug() string {
+	return slug.Make(a.Hash)
 }
