@@ -24,13 +24,8 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 			continue
 		}
 
-		if navP, err := i.navcoin.GetConsultation(tx.Hash); err == nil {
-			//strdzeel := new(strdzeel)
-			//if err := json.Unmarshal([]byte(tx.Strdzeel), &strdzeel); err != nil {
-			//	log.WithError(err).Fatal("Failed to unmarshall strdzeel")
-			//}
-
-			consultation := CreateConsultation(navP)
+		if navC, err := i.navcoin.GetConsultation(tx.Hash); err == nil {
+			consultation := CreateConsultation(navC)
 
 			index := elastic_cache.DaoConsultationIndex.Get()
 			_, err := i.elastic.Client.Index().
@@ -40,7 +35,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 				Do(context.Background())
 			if err != nil {
 				raven.CaptureError(err, nil)
-				log.WithError(err).Fatal("Failed to save new payment request")
+				log.WithError(err).Fatal("Failed to save new consultation")
 			}
 
 			Consultations = append(Consultations, consultation)
@@ -52,6 +47,24 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 	for _, c := range Consultations {
 		if c == nil {
 			continue
+		}
+
+		navC, err := i.navcoin.GetConsultation(c.Hash)
+		if err != nil {
+			raven.CaptureError(err, nil)
+			log.WithError(err).Fatalf("Failed to find active consultation: %s", c.Hash)
+		}
+
+		if UpdateConsultation(navC, c) {
+			c.UpdatedOnBlock = block.Height
+			log.Debugf("Consultation %s updated on block %d", c.Hash, block.Height)
+			i.elastic.AddUpdateRequest(elastic_cache.DaoConsultationIndex.Get(), c.Slug(), c)
+		}
+
+		if c.Status == "expired" {
+			if block.Height-c.UpdatedOnBlock >= uint64(blockCycle.Size) {
+				Consultations.Delete(c.Hash)
+			}
 		}
 	}
 }

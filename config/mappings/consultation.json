@@ -1,0 +1,151 @@
+{
+  "mappings": {
+    "properties": {
+      "version": {
+        "type": "long"
+      },
+      "hash": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "blockHash": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "question": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "support": {
+        "type": "long"
+      },
+      "abstain": {
+        "type": "long"
+      },
+      "answers": {
+        "type" : "nested",
+        "properties": {
+          "version": {
+            "type": "long"
+          },
+          "answer": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "support": {
+            "type": "long"
+          },
+          "votes": {
+            "type": "long"
+          },
+          "status": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "state": {
+            "type": "long"
+          },
+          "stateChangedOnBlock": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "txblockhash": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "parent": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "hash": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          }
+        }
+      },
+      "min": {
+        "type": "long"
+      },
+      "max": {
+        "type": "long"
+      },
+      "votingCycle": {
+        "type": "long"
+      },
+      "status": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "state": {
+        "type": "long"
+      },
+      "stateChangedOnBlock": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "updatedOnBlock": {
+        "type": "long"
+      }
+    }
+  },
+  "settings":{
+    "index":{
+      "max_result_window":"50000000"
+    }
+  }
+}

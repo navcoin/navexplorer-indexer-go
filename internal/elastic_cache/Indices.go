@@ -34,8 +34,9 @@ func All() []Indices {
 		BlockTransactionIndex,
 		ConsensusIndex,
 		ProposalIndex,
-		PaymentRequestIndex,
 		DaoVoteIndex,
+		DaoConsultationIndex,
+		PaymentRequestIndex,
 		SignalIndex,
 		SoftForkIndex,
 	}

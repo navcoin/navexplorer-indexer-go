@@ -6,53 +6,122 @@ import (
 )
 
 func CreateConsultation(consultation navcoind.Consultation) *explorer.Consultation {
-	return &explorer.Consultation{
+	c := &explorer.Consultation{
 		Version:             consultation.Version,
 		Hash:                consultation.Hash,
 		BlockHash:           consultation.BlockHash,
 		Question:            consultation.Question,
 		Support:             consultation.Support,
-		Min:                 0,
-		Max:                 0,
-		VotingCycle:         0,
-		Status:              "",
-		State:               0,
-		StateChangedOnBlock: "",
+		Min:                 consultation.Min,
+		Max:                 consultation.Max,
+		VotingCycle:         consultation.VotingCycle,
+		Status:              consultation.Status,
+		State:               consultation.State,
+		StateChangedOnBlock: consultation.StateChangedOnBlock,
+		Answers:             createAnswers(consultation),
 	}
+
+	return c
 }
 
-func UpdateConsultation(c navcoind.Consultation, consultation *explorer.PaymentRequest) {
-
-}
-
-func CreateAnswers(c navcoind.Consultation, initial []string) []*explorer.Answer {
+func createAnswers(c navcoind.Consultation) []*explorer.Answer {
 	answers := make([]*explorer.Answer, 0)
 	for _, a := range c.Answers {
-		if !isAnswerInitial(a.String, initial) {
-			continue
-		}
-
-		answer := &explorer.Answer{
-			Version: a.Version,
-			String:  a.String,
-			Status:  "waiting for support",
-			State:   1,
-			Parent:  a.Parent,
-			Hash:    a.Hash,
-		}
-
-		answers = append(answers, answer)
+		answers = append(answers, createAnswer(a))
 	}
 
 	return answers
 }
 
-func isAnswerInitial(a string, initial []string) bool {
-	for _, i := range initial {
-		if i == a {
-			return true
+func createAnswer(a *navcoind.Answer) *explorer.Answer {
+	return &explorer.Answer{
+		Version:             a.Version,
+		Answer:              a.Answer,
+		Support:             a.Support,
+		Votes:               a.Votes,
+		Status:              a.Status,
+		State:               a.State,
+		StateChangedOnBlock: a.StateChangedOnBlock,
+		TxBlockHash:         a.TxBlockHash,
+		Parent:              a.Parent,
+		Hash:                a.Hash,
+	}
+}
+
+func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bool {
+	updated := false
+	if navC.Support != c.Support {
+		c.Support = navC.Support
+		updated = true
+	}
+
+	if navC.VotingCycle != c.VotingCycle {
+		c.VotingCycle = navC.VotingCycle
+		updated = true
+	}
+
+	if navC.Status != c.Status {
+		c.Status = navC.Status
+		updated = true
+	}
+
+	if navC.State != c.State {
+		c.State = navC.State
+		updated = true
+	}
+
+	if navC.StateChangedOnBlock != c.StateChangedOnBlock {
+		c.StateChangedOnBlock = navC.StateChangedOnBlock
+		updated = true
+	}
+
+	if updateAnswers(navC, c) {
+		updated = true
+	}
+
+	return updated
+}
+
+func updateAnswers(navC navcoind.Consultation, c *explorer.Consultation) bool {
+	updated := false
+	for _, navA := range navC.Answers {
+		a := getAnswer(c, navA.Hash)
+		if a == nil {
+			c.Answers = append(c.Answers, createAnswer(navA))
+			updated = true
+		} else {
+			if a.Support != navA.Support {
+				a.Support = navA.Support
+				updated = true
+			}
+			if a.StateChangedOnBlock != navA.StateChangedOnBlock {
+				a.StateChangedOnBlock = navA.StateChangedOnBlock
+				updated = true
+			}
+			if a.State != navA.State {
+				a.State = navA.State
+				updated = true
+			}
+			if a.Status != navA.Status {
+				a.Status = navA.Status
+				updated = true
+			}
+			if a.Votes != navA.Votes {
+				a.Votes = navA.Votes
+				updated = true
+			}
 		}
 	}
 
-	return false
+	return updated
+}
+
+func getAnswer(c *explorer.Consultation, hash string) *explorer.Answer {
+	for _, a := range c.Answers {
+		if a.Hash == hash {
+			return a
+		}
+	}
+
+	return nil
 }
