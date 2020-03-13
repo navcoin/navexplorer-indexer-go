@@ -46,25 +46,55 @@ func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) 
 func (r *Repository) GetAddressesHeightGt(height uint64) ([]string, error) {
 	log.Debugf("GetAddressesHeightGt(height:%d)", height)
 
-	results, err := r.Client.
-		Search(elastic_cache.AddressTransactionIndex.Get()).
-		Query(elastic.NewRangeQuery("height").Gt(height)).
-		Aggregation("hash", elastic.NewTermsAggregation().Field("hash.keyword").Size(50000000)).
-		Size(0).
-		Do(context.Background())
+	addresses := make(map[string]struct{}, 0)
+	getAddresses := func(addresses map[string]struct{}, results *elastic.SearchResult) map[string]struct{} {
+		if agg, found := results.Aggregations.Terms("hash"); found {
+			for _, bucket := range agg.Buckets {
+				addresses[bucket.Key.(string)] = struct{}{}
+			}
+		}
+		return addresses
+	}
+	getAddressesHeightGtByIndex := func(height uint64, index elastic_cache.Indices) (*elastic.SearchResult, error) {
+		return r.Client.
+			Search(index.Get()).
+			Query(elastic.NewRangeQuery("height").Gt(height)).
+			Aggregation("hash", elastic.NewTermsAggregation().Field("hash.keyword").Size(50000000)).
+			Size(0).
+			Do(context.Background())
+	}
+
+	results, err := getAddressesHeightGtByIndex(height, elastic_cache.AddressIndex)
 	if err != nil || results == nil {
 		raven.CaptureError(err, nil)
 		return nil, err
 	}
+	addresses = getAddresses(addresses, results)
 
-	addresses := make([]string, 0)
-	if agg, found := results.Aggregations.Terms("hash"); found {
-		for _, bucket := range agg.Buckets {
-			addresses = append(addresses, bucket.Key.(string))
-		}
+	results, err = getAddressesHeightGtByIndex(height, elastic_cache.AddressTransactionIndex)
+	if err != nil || results == nil {
+		raven.CaptureError(err, nil)
+		return nil, err
+	}
+	addresses = getAddresses(addresses, results)
+
+	addressesSlice := make([]string, len(addresses))
+	i := 0
+	for f, _ := range addresses {
+		addressesSlice[i] = f
+		i++
 	}
 
-	return addresses, nil
+	return addressesSlice, nil
+}
+
+func (r *Repository) getAddressesHeightGtByIndex(height uint64, index elastic_cache.Indices) (*elastic.SearchResult, error) {
+	return r.Client.
+		Search(index.Get()).
+		Query(elastic.NewRangeQuery("height").Gt(height)).
+		Aggregation("hash", elastic.NewTermsAggregation().Field("hash.keyword").Size(50000000)).
+		Size(0).
+		Do(context.Background())
 }
 
 func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) {
