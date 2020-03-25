@@ -1,14 +1,18 @@
 package config
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 )
 
 type Config struct {
+	LogPath            string
 	Network            string
 	Debug              bool
 	Reindex            bool
@@ -54,11 +58,41 @@ func Init() {
 	if err != nil {
 		log.WithError(err).Fatal("Unable to init config")
 	}
-	log.Info("Config init")
+
+	if Get().Debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	initLogger()
+}
+
+func initLogger() {
+	filename := fmt.Sprintf("%s/indexer.log", Get().LogPath)
+	log.Infof("Logging to %s", filename)
+
+	log.SetFormatter(&log.JSONFormatter{})
+	logger := &lumberjack.Logger{
+		Filename:   filename,
+		MaxSize:    500, // megabytes
+		MaxBackups: 3,
+		MaxAge:     28,   // days
+		Compress:   true, // disabled by default
+	}
+	log.SetOutput(io.MultiWriter(os.Stdout, logger))
+
+	log.RegisterExitHandler(func() {
+		if logger == nil {
+			return
+		}
+		log.Info("Indexer is exiting")
+
+		_ = logger.Close()
+	})
 }
 
 func Get() *Config {
 	return &Config{
+		LogPath:            getString("LOG_PATH", "/app/logs"),
 		Network:            getString("NAVCOIND_NETWORK", "mainnet"),
 		SoftForkBlockCycle: getInt("SOFTFORK_BLOCKCYCLE", 20160),
 		SoftForkQuorum:     getInt("SOFTFORK_QUORUM", 75),

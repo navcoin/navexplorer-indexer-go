@@ -1,6 +1,9 @@
 package explorer
 
-import "github.com/gosimple/slug"
+import (
+	"fmt"
+	"github.com/gosimple/slug"
+)
 
 type RawPaymentRequest struct {
 	Version             uint32               `json:"version"`
@@ -21,7 +24,7 @@ type PaymentRequest struct {
 }
 
 func (p *PaymentRequest) Slug() string {
-	return slug.Make(p.Hash)
+	return slug.Make(fmt.Sprintf("paymentrequest-%s", p.Hash))
 }
 
 func (p *PaymentRequest) GetHeight() uint64 {

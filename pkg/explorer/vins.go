@@ -35,7 +35,7 @@ func (vins *Vins) GetAmount() uint64 {
 func (vins *Vins) GetAmountByAddress(address string, cold bool) (value float64, valuesat uint64) {
 	for _, i := range *vins {
 		if cold {
-			if len(i.Addresses) == 2 && i.HasAddress(address) {
+			if len(i.Addresses) == 2 && i.Addresses[0] == address {
 				value += i.Value
 				valuesat += i.ValueSat
 			}

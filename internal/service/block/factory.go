@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
-	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -107,10 +106,6 @@ func createVout(vouts []navcoind.Vout) []explorer.Vout {
 				},
 			},
 		})
-		if output[len(output)-1].ScriptPubKey.Type == explorer.VoutProposalYesVote {
-			log.Infof("ProposalYesVote: %s", output[len(output)-1].ScriptPubKey.Hash)
-		}
-
 	}
 
 	return output

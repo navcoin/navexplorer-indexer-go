@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -56,7 +55,7 @@ func New() (*Index, error) {
 	}
 
 	if config.Get().ElasticSearch.Debug {
-		opts = append(opts, elastic.SetTraceLog(log.New(os.Stdout, "", 0)))
+		opts = append(opts, elastic.SetTraceLog(logrus.StandardLogger()))
 	}
 
 	client, err := elastic.NewClient(opts...)
@@ -137,7 +136,7 @@ func (i *Index) BatchPersist(height uint64) {
 	}
 
 	actions := i.Persist()
-	logrus.WithFields(logrus.Fields{"actions": actions}).Info("Indexed height ", height)
+	logrus.WithField("actions", actions).Info("Indexed height ", height)
 }
 
 func (i *Index) Persist() int {
@@ -160,7 +159,7 @@ func (i *Index) Persist() int {
 		if response.Errors == true {
 			for _, failed := range response.Failed() {
 				raven.CaptureMessage(failed.Error.Reason, nil)
-				logrus.Fatal(failed.Error.Reason)
+				logrus.WithField("error", failed.Error).Fatal(failed.Error.Reason)
 			}
 		}
 	}

@@ -99,6 +99,10 @@ func (i *Indexer) indexPreviousTxData(tx explorer.BlockTransaction) {
 func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 	hash, err := i.navcoin.GetBlockHash(height)
 	if err != nil {
+		raven.CaptureError(err, nil)
+		if err.Error() != "-8: Block height out of range" {
+			log.WithFields(log.Fields{"hash": hash, "height": height}).WithError(err).Error("Failed to GetBlockHash")
+		}
 		return nil, err
 	}
 

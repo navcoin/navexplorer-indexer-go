@@ -98,7 +98,7 @@ func (r *Repository) getAddressesHeightGtByIndex(height uint64, index elastic_ca
 }
 
 func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) {
-	log.Debugf("GetOrCreateAddress(hash:%s)", hash)
+	log.WithField("address", hash).Debug("GetOrCreateAddress")
 
 	results, err := r.Client.
 		Search(elastic_cache.AddressIndex.Get()).
@@ -159,7 +159,7 @@ func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
 }
 
 func (r *Repository) GetTxsRangeForAddress(hash string, from uint64, to uint64) ([]*explorer.AddressTransaction, error) {
-	log.Debugf("GetTxsRangeForAddress(hash:%s, from:%d, to:%d)", hash, from, to)
+	log.WithField("address", hash).Debugf("GetTxsRangeForAddress: from:%d to:%d", from, to)
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("hash", hash))

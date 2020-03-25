@@ -1,10 +1,12 @@
 package explorer
 
-import "time"
+import (
+	"fmt"
+	"github.com/gosimple/slug"
+	"time"
+)
 
 type AddressTransaction struct {
-	//MetaData MetaData `json:"-"`
-
 	Hash    string       `json:"hash"`
 	Txid    string       `json:"txid"`
 	Height  uint64       `json:"height"`
@@ -16,4 +18,8 @@ type AddressTransaction struct {
 	Total   int64        `json:"total"`
 	Balance uint64       `json:"balance"`
 	Cold    bool         `json:"cold"`
+}
+
+func (a *AddressTransaction) Slug() string {
+	return slug.Make(fmt.Sprintf("addresstx-%s-%s-%t", a.Hash, a.Txid, a.Cold))
 }

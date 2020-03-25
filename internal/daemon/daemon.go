@@ -14,12 +14,8 @@ var container *dic.Container
 
 func Execute() {
 	config.Init()
-	if config.Get().Debug {
-		log.SetLevel(log.DebugLevel)
-	}
 
 	container, _ = dic.NewContainer(dingo.App)
-
 	container.GetElastic().InstallMappings()
 	container.GetSoftforkService().InitSoftForks()
 	container.GetDaoConsensusService().InitConsensusParameters()
@@ -27,9 +23,9 @@ func Execute() {
 	if config.Get().Sentry.Active {
 		_ = raven.SetDSN(config.Get().Sentry.DSN)
 	}
-
 	indexer.LastBlockIndexed = getHeight()
 
+	log.Infof("Rewind from %d to %d", indexer.LastBlockIndexed+uint64(config.Get().BulkIndexSize), indexer.LastBlockIndexed)
 	if err := container.GetRewinder().RewindToHeight(indexer.LastBlockIndexed); err != nil {
 		log.WithError(err).Fatal("Failed to rewind index")
 	}

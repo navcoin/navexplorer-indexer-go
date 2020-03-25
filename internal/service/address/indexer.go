@@ -1,7 +1,6 @@
 package address
 
 import (
-	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
@@ -27,34 +26,46 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 	}
 
 	hashes := make([]string, 0)
-	for _, addressTx := range CreateAddressTransactions(txs, block) {
-		if addresses[addressTx.Hash] == nil {
-			address, err := i.repo.GetOrCreateAddress(addressTx.Hash)
-			if err != nil {
-				raven.CaptureError(err, nil)
-				log.WithError(err).Fatalf("Could not get or create address: %s", addressTx.Hash)
+	for _, tx := range txs {
+		for _, addressTx := range CreateAddressTransaction(tx, block) {
+			if addresses[addressTx.Hash] == nil {
+				address, err := i.repo.GetOrCreateAddress(addressTx.Hash)
+				if err != nil {
+					raven.CaptureError(err, nil)
+					log.WithError(err).Fatalf("Could not get or create address: %s", addressTx.Hash)
+				}
+				addresses[addressTx.Hash] = address
 			}
-			addresses[addressTx.Hash] = address
+
+			previousBalance := addresses[addressTx.Hash].Balance
+			if addressTx.Cold == true {
+				addressTx.Balance = uint64(int64(addresses[addressTx.Hash].ColdBalance) + addressTx.Total)
+			} else {
+				addressTx.Balance = uint64(int64(addresses[addressTx.Hash].Balance) + addressTx.Total)
+			}
+
+			log.WithField("tx", tx).Debug("CreateTransaction")
+			log.WithField("address", addressTx.Hash).Debug("PreviousBalance: ", previousBalance)
+
+			i.elastic.AddIndexRequest(
+				elastic_cache.AddressTransactionIndex.Get(),
+				addressTx.Slug(),
+				addressTx,
+			)
+
+			ApplyTxToAddress(addresses[addressTx.Hash], addressTx)
+			if addressTx.Cold == true {
+				addresses[addressTx.Hash].ColdBalance += addressTx.Total
+			} else {
+				addresses[addressTx.Hash].Balance += addressTx.Total
+			}
+
+			i.elastic.AddUpdateRequest(
+				elastic_cache.AddressIndex.Get(),
+				addresses[addressTx.Hash].Slug(),
+				addresses[addressTx.Hash],
+			)
 		}
-
-		if addressTx.Cold == true {
-			addressTx.Balance = uint64(int64(addresses[addressTx.Hash].ColdBalance) + addressTx.Total)
-		} else {
-			addressTx.Balance = uint64(int64(addresses[addressTx.Hash].Balance) + addressTx.Total)
-		}
-
-		i.elastic.AddIndexRequest(
-			elastic_cache.AddressTransactionIndex.Get(),
-			fmt.Sprintf("%s-%s-%t", addressTx.Hash, addressTx.Txid, addressTx.Cold),
-			addressTx,
-		)
-
-		ApplyTxToAddress(addresses[addressTx.Hash], addressTx)
-		i.elastic.AddUpdateRequest(
-			elastic_cache.AddressIndex.Get(),
-			addresses[addressTx.Hash].Slug(),
-			addresses[addressTx.Hash],
-		)
 	}
 
 	if len(hashes) > 0 {

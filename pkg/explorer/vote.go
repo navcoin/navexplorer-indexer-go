@@ -12,7 +12,7 @@ type DaoVotes struct {
 }
 
 func (v *DaoVotes) Slug() string {
-	return slug.Make(fmt.Sprintf("%d-%s", v.Height, v.Address))
+	return slug.Make(fmt.Sprintf("vote-%d-%s", v.Height, v.Address))
 }
 
 type Vote struct {

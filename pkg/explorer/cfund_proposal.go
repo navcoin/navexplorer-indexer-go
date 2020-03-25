@@ -1,10 +1,11 @@
 package explorer
 
-import "github.com/gosimple/slug"
+import (
+	"fmt"
+	"github.com/gosimple/slug"
+)
 
 type RawProposal struct {
-	//MetaData MetaData `json:"-"`
-
 	Version             uint32         `json:"version"`
 	Hash                string         `json:"hash"`
 	BlockHash           string         `json:"blockHash"`
@@ -28,7 +29,7 @@ type Proposal struct {
 }
 
 func (p *Proposal) Slug() string {
-	return slug.Make(p.Hash)
+	return slug.Make(fmt.Sprintf("proposal-%s", p.Hash))
 }
 
 func (p *Proposal) GetHeight() uint64 {

@@ -12,7 +12,7 @@ type Signal struct {
 }
 
 func (s *Signal) Slug() string {
-	return slug.Make(fmt.Sprintf("%s-%d", s.Address, s.Height))
+	return slug.Make(fmt.Sprintf("signal-%s-%d", s.Address, s.Height))
 }
 
 func (s *Signal) IsSignalling() bool {

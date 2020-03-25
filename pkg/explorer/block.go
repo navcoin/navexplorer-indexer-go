@@ -1,6 +1,7 @@
 package explorer
 
 import (
+	"fmt"
 	"github.com/gosimple/slug"
 	"time"
 )
@@ -41,7 +42,7 @@ type Block struct {
 }
 
 func (b *Block) Slug() string {
-	return slug.Make(b.Hash)
+	return slug.Make(fmt.Sprintf("block-%s", b.Hash))
 }
 
 type BlockCycle struct {
