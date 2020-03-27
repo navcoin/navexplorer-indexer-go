@@ -3,6 +3,7 @@ package consensus
 import (
 	"context"
 	"encoding/json"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
@@ -33,15 +34,7 @@ func (s *Service) InitConsensusParameters() {
 		return
 	}
 
-	parameters := make([]*explorer.ConsensusParameter, 0)
-
-	err = json.Unmarshal([]byte(devnet), &parameters)
-	if err != nil {
-		raven.CaptureError(err, nil)
-		log.WithError(err).Fatalf("Failed to load consensus parameters from JSON")
-		return
-	}
-
+	parameters, _ := s.InitialState()
 	for _, parameter := range parameters {
 		_, err := s.elastic.Client.Index().
 			Index(elastic_cache.ConsensusIndex.Get()).
@@ -56,4 +49,21 @@ func (s *Service) InitConsensusParameters() {
 	}
 
 	Parameters = parameters
+}
+
+func (s *Service) InitialState() ([]*explorer.ConsensusParameter, error) {
+	parameters := make([]*explorer.ConsensusParameter, 0)
+	byteParams := []byte(mainnet)
+	if config.Get().Network != "mainnet" {
+		byteParams = []byte(testnet)
+	}
+
+	err := json.Unmarshal(byteParams, &parameters)
+	if err != nil {
+		raven.CaptureError(err, nil)
+		log.WithError(err).Fatalf("Failed to load consensus parameters from JSON")
+		return nil, err
+	}
+
+	return parameters, nil
 }

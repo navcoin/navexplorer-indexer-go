@@ -155,14 +155,14 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.consensus.Indexer",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository) (*consensus.Indexer, error) {
-			return consensus.NewIndexer(navcoin, elastic, repo), nil
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository, service *consensus.Service) (*consensus.Indexer, error) {
+			return consensus.NewIndexer(navcoin, elastic, repo, service), nil
 		},
 	},
 	{
 		Name: "dao.consensus.Rewinder",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository) (*consensus.Rewinder, error) {
-			return consensus.NewRewinder(navcoin, elastic, repo), nil
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository, service *consensus.Service) (*consensus.Rewinder, error) {
+			return consensus.NewRewinder(navcoin, elastic, repo, service), nil
 		},
 	},
 	{

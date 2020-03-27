@@ -4,7 +4,6 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -12,31 +11,30 @@ type Indexer struct {
 	navcoin *navcoind.Navcoind
 	elastic *elastic_cache.Index
 	repo    *Repository
+	service *Service
 }
 
-func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *Repository) *Indexer {
-	return &Indexer{navcoin, elastic, repo}
+func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *Repository, service *Service) *Indexer {
+	return &Indexer{navcoin, elastic, repo, service}
 }
 
 func (i *Indexer) Index() error {
-	navcoindConsensusParameters, err := i.navcoin.GetConsensusParameters(true)
-	if err != nil {
-		raven.CaptureError(err, nil)
-		log.WithError(err).Error("Failed to get consensus parameters")
-		return err
-	}
+	initialParameters, _ := i.service.InitialState()
 
 	c := make([]*explorer.ConsensusParameter, 0)
 
 	consensusParameters, err := i.repo.GetConsensusParameters()
-	for _, navcoindConsensusParameter := range navcoindConsensusParameters {
+	if err != nil {
+		log.WithError(err).Fatal("Failed to get consensus parameters from repo")
+	}
+
+	for _, initialParameter := range initialParameters {
 		for _, consensusParameter := range consensusParameters {
-			if navcoindConsensusParameter.Id == consensusParameter.Id {
-				UpdateConsensus(navcoindConsensusParameter, consensusParameter)
+			if initialParameter.Id == consensusParameter.Id {
 				i.elastic.AddUpdateRequest(
 					elastic_cache.ConsensusIndex.Get(),
 					consensusParameter.Slug(),
-					consensusParameter,
+					initialParameter,
 				)
 				c = append(c, consensusParameter)
 			}
