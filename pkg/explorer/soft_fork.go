@@ -62,3 +62,13 @@ func (s SoftForks) GetSoftFork(name string) *SoftFork {
 
 	return nil
 }
+
+func (s SoftForks) HasSoftFork(name string) bool {
+	for i, _ := range s {
+		if s[i].Name == name {
+			return true
+		}
+	}
+
+	return false
+}
