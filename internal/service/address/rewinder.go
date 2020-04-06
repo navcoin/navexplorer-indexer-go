@@ -34,6 +34,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 	}
 
 	for _, hash := range addresses {
+		log.Infof("Rewinding address %s", hash)
 		address, err := r.repo.GetOrCreateAddress(hash)
 		if err != nil {
 			return err
