@@ -58,15 +58,6 @@
       "expiresOn": {
         "type": "long"
       },
-      "status": {
-        "type": "text",
-        "fields": {
-          "keyword": {
-            "type": "keyword",
-            "ignore_above": 256
-          }
-        }
-      },
       "state": {
         "type": "text",
         "fields": {
@@ -95,7 +86,8 @@
   },
   "settings":{
     "index":{
-      "max_result_window":"50000000"
+      "max_result_window":"50000000",
+      "number_of_replicas": 1
     }
   }
 }
