@@ -40,6 +40,17 @@ func GetStatusByState(state uint) ProposalStatus {
 	panic(0)
 }
 
+func GetStatusByStatus(status string) ProposalStatus {
+	for idx := range proposalStatus {
+		if proposalStatus[idx].Status == status {
+			return proposalStatus[idx]
+		}
+	}
+
+	log.Fatal("ProposalStatus status does not exist", status)
+	panic(0)
+}
+
 func ProposalStatusIsValid(status string) bool {
 	for idx := range proposalStatus {
 		if proposalStatus[idx].Status == status {
