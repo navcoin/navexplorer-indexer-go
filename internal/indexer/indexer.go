@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer/IndexOption"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/address"
@@ -55,16 +56,12 @@ func (i *Indexer) BulkIndex() {
 
 func (i *Indexer) Index(option IndexOption.IndexOption) error {
 	err := i.index(LastBlockIndexed+1, option)
-	if err == nil {
-		return i.Index(option)
+	if err == block.ErrOrphanBlockFound {
+		err = i.rewinder.RewindToHeight(uint64(config.Get().ReindexSize))
 	}
 
-	if err == block.ErrOrphanBlockFound {
-		if err := i.rewinder.RewindToHeight(LastBlockIndexed - 9); err != nil {
-			raven.CaptureError(err, nil)
-			// Unable to rewind blocks
-			return err
-		}
+	if err == nil {
+		return i.Index(option)
 	}
 
 	return err
