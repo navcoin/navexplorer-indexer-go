@@ -8,25 +8,24 @@ import (
 )
 
 func CreateProposal(proposal navcoind.Proposal, height uint64) *explorer.Proposal {
+	explorer.GetStatusByState(proposal.State)
 	return &explorer.Proposal{
-		RawProposal: explorer.RawProposal{
-			Version:             proposal.Version,
-			Hash:                proposal.Hash,
-			BlockHash:           proposal.BlockHash,
-			Description:         proposal.Description,
-			RequestedAmount:     convertStringToFloat(proposal.RequestedAmount),
-			NotPaidYet:          convertStringToFloat(proposal.RequestedAmount),
-			NotRequestedYet:     convertStringToFloat(proposal.RequestedAmount),
-			UserPaidFee:         convertStringToFloat(proposal.UserPaidFee),
-			PaymentAddress:      proposal.PaymentAddress,
-			ProposalDuration:    proposal.ProposalDuration,
-			ExpiresOn:           proposal.ExpiresOn,
-			Status:              "pending",
-			State:               proposal.State,
-			StateChangedOnBlock: proposal.StateChangedOnBlock,
-		},
-		Height:         height,
-		UpdatedOnBlock: height,
+		Version:             proposal.Version,
+		Hash:                proposal.Hash,
+		BlockHash:           proposal.BlockHash,
+		Description:         proposal.Description,
+		RequestedAmount:     convertStringToFloat(proposal.RequestedAmount),
+		NotPaidYet:          convertStringToFloat(proposal.RequestedAmount),
+		NotRequestedYet:     convertStringToFloat(proposal.RequestedAmount),
+		UserPaidFee:         convertStringToFloat(proposal.UserPaidFee),
+		PaymentAddress:      proposal.PaymentAddress,
+		ProposalDuration:    proposal.ProposalDuration,
+		ExpiresOn:           proposal.ExpiresOn,
+		State:               proposal.State,
+		Status:              explorer.GetStatusByState(proposal.State).Status,
+		StateChangedOnBlock: proposal.StateChangedOnBlock,
+		Height:              height,
+		UpdatedOnBlock:      height,
 	}
 }
 
@@ -41,13 +40,9 @@ func UpdateProposal(proposal navcoind.Proposal, height uint64, p *explorer.Propo
 		p.UpdatedOnBlock = height
 	}
 
-	if p.Status != explorer.ProposalStatus(proposal.Status) {
-		p.Status = explorer.ProposalStatus(proposal.Status)
-		p.UpdatedOnBlock = height
-	}
-
 	if p.State != proposal.State {
 		p.State = proposal.State
+		p.Status = explorer.GetStatusByState(p.State).Status
 		p.UpdatedOnBlock = height
 	}
 

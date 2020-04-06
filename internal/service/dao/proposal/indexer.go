@@ -59,7 +59,7 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 			i.elastic.AddUpdateRequest(elastic_cache.ProposalIndex.Get(), p.Slug(), p)
 		}
 
-		if p.Status == explorer.ProposalExpired || p.Status == explorer.ProposalRejected {
+		if p.Status == explorer.ProposalExpired.Status || p.Status == explorer.ProposalRejected.Status {
 			if block.Height-p.UpdatedOnBlock >= uint64(blockCycle.Size) {
 				Proposals.Delete(p.Hash)
 			}

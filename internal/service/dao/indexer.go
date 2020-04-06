@@ -40,20 +40,9 @@ func NewIndexer(
 }
 
 func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction) {
-	if consensus.Parameters == nil {
-		err := i.consensusIndexer.Index()
-		if err != nil {
-			raven.CaptureError(err, nil)
-			log.WithError(err).Fatal("Failed to get Consensus")
-		}
-	}
-
 	i.proposalIndexer.Index(txs)
-
 	i.paymentRequestIndexer.Index(txs)
-
 	i.paymentRequestIndexer.Index(txs)
-
 	i.consultationIndexer.Index(txs)
 
 	header, err := i.navcoin.GetBlockheader(block.Hash)
