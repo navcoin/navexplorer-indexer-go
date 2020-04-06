@@ -9,6 +9,7 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"strings"
 )
 
@@ -165,25 +166,26 @@ func (r *Repository) GetTxsRangeForAddress(hash string, from uint64, to uint64) 
 	query = query.Must(elastic.NewMatchQuery("hash", hash))
 	query = query.Must(elastic.NewRangeQuery("height").Gt(from).Lte(to))
 
-	results, err := r.Client.
-		Search(elastic_cache.AddressTransactionIndex.Get()).
-		Query(query).
-		Size(50000000).
-		Sort("height", true).
-		Do(context.Background())
-	if err != nil {
-		raven.CaptureError(err, nil)
-		return nil, err
-	}
-
+	service := r.Client.Scroll(elastic_cache.AddressTransactionIndex.Get()).Query(query).Size(10000).Sort("height", true)
 	txs := make([]*explorer.AddressTransaction, 0)
-	for _, hit := range results.Hits.Hits {
-		var tx *explorer.AddressTransaction
-		if err = json.Unmarshal(hit.Source, &tx); err != nil {
-			raven.CaptureError(err, nil)
-			return nil, err
+
+	for {
+		results, err := service.Do(context.Background())
+		if err == io.EOF {
+			break
 		}
-		txs = append(txs, tx)
+		if err != nil || results == nil {
+			log.Fatal(err)
+		}
+
+		for _, hit := range results.Hits.Hits {
+			var tx *explorer.AddressTransaction
+			if err = json.Unmarshal(hit.Source, &tx); err != nil {
+				raven.CaptureError(err, nil)
+				return nil, err
+			}
+			txs = append(txs, tx)
+		}
 	}
 
 	return txs, nil
