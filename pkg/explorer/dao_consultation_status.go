@@ -33,7 +33,7 @@ func GetConsultationStatusByState(state uint) ConsultationStatus {
 func GetConsultationStatusByStatus(status string) ConsultationStatus {
 	for idx := range consultationStatus {
 		if consultationStatus[idx].Status == status {
-			return proposalStatus[idx]
+			return consultationStatus[idx]
 		}
 	}
 
