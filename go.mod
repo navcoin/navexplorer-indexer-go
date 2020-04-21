@@ -13,8 +13,9 @@ require (
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/olivere/elastic/v7 v7.0.9
 	github.com/pebbe/zmq4 v1.0.0
-	github.com/sarulabs/dingo/v3 v3.0.0
+	github.com/sarulabs/dingo/v3 v3.1.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v1.0.0
+	github.com/spf13/pflag v1.0.5 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
