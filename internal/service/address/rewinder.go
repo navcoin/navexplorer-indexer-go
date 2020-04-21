@@ -22,31 +22,35 @@ func (r *Rewinder) Rewind(height uint64) error {
 
 	addresses, err := r.repo.GetAddressesHeightGt(height)
 	if err != nil {
-		raven.CaptureError(err, nil)
+		log.Error("Failed to get addresses greater than ", height)
 		return err
 	}
-	log.Infof("Rewinding %d addresses", len(addresses))
 
+	log.Infof("Rewinding %d addresses", len(addresses))
 	err = r.elastic.DeleteHeightGT(height, elastic_cache.AddressTransactionIndex.Get())
 	if err != nil {
-		raven.CaptureError(err, nil)
+		log.Error("Failed to delete address transactions greater than ", height)
 		return err
 	}
 
-	for _, hash := range addresses {
-		log.Infof("Rewinding address %s", hash)
-		address, err := r.repo.GetOrCreateAddress(hash)
+	for idx, hash := range addresses {
+		Addresses.Delete(hash)
+
+		log.Infof("Rewinding address %d: %s", idx+1, hash)
+		address, err := r.repo.GetAddress(hash)
 		if err != nil {
+			log.Error("Failed to get address with hash ", hash)
 			return err
 		}
 
 		err = r.RewindAddressToHeight(address, height)
 		if err != nil {
+			log.Errorf("Failed to rewind address %s to height %s", address, height)
 			return err
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (r *Rewinder) RewindAddressToHeight(address *explorer.Address, height uint64) error {

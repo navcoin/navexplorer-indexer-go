@@ -25,7 +25,7 @@ func (i *Indexer) Index(block *explorer.Block) {
 	i.updateState(block)
 
 	for _, softFork := range SoftForks {
-		i.elastic.AddUpdateRequest(elastic_cache.SoftForkIndex.Get(), softFork.Slug(), softFork)
+		i.elastic.AddUpdateRequest(elastic_cache.SoftForkIndex.Get(), softFork)
 	}
 
 	if signal != nil {
@@ -35,7 +35,7 @@ func (i *Indexer) Index(block *explorer.Block) {
 			}
 		}
 		if len(signal.SoftForks) > 0 {
-			i.elastic.AddIndexRequest(elastic_cache.SignalIndex.Get(), signal.Slug(), signal)
+			i.elastic.AddIndexRequest(elastic_cache.SignalIndex.Get(), signal)
 		}
 	}
 

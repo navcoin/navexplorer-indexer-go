@@ -21,7 +21,7 @@ func (i *Indexer) IndexVotes(txs []*explorer.BlockTransaction, block *explorer.B
 		}
 
 		if v := CreateVotes(block, tx, blockHeader); v != nil {
-			i.elastic.AddIndexRequest(elastic_cache.DaoVoteIndex.Get(), v.Slug(), v)
+			i.elastic.AddIndexRequest(elastic_cache.DaoVoteIndex.Get(), v)
 			return
 		}
 	}

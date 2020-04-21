@@ -107,7 +107,6 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 		Size(1).
 		Do(context.Background())
 	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
@@ -139,7 +138,7 @@ func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
 
 	results, err := r.Client.
 		Search(elastic_cache.AddressIndex.Get()).
-		Query(elastic.NewTermQuery("hash", hash)).
+		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
 	if err != nil {

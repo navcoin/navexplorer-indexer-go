@@ -12,10 +12,6 @@ type Indexer struct {
 	repo    *Repository
 }
 
-var (
-	addresses = make(map[string]*explorer.Address)
-)
-
 func NewIndexer(elastic *elastic_cache.Index, repo *Repository) *Indexer {
 	return &Indexer{elastic, repo}
 }
@@ -28,43 +24,35 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 	hashes := make([]string, 0)
 	for _, tx := range txs {
 		for _, addressTx := range CreateAddressTransaction(tx, block) {
-			if addresses[addressTx.Hash] == nil {
+			if Addresses.GetByHash(addressTx.Hash) == nil {
 				address, err := i.repo.GetOrCreateAddress(addressTx.Hash)
 				if err != nil {
 					raven.CaptureError(err, nil)
 					log.WithError(err).Fatalf("Could not get or create address: %s", addressTx.Hash)
 				}
-				addresses[addressTx.Hash] = address
+				Addresses[addressTx.Hash] = address
 			}
 
-			previousBalance := addresses[addressTx.Hash].Balance
+			previousBalance := Addresses[addressTx.Hash].Balance
 			if addressTx.Cold == true {
-				addressTx.Balance = uint64(int64(addresses[addressTx.Hash].ColdBalance) + addressTx.Total)
+				addressTx.Balance = uint64(Addresses[addressTx.Hash].ColdBalance + addressTx.Total)
 			} else {
-				addressTx.Balance = uint64(int64(addresses[addressTx.Hash].Balance) + addressTx.Total)
+				addressTx.Balance = uint64(Addresses[addressTx.Hash].Balance + addressTx.Total)
 			}
 
 			log.WithField("tx", tx).Debug("CreateTransaction")
 			log.WithField("address", addressTx.Hash).Debug("PreviousBalance: ", previousBalance)
 
-			i.elastic.AddIndexRequest(
-				elastic_cache.AddressTransactionIndex.Get(),
-				addressTx.Slug(),
-				addressTx,
-			)
+			i.elastic.AddIndexRequest(elastic_cache.AddressTransactionIndex.Get(), addressTx)
 
-			ApplyTxToAddress(addresses[addressTx.Hash], addressTx)
+			ApplyTxToAddress(Addresses[addressTx.Hash], addressTx)
 			if addressTx.Cold == true {
-				addresses[addressTx.Hash].ColdBalance += addressTx.Total
+				Addresses[addressTx.Hash].ColdBalance += addressTx.Total
 			} else {
-				addresses[addressTx.Hash].Balance += addressTx.Total
+				Addresses[addressTx.Hash].Balance += addressTx.Total
 			}
 
-			i.elastic.AddUpdateRequest(
-				elastic_cache.AddressIndex.Get(),
-				addresses[addressTx.Hash].Slug(),
-				addresses[addressTx.Hash],
-			)
+			i.elastic.AddUpdateRequest(elastic_cache.AddressIndex.Get(), Addresses[addressTx.Hash])
 		}
 	}
 
@@ -75,23 +63,4 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 			//addresses = i.createNewAddresses(hashes, addresses)
 		}
 	}
-}
-
-func (i *Indexer) createNewAddresses(hashes []string, addresses []*explorer.Address) []*explorer.Address {
-	for _, hash := range hashes {
-		found := func() bool {
-			for _, address := range addresses {
-				if hash == address.Hash {
-					return true
-				}
-			}
-			return false
-		}()
-
-		if !found {
-			addresses = append(addresses, &explorer.Address{Hash: hash})
-		}
-	}
-
-	return addresses
 }

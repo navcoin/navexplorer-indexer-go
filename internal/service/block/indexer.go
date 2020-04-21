@@ -32,8 +32,11 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 
 	block := CreateBlock(navBlock)
 	if option == IndexOption.SingleIndex {
+		log.Info("Indexing in single block mode")
 		orphan, err := i.orphanService.IsOrphanBlock(block)
 		if orphan == true || err != nil {
+			log.WithFields(log.Fields{"block": block, "orphan": orphan}).WithError(err).Info("Orphan Block Found")
+
 			return nil, nil, ErrOrphanBlockFound
 		}
 	}
@@ -54,14 +57,14 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		i.indexPreviousTxData(*tx)
 
 		txs = append(txs, tx)
-		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx.Slug(), tx)
+		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
 	}
 
 	if option == IndexOption.SingleIndex {
 		i.updateNextHashOfPreviousBlock(block)
 	}
 
-	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block.Slug(), block)
+	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
 
 	return block, txs, err
 }
@@ -93,7 +96,7 @@ func (i *Indexer) indexPreviousTxData(tx explorer.BlockTransaction) {
 		vin[vdx].PreviousOutput.Height = prevTx.Height
 	}
 
-	i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx.Slug(), tx)
+	i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), &tx)
 }
 
 func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
@@ -120,6 +123,6 @@ func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
 	if prevBlock, err := i.repository.GetBlockByHeight(block.Height - 1); err == nil {
 		log.Debugf("Update NextHash of PreviousBlock: %s", block.Hash)
 		prevBlock.Nextblockhash = block.Hash
-		i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), prevBlock.Slug(), prevBlock)
+		i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), prevBlock)
 	}
 }

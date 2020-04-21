@@ -36,6 +36,8 @@ func NewRewinder(
 func (r *Rewinder) RewindToHeight(height uint64) error {
 	log.Infof("Rewinding to height: %d", height)
 
+	LastBlockIndexed = height
+
 	if err := r.addressRewinder.Rewind(height); err != nil {
 		return err
 	}
@@ -49,7 +51,6 @@ func (r *Rewinder) RewindToHeight(height uint64) error {
 		return err
 	}
 
-	LastBlockIndexed = height
 	log.Infof("Rewound to height: %d", height)
 	r.elastic.Persist()
 

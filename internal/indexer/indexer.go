@@ -57,7 +57,7 @@ func (i *Indexer) BulkIndex() {
 func (i *Indexer) Index(option IndexOption.IndexOption) error {
 	err := i.index(LastBlockIndexed+1, option)
 	if err == block.ErrOrphanBlockFound {
-		err = i.rewinder.RewindToHeight(uint64(config.Get().ReindexSize))
+		err = i.rewinder.RewindToHeight(LastBlockIndexed - uint64(config.Get().ReindexSize))
 	}
 
 	if err == nil {
