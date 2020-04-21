@@ -39,7 +39,6 @@ func (r *Repository) GetPossibleVotingProposals(height uint64) ([]*explorer.Prop
 		for _, hit := range results.Hits.Hits {
 			var proposal *explorer.Proposal
 			if err := json.Unmarshal(hit.Source, &proposal); err != nil {
-				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to unmarshall proposal")
 			}
 			proposals = append(proposals, proposal)

@@ -16,8 +16,8 @@ func CreatePaymentRequest(paymentRequest navcoind.PaymentRequest, height uint64)
 			ProposalHash:        paymentRequest.ProposalHash,
 			Description:         paymentRequest.Description,
 			RequestedAmount:     convertStringToFloat(paymentRequest.RequestedAmount),
-			Status:              "pending",
 			State:               paymentRequest.State,
+			Status:              explorer.GetPaymentRequestStatusByState(paymentRequest.State).Status,
 			StateChangedOnBlock: paymentRequest.StateChangedOnBlock,
 		},
 		Height:         height,
@@ -26,14 +26,12 @@ func CreatePaymentRequest(paymentRequest navcoind.PaymentRequest, height uint64)
 }
 
 func UpdatePaymentRequest(paymentRequest navcoind.PaymentRequest, height uint64, p *explorer.PaymentRequest) {
-	if p.Status != explorer.PaymentRequestStatus(paymentRequest.Status) {
-		p.Status = explorer.PaymentRequestStatus(paymentRequest.Status)
-		p.UpdatedOnBlock = height
-	}
 	if p.State != paymentRequest.State {
 		p.State = paymentRequest.State
+		p.Status = explorer.GetPaymentRequestStatusByState(p.State).Status
 		p.UpdatedOnBlock = height
 	}
+
 	if p.StateChangedOnBlock != paymentRequest.StateChangedOnBlock {
 		p.StateChangedOnBlock = paymentRequest.StateChangedOnBlock
 		p.UpdatedOnBlock = height

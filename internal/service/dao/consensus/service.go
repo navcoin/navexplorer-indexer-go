@@ -21,34 +21,37 @@ func NewService(network string, elastic *elastic_cache.Index, repo *Repository) 
 }
 
 func (s *Service) InitConsensusParameters() {
-	p, err := s.repo.GetConsensusParameters()
+	parameters, err := s.repo.GetConsensusParameters()
 	if err != nil && err != elastic_cache.ErrRecordNotFound {
 		raven.CaptureError(err, nil)
 		log.WithError(err).Fatal("Failed to load consensus parameters")
 		return
 	}
 
-	if len(p) != 0 {
+	if len(parameters) != 0 {
 		log.Info("Consensus parameters already initialised")
-		Parameters = p
+		for _, p := range parameters {
+			log.Infof("Consensus parameter %s is %d", p.Description, p.Value)
+		}
+		Parameters = parameters
 		return
 	}
 
-	parameters, _ := s.InitialState()
-	for _, parameter := range parameters {
+	initialParams, _ := s.InitialState()
+	for _, initialParam := range initialParams {
 		_, err := s.elastic.Client.Index().
 			Index(elastic_cache.ConsensusIndex.Get()).
-			Id(parameter.Slug()).
-			BodyJson(parameter).
+			Id(initialParam.Slug()).
+			BodyJson(initialParam).
 			Do(context.Background())
 		if err != nil {
 			log.WithError(err).Fatal("Failed to save new softfork")
 		}
 
-		log.Info("Saving new consensus parameter: ", parameter.Description)
+		log.Info("Saving new consensus parameter: ", initialParam.Description)
 	}
 
-	Parameters = parameters
+	Parameters = initialParams
 }
 
 func (s *Service) InitialState() ([]*explorer.ConsensusParameter, error) {

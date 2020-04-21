@@ -29,7 +29,8 @@ var proposalStatus = [7]ProposalStatus{
 	ProposalPaid,
 }
 
-func GetStatusByState(state uint) ProposalStatus {
+//noinspection GoUnreachableCode
+func GetProposalStatusByState(state uint) ProposalStatus {
 	for idx := range proposalStatus {
 		if proposalStatus[idx].State == state {
 			return proposalStatus[idx]
@@ -40,7 +41,8 @@ func GetStatusByState(state uint) ProposalStatus {
 	panic(0)
 }
 
-func GetStatusByStatus(status string) ProposalStatus {
+//noinspection GoUnreachableCode
+func GetProposalStatusByStatus(status string) ProposalStatus {
 	for idx := range proposalStatus {
 		if proposalStatus[idx].Status == status {
 			return proposalStatus[idx]
@@ -51,7 +53,7 @@ func GetStatusByStatus(status string) ProposalStatus {
 	panic(0)
 }
 
-func ProposalStatusIsValid(status string) bool {
+func IsProposalStatusValid(status string) bool {
 	for idx := range proposalStatus {
 		if proposalStatus[idx].Status == status {
 			return true

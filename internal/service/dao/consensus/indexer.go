@@ -31,11 +31,7 @@ func (i *Indexer) Index() error {
 	for _, initialParameter := range initialParameters {
 		for _, consensusParameter := range consensusParameters {
 			if initialParameter.Id == consensusParameter.Id {
-				i.elastic.AddUpdateRequest(
-					elastic_cache.ConsensusIndex.Get(),
-					consensusParameter.Slug(),
-					initialParameter,
-				)
+				i.elastic.AddUpdateRequest(elastic_cache.ConsensusIndex.Get(), initialParameter)
 				c = append(c, consensusParameter)
 			}
 		}

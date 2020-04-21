@@ -17,6 +17,7 @@ type Repository struct {
 func NewRepo(client *elastic.Client) *Repository {
 	return &Repository{client}
 }
+
 func (r *Repository) GetPossibleVotingRequests(height uint64) ([]*explorer.PaymentRequest, error) {
 	var paymentRequests []*explorer.PaymentRequest
 
@@ -33,6 +34,7 @@ func (r *Repository) GetPossibleVotingRequests(height uint64) ([]*explorer.Payme
 		raven.CaptureError(err, nil)
 		return nil, err
 	}
+
 	if results != nil {
 		for _, hit := range results.Hits.Hits {
 			var paymentRequest *explorer.PaymentRequest

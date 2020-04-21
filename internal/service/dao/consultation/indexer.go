@@ -58,7 +58,7 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 		if UpdateConsultation(navC, c) {
 			c.UpdatedOnBlock = block.Height
 			log.Debugf("Consultation %s updated on block %d", c.Hash, block.Height)
-			i.elastic.AddUpdateRequest(elastic_cache.DaoConsultationIndex.Get(), c.Slug(), c)
+			i.elastic.AddUpdateRequest(elastic_cache.DaoConsultationIndex.Get(), c)
 		}
 
 		if c.Status == "expired" {

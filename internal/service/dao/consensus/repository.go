@@ -19,7 +19,8 @@ func NewRepo(client *elastic.Client) *Repository {
 
 func (r *Repository) GetConsensusParameters() ([]*explorer.ConsensusParameter, error) {
 	results, err := r.Client.Search(elastic_cache.ConsensusIndex.Get()).
-		Size(1).
+		Sort("id", true).
+		Size(10000).
 		Do(context.Background())
 	if err != nil || results == nil {
 		raven.CaptureError(err, nil)

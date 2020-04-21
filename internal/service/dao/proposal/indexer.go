@@ -56,7 +56,7 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 
 		UpdateProposal(navP, block.Height, p)
 		if p.UpdatedOnBlock == block.Height {
-			i.elastic.AddUpdateRequest(elastic_cache.ProposalIndex.Get(), p.Slug(), p)
+			i.elastic.AddUpdateRequest(elastic_cache.ProposalIndex.Get(), p)
 		}
 
 		if p.Status == explorer.ProposalExpired.Status || p.Status == explorer.ProposalRejected.Status {

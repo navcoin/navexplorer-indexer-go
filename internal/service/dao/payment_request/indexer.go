@@ -57,10 +57,10 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 		UpdatePaymentRequest(navP, block.Height, p)
 		if p.UpdatedOnBlock == block.Height {
 			log.Debugf("Payment Request %s updated on block %d", p.Hash, block.Height)
-			i.elastic.AddUpdateRequest(elastic_cache.PaymentRequestIndex.Get(), p.Slug(), p)
+			i.elastic.AddUpdateRequest(elastic_cache.PaymentRequestIndex.Get(), p)
 		}
 
-		if p.Status == explorer.PaymentRequestPaid || p.Status == explorer.PaymentRequestExpired || p.Status == explorer.PaymentRequestRejected {
+		if p.Status == explorer.PaymentRequestPaid.Status || p.Status == explorer.PaymentRequestExpired.Status || p.Status == explorer.PaymentRequestRejected.Status {
 			if block.Height-p.UpdatedOnBlock >= uint64(blockCycle.Size) {
 				PaymentRequests.Delete(p.Hash)
 			}

@@ -10,7 +10,6 @@ func CreateVotes(block *explorer.Block, tx *explorer.BlockTransaction, header *n
 	if !tx.IsCoinbase() {
 		return nil
 	}
-	log.WithField("tx", tx).Debug("Create Votes")
 
 	daoVote := &explorer.DaoVotes{Height: tx.Height, Address: block.StakedBy}
 
