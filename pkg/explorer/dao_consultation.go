@@ -15,8 +15,8 @@ type Consultation struct {
 	Min                 int       `json:"min"`
 	Max                 int       `json:"max"`
 	VotingCycle         int       `json:"votingCycle"`
-	Status              string    `json:"status"`
 	State               int       `json:"state"`
+	Status              string    `json:"status"`
 	StateChangedOnBlock string    `json:"stateChangedOnBlock"`
 	UpdatedOnBlock      uint64    `json:"updatedOnBlock"`
 }
@@ -30,8 +30,8 @@ type Answer struct {
 	Answer              string `json:"answer,omitempty"`
 	Support             int    `json:"support,omitempty"`
 	Votes               int    `json:"votes,omitempty"`
-	Status              string `json:"status,omitempty"`
 	State               int    `json:"state,omitempty"`
+	Status              string `json:"status,omitempty"`
 	StateChangedOnBlock string `json:"stateChangedOnBlock"`
 	TxBlockHash         string `json:"txblockhash"`
 	Parent              string `json:"parent,omitempty"`
