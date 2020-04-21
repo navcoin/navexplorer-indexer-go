@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
+	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ type Request struct {
 	Height uint64
 	Index  string
 	Id     string
-	Doc    interface{}
+	Entity explorer.Entity
 	Type   RequestType
 }
 
@@ -94,23 +95,23 @@ func (i *Index) InstallMappings() {
 	}
 }
 
-func (i *Index) AddIndexRequest(index string, id string, doc interface{}) {
-	i.AddRequest(index, id, doc, IndexRequest)
+func (i *Index) AddIndexRequest(index string, entity explorer.Entity) {
+	i.AddRequest(index, entity, IndexRequest)
 }
 
-func (i *Index) AddUpdateRequest(index string, id string, doc interface{}) {
-	i.AddRequest(index, id, doc, UpdateRequest)
+func (i *Index) AddUpdateRequest(index string, entity explorer.Entity) {
+	i.AddRequest(index, entity, UpdateRequest)
 }
 
-func (i *Index) AddRequest(index string, id string, doc interface{}, reqType RequestType) {
-	if request := i.GetRequest(index, id); request != nil {
-		request.Doc = doc
+func (i *Index) AddRequest(index string, entity explorer.Entity, reqType RequestType) {
+	if request := i.GetRequest(index, entity.Slug()); request != nil {
+		request.Entity = entity
 	} else {
 		i.requests = append(i.requests, &Request{
-			Index: index,
-			Id:    id,
-			Doc:   doc,
-			Type:  reqType,
+			Index:  index,
+			Id:     entity.Slug(),
+			Entity: entity,
+			Type:   reqType,
 		})
 	}
 }
@@ -143,32 +144,33 @@ func (i *Index) Persist() int {
 	bulk := i.Client.Bulk()
 	for _, r := range i.requests {
 		if r.Type == IndexRequest {
-			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Id).Doc(r.Doc))
+			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Id).Doc(r.Entity))
 		} else if r.Type == UpdateRequest {
-			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Id).Doc(r.Doc))
+			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Id).Doc(r.Entity))
 		}
 	}
 
 	actions := bulk.NumberOfActions()
 	if actions != 0 {
-		response, err := bulk.Do(context.Background())
-		if err != nil {
-			raven.CaptureError(err, nil)
-			logrus.WithError(err).Fatal("Failed to persist requests")
-		}
-		if response.Errors == true {
-			for _, failed := range response.Failed() {
-				raven.CaptureMessage(failed.Error.Reason, nil)
-				logrus.WithField("error", failed.Error).Fatal(failed.Error.Reason)
-			}
-		}
+		i.persist(bulk)
 	}
-
-	logrus.Debug("Persisted requests")
 
 	i.requests = make([]*Request, 0)
 
 	return actions
+}
+
+func (i *Index) persist(bulk *elastic.BulkService) {
+	response, err := bulk.Do(context.Background())
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to persist requests")
+	}
+
+	if response.Errors == true {
+		for _, failed := range response.Failed() {
+			logrus.WithField("error", failed.Error).Fatal("Failed to persist to ES")
+		}
+	}
 }
 
 func (i *Index) DeleteHeightGT(height uint64, indices ...string) error {
