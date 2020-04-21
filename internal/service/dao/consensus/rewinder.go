@@ -32,7 +32,7 @@ func (r *Rewinder) Rewind() error {
 		for _, consensusParameter := range consensusParameters {
 			if initialParameter.Id == consensusParameter.Id {
 				_, err = r.elastic.Client.Index().
-					Index(elastic_cache.AddressIndex.Get()).
+					Index(elastic_cache.ConsensusIndex.Get()).
 					BodyJson(initialParameter).
 					Id(consensusParameter.Slug()).
 					Do(context.Background())
