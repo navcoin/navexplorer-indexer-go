@@ -10,13 +10,17 @@ type ConsultationStatus struct {
 }
 
 var (
-	ConsultationPending = ConsultationStatus{0, "pending"}
-	ConsultationExpired = ConsultationStatus{3, "expired"}
+	ConsultationPending      = ConsultationStatus{0, "waiting for support"}
+	ConsultationExpired      = ConsultationStatus{3, "expired"}
+	ConsultationPassed       = ConsultationStatus{7, "passed"}
+	ConsultationFoundSupport = ConsultationStatus{9, "found support"}
 )
 
-var consultationStatus = [2]ConsultationStatus{
+var consultationStatus = [4]ConsultationStatus{
 	ConsultationPending,
 	ConsultationExpired,
+	ConsultationPassed,
+	ConsultationFoundSupport,
 }
 
 //noinspection GoUnreachableCode
