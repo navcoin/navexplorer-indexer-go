@@ -18,6 +18,7 @@ type Consultation struct {
 	State               int       `json:"state"`
 	Status              string    `json:"status"`
 	StateChangedOnBlock string    `json:"stateChangedOnBlock"`
+	Height              uint64    `json:"height"`
 	UpdatedOnBlock      uint64    `json:"updatedOnBlock"`
 }
 

@@ -138,6 +138,9 @@
           }
         }
       },
+      "height": {
+        "type": "long"
+      },
       "updatedOnBlock": {
         "type": "long"
       }

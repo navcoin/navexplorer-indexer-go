@@ -5,7 +5,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
-func CreateConsultation(consultation navcoind.Consultation) *explorer.Consultation {
+func CreateConsultation(consultation navcoind.Consultation, height uint64) *explorer.Consultation {
 	c := &explorer.Consultation{
 		Version:             consultation.Version,
 		Hash:                consultation.Hash,
@@ -19,6 +19,8 @@ func CreateConsultation(consultation navcoind.Consultation) *explorer.Consultati
 		Status:              explorer.GetConsultationStatusByState(uint(consultation.State)).Status,
 		StateChangedOnBlock: consultation.StateChangedOnBlock,
 		Answers:             createAnswers(consultation),
+		Height:              height,
+		UpdatedOnBlock:      height,
 	}
 
 	return c

@@ -25,7 +25,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 		}
 
 		if navC, err := i.navcoin.GetConsultation(tx.Hash); err == nil {
-			consultation := CreateConsultation(navC)
+			consultation := CreateConsultation(navC, tx.Height)
 
 			index := elastic_cache.DaoConsultationIndex.Get()
 			_, err := i.elastic.Client.Index().
