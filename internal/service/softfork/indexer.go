@@ -8,11 +8,11 @@ import (
 
 type Indexer struct {
 	elastic       *elastic_cache.Index
-	blocksInCycle int
+	blocksInCycle uint
 	quorum        int
 }
 
-func NewIndexer(elastic *elastic_cache.Index, blocksInCycle int, quorum int) *Indexer {
+func NewIndexer(elastic *elastic_cache.Index, blocksInCycle uint, quorum int) *Indexer {
 	return &Indexer{elastic, blocksInCycle, quorum}
 }
 
@@ -45,7 +45,7 @@ func (i *Indexer) updateSoftForks(signal *explorer.Signal, block *explorer.Block
 	if signal == nil || !signal.IsSignalling() {
 		return
 	}
-	blockCycle := block.BlockCycle(i.blocksInCycle)
+	blockCycle := GetSoftForkBlockCycle(i.blocksInCycle, block.Height)
 
 	for _, s := range signal.SoftForks {
 		softFork := SoftForks.GetSoftFork(s)
@@ -69,15 +69,13 @@ func (i *Indexer) updateSoftForks(signal *explorer.Signal, block *explorer.Block
 }
 
 func (i *Indexer) updateState(block *explorer.Block) {
-	blockCycle := explorer.GetCycleForHeight(block.Height, i.blocksInCycle)
-
 	for idx, s := range SoftForks {
 		if s.Cycles == nil {
 			continue
 		}
 
 		if s.State == explorer.SoftForkStarted && s.LatestCycle().BlocksSignalling >= explorer.GetQuorum(i.blocksInCycle, i.quorum) {
-			SoftForks[idx].LockedInHeight = uint64(i.blocksInCycle * blockCycle)
+			SoftForks[idx].LockedInHeight = uint64(i.blocksInCycle * block.BlockCycle.Cycle)
 			SoftForks[idx].ActivationHeight = SoftForks[idx].LockedInHeight + uint64(i.blocksInCycle)
 		}
 

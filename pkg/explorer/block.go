@@ -37,6 +37,8 @@ type Block struct {
 	Fees        uint64 `json:"fees"`
 	CFundPayout uint64 `json:"cfundPayout"`
 
+	BlockCycle *BlockCycle `json:"block_cycle"`
+
 	// Transient
 	Best bool `json:"best,omitempty"`
 }
@@ -46,35 +48,15 @@ func (b *Block) Slug() string {
 }
 
 type BlockCycle struct {
-	Size   int
-	Cycle  int
-	Index  int
-	Quorum int
-}
-
-func (b *Block) BlockCycle(size int) *BlockCycle {
-	cycle := GetCycleForHeight(b.Height, size)
-
-	return &BlockCycle{
-		Size:  size,
-		Cycle: cycle,
-		Index: GetCycleIndex(b.Height, cycle, size),
-	}
+	Size  uint
+	Cycle uint
+	Index uint
 }
 
 func (b *BlockCycle) IsEnd() bool {
 	return b.Index == b.Size-1
 }
 
-func GetCycleForHeight(height uint64, size int) int {
-	return (int(height) / size) + 1
-}
-
-func GetCycleIndex(height uint64, cycle int, size int) int {
-	base := (cycle * size) - size
-	return int(height) - base
-}
-
-func GetQuorum(size int, quorum int) int {
+func GetQuorum(size uint, quorum int) int {
 	return int((float64(quorum) / 100) * float64(size))
 }

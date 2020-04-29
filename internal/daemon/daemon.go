@@ -4,7 +4,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/generated/dic"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer"
-	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consensus"
 	"github.com/getsentry/raven-go"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
@@ -38,10 +37,8 @@ func Execute() {
 		}
 
 		log.Debug("Get block cycle")
-		blockCycle := block.BlockCycle(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value)
-
-		container.GetDaoProposalService().LoadVotingProposals(block, blockCycle)
-		container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(block, blockCycle)
+		container.GetDaoProposalService().LoadVotingProposals(block)
+		container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(block)
 	}
 
 	log.Debug("Bulk index the backlog")

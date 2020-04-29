@@ -125,13 +125,13 @@ var Definitions = []dingo.Def{
 	{
 		Name: "softfork.indexer",
 		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *softfork.Repository) (*softfork.Indexer, error) {
-			return softfork.NewIndexer(elastic, config.Get().SoftForkBlockCycle, config.Get().SoftForkQuorum), nil
+			return softfork.NewIndexer(elastic, uint(config.Get().SoftForkBlockCycle), config.Get().SoftForkQuorum), nil
 		},
 	},
 	{
 		Name: "softfork.rewinder",
 		Build: func(elastic *elastic_cache.Index, signalRepo *signal.Repository) (*softfork.Rewinder, error) {
-			return softfork.NewRewinder(elastic, signalRepo, config.Get().SoftForkBlockCycle, config.Get().SoftForkQuorum), nil
+			return softfork.NewRewinder(elastic, signalRepo, uint(config.Get().SoftForkBlockCycle), config.Get().SoftForkQuorum), nil
 		},
 	},
 	{

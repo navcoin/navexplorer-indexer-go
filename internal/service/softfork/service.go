@@ -51,3 +51,13 @@ func (i *Service) InitSoftForks() {
 		}
 	}
 }
+
+func GetSoftForkBlockCycle(size uint, height uint64) *explorer.BlockCycle {
+	cycle := (uint(height) / size) + 1
+
+	return &explorer.BlockCycle{
+		Size:  size,
+		Cycle: cycle,
+		Index: uint(height) - ((cycle * size) - size),
+	}
+}

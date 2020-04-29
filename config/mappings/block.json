@@ -130,6 +130,20 @@
       "cfundPayout": {
         "type": "long"
       },
+      "block_cycle": {
+        "type": "nested",
+        "properties": {
+          "size": {
+            "type": "integer"
+          },
+          "cycle": {
+            "type": "integer"
+          },
+          "index": {
+            "type": "integer"
+          }
+        }
+      },
       "tx_count": {
         "type": "integer"
       },

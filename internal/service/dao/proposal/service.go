@@ -14,10 +14,10 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo}
 }
 
-func (s *Service) LoadVotingProposals(block *explorer.Block, blockCycle *explorer.BlockCycle) {
+func (s *Service) LoadVotingProposals(block *explorer.Block) {
 	log.Debug("Load Voting Proposals")
 
-	excludeOlderThan := block.Height - (uint64(blockCycle.Size * 2))
+	excludeOlderThan := block.Height - (uint64(block.BlockCycle.Size * 2))
 	if excludeOlderThan < 0 {
 		excludeOlderThan = 0
 	}

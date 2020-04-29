@@ -13,11 +13,11 @@ import (
 type Rewinder struct {
 	elastic       *elastic_cache.Index
 	signalRepo    *signal.Repository
-	blocksInCycle int
+	blocksInCycle uint
 	quorum        int
 }
 
-func NewRewinder(elastic *elastic_cache.Index, signalRepo *signal.Repository, blocksInCycle int, quorum int) *Rewinder {
+func NewRewinder(elastic *elastic_cache.Index, signalRepo *signal.Repository, blocksInCycle uint, quorum int) *Rewinder {
 	return &Rewinder{elastic, signalRepo, blocksInCycle, quorum}
 }
 
@@ -54,12 +54,12 @@ func (r *Rewinder) Rewind(height uint64) error {
 				if softFork.IsOpen() {
 					softFork.SignalHeight = end
 					softFork.State = explorer.SoftForkStarted
-					cycleIndex := explorer.GetCycleForHeight(s.Height, r.blocksInCycle)
+					blockCycle := GetSoftForkBlockCycle(r.blocksInCycle, s.Height)
 
 					var cycle *explorer.SoftForkCycle
-					if cycle = softFork.GetCycle(cycleIndex); cycle == nil {
-						softFork.Cycles = append(softFork.Cycles, explorer.SoftForkCycle{Cycle: cycleIndex, BlocksSignalling: 0})
-						cycle = softFork.GetCycle(cycleIndex)
+					if cycle = softFork.GetCycle(blockCycle.Index); cycle == nil {
+						softFork.Cycles = append(softFork.Cycles, explorer.SoftForkCycle{Cycle: blockCycle.Index, BlocksSignalling: 0})
+						cycle = softFork.GetCycle(blockCycle.Index)
 					}
 					cycle.BlocksSignalling++
 				}

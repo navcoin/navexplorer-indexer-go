@@ -25,8 +25,8 @@ func (s *SoftFork) Slug() string {
 type SoftForkCycles []SoftForkCycle
 
 type SoftForkCycle struct {
-	Cycle            int `json:"cycle"`
-	BlocksSignalling int `json:"blocks"`
+	Cycle            uint `json:"cycle"`
+	BlocksSignalling int  `json:"blocks"`
 }
 
 func (s *SoftFork) LatestCycle() *SoftForkCycle {
@@ -44,7 +44,7 @@ func (s *SoftFork) IsOpen() bool {
 	return s.State == SoftForkDefined || s.State == SoftForkStarted || s.State == SoftForkFailed
 }
 
-func (s *SoftFork) GetCycle(cycle int) *SoftForkCycle {
+func (s *SoftFork) GetCycle(cycle uint) *SoftForkCycle {
 	for i, c := range s.Cycles {
 		if c.Cycle == cycle {
 			return &s.Cycles[i]

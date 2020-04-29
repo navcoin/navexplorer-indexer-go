@@ -4,6 +4,7 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer/IndexOption"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
@@ -30,7 +31,7 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		return nil, nil, err
 	}
 
-	block := CreateBlock(navBlock)
+	block := CreateBlock(navBlock, uint(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value))
 	if option == IndexOption.SingleIndex {
 		log.Info("Indexing in single block mode")
 		orphan, err := i.orphanService.IsOrphanBlock(block)
