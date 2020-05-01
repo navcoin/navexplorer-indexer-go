@@ -10,16 +10,17 @@ type PaymentRequestStatus struct {
 var (
 	PaymentRequestPending  = PaymentRequestStatus{0, "pending"}
 	PaymentRequestAccepted = PaymentRequestStatus{1, "accepted"}
-	PaymentRequestPaid     = PaymentRequestStatus{2, "paid"}
-	PaymentRequestRejected = PaymentRequestStatus{3, "rejected"}
+	PaymentRequestRejected = PaymentRequestStatus{2, "rejected"}
 	PaymentRequestExpired  = PaymentRequestStatus{4, "expired"}
+	PaymentRequestPaid     = PaymentRequestStatus{6, "paid"}
 )
 
 var paymentRequestStatus = [5]PaymentRequestStatus{
 	PaymentRequestPending,
 	PaymentRequestAccepted,
-	PaymentRequestPaid,
+	PaymentRequestRejected,
 	PaymentRequestExpired,
+	PaymentRequestPaid,
 }
 
 //noinspection GoUnreachableCode

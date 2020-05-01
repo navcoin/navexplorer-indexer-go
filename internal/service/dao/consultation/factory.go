@@ -42,7 +42,7 @@ func createAnswer(a *navcoind.Answer) *explorer.Answer {
 		Support:             a.Support,
 		Votes:               a.Votes,
 		State:               a.State,
-		Status:              explorer.GetConsultationStatusByState(uint(a.State)).Status,
+		Status:              explorer.GetAnswerStatusByState(uint(a.State)).Status,
 		StateChangedOnBlock: a.StateChangedOnBlock,
 		TxBlockHash:         a.TxBlockHash,
 		Parent:              a.Parent,
