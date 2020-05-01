@@ -75,7 +75,7 @@ func (i *Indexer) updateState(block *explorer.Block) {
 		}
 
 		if s.State == explorer.SoftForkStarted && s.LatestCycle().BlocksSignalling >= explorer.GetQuorum(i.blocksInCycle, i.quorum) {
-			SoftForks[idx].LockedInHeight = uint64(i.blocksInCycle * block.BlockCycle.Cycle)
+			SoftForks[idx].LockedInHeight = uint64(i.blocksInCycle * GetSoftForkBlockCycle(i.blocksInCycle, block.Height).Cycle)
 			SoftForks[idx].ActivationHeight = SoftForks[idx].LockedInHeight + uint64(i.blocksInCycle)
 		}
 
