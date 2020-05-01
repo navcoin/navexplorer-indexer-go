@@ -20,6 +20,10 @@ type Consultation struct {
 	StateChangedOnBlock string    `json:"stateChangedOnBlock"`
 	Height              uint64    `json:"height"`
 	UpdatedOnBlock      uint64    `json:"updatedOnBlock"`
+
+	AnswerIsARange     bool `json:"answerIsARange"`
+	MoreAnswers        bool `json:"moreAnswers"`
+	ConsensusParameter bool `json:"consensusParameter"`
 }
 
 func (c *Consultation) Slug() string {

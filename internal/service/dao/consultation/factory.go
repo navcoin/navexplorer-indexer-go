@@ -23,6 +23,18 @@ func CreateConsultation(consultation navcoind.Consultation, height uint64) *expl
 		UpdatedOnBlock:      height,
 	}
 
+	if consultation.Version>>1 == 1 {
+		c.AnswerIsARange = true
+	}
+
+	if consultation.Version>>2 == 1 {
+		c.MoreAnswers = true
+	}
+
+	if consultation.Version>>3 == 1 {
+		c.ConsensusParameter = true
+	}
+
 	return c
 }
 
