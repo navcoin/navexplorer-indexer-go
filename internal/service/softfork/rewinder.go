@@ -52,42 +52,26 @@ func (r *Rewinder) Rewind(height uint64) error {
 			end = height
 		}
 
-		log.Infof("Indexing softforks from %d to %d", start, end)
-
 		signals := r.signalRepo.GetSignals(start, end)
-		log.Infof("Found %d signals", len(signals))
 		for _, s := range signals {
 			for _, sf := range s.SoftForks {
 				softFork := SoftForks.GetSoftFork(sf)
 				if softFork.IsOpen() {
-					log.Info("Softfork is open: ", softFork.Name)
 					softFork.SignalHeight = end
 					softFork.State = explorer.SoftForkStarted
 					blockCycle := GetSoftForkBlockCycle(r.blocksInCycle, s.Height)
 
 					var cycle *explorer.SoftForkCycle
 					if cycle = softFork.GetCycle(blockCycle.Cycle); cycle == nil {
-						log.WithFields(log.Fields{
-							"cycle": blockCycle.Cycle,
-							"start": start,
-							"end":   end,
-						}).Info("New soft fork cycle created: ", softFork.Name)
 						softFork.Cycles = append(softFork.Cycles, explorer.SoftForkCycle{Cycle: blockCycle.Cycle, BlocksSignalling: 0})
-						log.Infof("Softfork %s now has %d cycles", softFork.Name, len(softFork.Cycles))
 						cycle = softFork.GetCycle(blockCycle.Cycle)
 					}
 					cycle.BlocksSignalling++
 				}
-				log.Infof("Softfork: %s cycle :%d, signals: %d", softFork.Name, softFork.LatestCycle().Cycle, softFork.LatestCycle().BlocksSignalling)
 			}
 		}
 
 		for _, s := range SoftForks {
-			log.WithFields(log.Fields{
-				"state":        s.State,
-				"signalHeight": s.SignalHeight,
-				//"signals": s.LatestCycle().BlocksSignalling,
-			}).Info("Softfork ", s.Name)
 			if s.State == explorer.SoftForkStarted && s.LatestCycle().BlocksSignalling >= explorer.GetQuorum(r.blocksInCycle, r.quorum) {
 				s.State = explorer.SoftForkLockedIn
 				s.LockedInHeight = end
