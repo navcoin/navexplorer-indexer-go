@@ -18,6 +18,9 @@
       },
       "value": {
         "type": "long"
+      },
+      "updatedOnBlock": {
+        "type": "long"
       }
     }
   },

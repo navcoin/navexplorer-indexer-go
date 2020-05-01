@@ -39,6 +39,7 @@ func (s *Service) InitConsensusParameters() {
 
 	initialParams, _ := s.InitialState()
 	for _, initialParam := range initialParams {
+		initialParam.UpdatedOnBlock = 0
 		_, err := s.elastic.Client.Index().
 			Index(elastic_cache.ConsensusIndex.Get()).
 			Id(initialParam.Slug()).

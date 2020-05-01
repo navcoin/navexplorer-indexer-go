@@ -37,10 +37,11 @@ func (p *ConsensusParameters) All() []*ConsensusParameter {
 }
 
 type ConsensusParameter struct {
-	Id          int                    `json:"id"`
-	Description string                 `json:"desc"`
-	Type        ConsensusParameterType `json:"type"`
-	Value       int                    `json:"value"`
+	Id             int                    `json:"id"`
+	Description    string                 `json:"desc"`
+	Type           ConsensusParameterType `json:"type"`
+	Value          int                    `json:"value"`
+	UpdatedOnBlock uint64                 `json:"updatedOnBlock"`
 }
 
 func (cp *ConsensusParameter) Slug() string {
