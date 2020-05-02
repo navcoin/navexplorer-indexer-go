@@ -5,7 +5,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
-func CreateConsultation(consultation navcoind.Consultation, height uint64) *explorer.Consultation {
+func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTransaction) *explorer.Consultation {
 	c := &explorer.Consultation{
 		Version:             consultation.Version,
 		Hash:                consultation.Hash,
@@ -19,8 +19,9 @@ func CreateConsultation(consultation navcoind.Consultation, height uint64) *expl
 		Status:              explorer.GetConsultationStatusByState(uint(consultation.State)).Status,
 		StateChangedOnBlock: consultation.StateChangedOnBlock,
 		Answers:             createAnswers(consultation),
-		Height:              height,
-		UpdatedOnBlock:      height,
+		Height:              tx.Height,
+		UpdatedOnBlock:      tx.Height,
+		ProposedBy:          tx.Vin.First().Addresses[0],
 	}
 
 	if consultation.Version>>1 == 1 {

@@ -143,6 +143,24 @@
       },
       "updatedOnBlock": {
         "type": "long"
+      },
+      "proposedBy": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "answerIsARange": {
+        "type": "boolean"
+      },
+      "moreAnswers": {
+        "type": "boolean"
+      },
+      "consensusParameter": {
+        "type": "boolean"
       }
     }
   },

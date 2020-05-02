@@ -20,6 +20,7 @@ type Consultation struct {
 	StateChangedOnBlock string    `json:"stateChangedOnBlock"`
 	Height              uint64    `json:"height"`
 	UpdatedOnBlock      uint64    `json:"updatedOnBlock"`
+	ProposedBy          string    `json:"proposedBy"`
 
 	AnswerIsARange     bool `json:"answerIsARange"`
 	MoreAnswers        bool `json:"moreAnswers"`
