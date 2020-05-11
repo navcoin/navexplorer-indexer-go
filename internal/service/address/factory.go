@@ -154,7 +154,12 @@ func createColdTransaction(address string, tx *explorer.BlockTransaction) *explo
 	} else if tx.IsColdStaking() {
 		addressTransaction.Type = explorer.TransferColdStake
 	} else {
-		log.WithFields(log.Fields{"tx.type": tx.Type}).Fatal("WE FOUND SOMETHING ELSE IN COLD TX")
+		bt, _ := json.Marshal(tx)
+		log.WithFields(log.Fields{
+			"address": address,
+			"tx":      string(bt),
+			"type":    tx.Type,
+		}).Fatal("WE FOUND SOMETHING ELSE IN COLD TX")
 	}
 
 	return addressTransaction

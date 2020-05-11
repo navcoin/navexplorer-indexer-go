@@ -49,13 +49,13 @@ func (vouts *Vouts) GetAmount() uint64 {
 func (vouts *Vouts) GetAmountByAddress(address string, cold bool) (value float64, valuesat uint64) {
 	for _, o := range *vouts {
 		if cold {
-			if len(o.ScriptPubKey.Addresses) == 2 && o.ScriptPubKey.Addresses[0] == address {
+			if len(o.ScriptPubKey.Addresses) > 1 && o.ScriptPubKey.Addresses[0] == address {
 				value += o.Value
 				valuesat += o.ValueSat
 			}
 		} else {
 			if (len(o.ScriptPubKey.Addresses) == 1 && o.ScriptPubKey.Addresses[0] == address) ||
-				(len(o.ScriptPubKey.Addresses) == 2 && o.ScriptPubKey.Addresses[1] == address) {
+				(len(o.ScriptPubKey.Addresses) > 1 && o.ScriptPubKey.Addresses[1] == address) {
 				value += o.Value
 				valuesat += o.ValueSat
 			}

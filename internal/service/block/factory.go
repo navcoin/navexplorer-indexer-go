@@ -136,8 +136,10 @@ func applyType(tx *explorer.BlockTransaction) {
 		tx.Type = explorer.TxCoinbase
 	} else if tx.Vout.GetAmount() <= tx.Vin.GetAmount() {
 		tx.Type = explorer.TxSpend
-	} else if len(tx.Vout) > 1 && tx.Vout[1].IsColdStaking() {
+	} else if len(tx.Vout) > 1 && tx.Vout[1].ScriptPubKey.Type == explorer.VoutColdStaking {
 		tx.Type = explorer.TxColdStaking
+	} else if len(tx.Vout) > 1 && tx.Vout[1].ScriptPubKey.Type == explorer.VoutColdStakingV2 {
+		tx.Type = explorer.TxColdStakingV2
 	} else {
 		tx.Type = explorer.TxStaking
 	}

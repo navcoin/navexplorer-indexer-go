@@ -11,7 +11,7 @@ type Vout struct {
 }
 
 func (o *Vout) IsColdStaking() bool {
-	return o.ScriptPubKey.Type == VoutColdStaking
+	return o.ScriptPubKey.Type == VoutColdStaking || o.ScriptPubKey.Type == VoutColdStakingV2
 }
 
 func (o *Vout) IsProposalVote() bool {
@@ -27,5 +27,9 @@ func (o *Vout) IsColdStakingAddress(address string) bool {
 }
 
 func (o *Vout) IsColdSpendingAddress(address string) bool {
-	return len(o.ScriptPubKey.Addresses) == 2 && o.ScriptPubKey.Addresses[0] == address
+	return len(o.ScriptPubKey.Addresses) == 2 && o.ScriptPubKey.Addresses[1] == address
+}
+
+func (o *Vout) IsColdVotingAddress(address string) bool {
+	return len(o.ScriptPubKey.Addresses) == 3 && o.ScriptPubKey.Addresses[2] == address
 }

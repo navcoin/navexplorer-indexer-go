@@ -94,7 +94,7 @@ func (tx *BlockTransaction) IsSpend() bool {
 }
 
 func (tx *BlockTransaction) IsAnyStaking() bool {
-	return tx.Type == TxColdStaking || tx.Type == TxStaking || tx.Type == TxPoolStaking
+	return tx.Type == TxColdStaking || tx.Type == TxColdStakingV2 || tx.Type == TxStaking || tx.Type == TxPoolStaking
 }
 
 func (tx *BlockTransaction) IsStaking() bool {
@@ -102,7 +102,7 @@ func (tx *BlockTransaction) IsStaking() bool {
 }
 
 func (tx *BlockTransaction) IsColdStaking() bool {
-	return tx.Type == TxColdStaking
+	return tx.Type == TxColdStaking || tx.Type == TxColdStakingV2
 }
 
 func (tx *BlockTransaction) IsPoolStaking() bool {
@@ -111,7 +111,7 @@ func (tx *BlockTransaction) IsPoolStaking() bool {
 
 func (tx *BlockTransaction) HasColdInput(address string) bool {
 	for _, i := range tx.Vin {
-		if i.PreviousOutput.Type == VoutColdStaking && i.Addresses[0] == address {
+		if (i.PreviousOutput.Type == VoutColdStaking || i.PreviousOutput.Type == VoutColdStakingV2) && i.Addresses[0] == address {
 			return true
 		}
 	}
@@ -119,12 +119,12 @@ func (tx *BlockTransaction) HasColdInput(address string) bool {
 }
 
 func (tx *BlockTransaction) HasColdStakeStake(address string) bool {
-	return len(tx.Vout) > 1 && tx.Vout[1].IsColdStaking() && tx.Vout[1].ScriptPubKey.Addresses[0] == address
+	return len(tx.Vout) > 1 && isColdStaking(tx.Vout[1]) && tx.Vout[1].ScriptPubKey.Addresses[0] == address
 }
 
 func (tx *BlockTransaction) HasColdStakeSpend(address string) bool {
 	for _, o := range tx.Vout {
-		if o.ScriptPubKey.Type == VoutColdStaking && o.ScriptPubKey.Addresses[1] == address {
+		if isColdStaking(o) && o.ScriptPubKey.Addresses[1] == address {
 			return true
 		}
 	}
@@ -134,10 +134,14 @@ func (tx *BlockTransaction) HasColdStakeSpend(address string) bool {
 func (tx *BlockTransaction) HasColdStakeReceive(address string) bool {
 	if tx.IsSpend() {
 		for _, o := range tx.Vout {
-			if o.ScriptPubKey.Type == VoutColdStaking && o.ScriptPubKey.Addresses[0] == address {
+			if isColdStaking(o) && o.ScriptPubKey.Addresses[0] == address {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+func isColdStaking(o Vout) bool {
+	return o.ScriptPubKey.Type == VoutColdStaking || o.ScriptPubKey.Type == VoutColdStakingV2
 }
