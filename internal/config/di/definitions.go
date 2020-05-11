@@ -196,6 +196,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "dao.consultation.Service",
+		Build: func(repo *consultation.Repository) (*consultation.Service, error) {
+			return consultation.NewService(repo), nil
+		},
+	},
+	{
 		Name: "dao.consensus.Service",
 		Build: func(elastic *elastic_cache.Index, repo *consensus.Repository) (*consensus.Service, error) {
 			return consensus.NewService(config.Get().Network, elastic, repo), nil
@@ -217,6 +223,12 @@ var Definitions = []dingo.Def{
 		Name: "dao.payment_request.repo",
 		Build: func(elastic *elastic_cache.Index) (*payment_request.Repository, error) {
 			return payment_request.NewRepo(elastic.Client), nil
+		},
+	},
+	{
+		Name: "dao.consultation.repo",
+		Build: func(elastic *elastic_cache.Index) (*consultation.Repository, error) {
+			return consultation.NewRepo(elastic.Client), nil
 		},
 	},
 	{

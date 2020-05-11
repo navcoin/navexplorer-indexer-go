@@ -17,6 +17,7 @@ type Consultation struct {
 	VotingCycle         int       `json:"votingCycle"`
 	State               int       `json:"state"`
 	Status              string    `json:"status"`
+	FoundSupport        bool      `json:"foundSupport,omitempty"`
 	StateChangedOnBlock string    `json:"stateChangedOnBlock"`
 	Height              uint64    `json:"height"`
 	UpdatedOnBlock      uint64    `json:"updatedOnBlock"`
@@ -31,6 +32,16 @@ func (c *Consultation) Slug() string {
 	return slug.Make(c.Hash)
 }
 
+func (c *Consultation) HasAnswerWithSupport() bool {
+	for _, a := range c.Answers {
+		if a.FoundSupport == true {
+			return true
+		}
+	}
+
+	return false
+}
+
 type Answer struct {
 	Version             uint32 `json:"version,omitempty"`
 	Answer              string `json:"answer,omitempty"`
@@ -38,6 +49,7 @@ type Answer struct {
 	Votes               int    `json:"votes,omitempty"`
 	State               int    `json:"state,omitempty"`
 	Status              string `json:"status,omitempty"`
+	FoundSupport        bool   `json:"foundSupport,omitempty"`
 	StateChangedOnBlock string `json:"stateChangedOnBlock"`
 	TxBlockHash         string `json:"txblockhash"`
 	Parent              string `json:"parent,omitempty"`

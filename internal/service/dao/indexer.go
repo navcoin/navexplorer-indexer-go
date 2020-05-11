@@ -62,8 +62,9 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction)
 	if block.BlockCycle.IsEnd() {
 		i.proposalIndexer.Update(block.BlockCycle, block)
 		i.paymentRequestIndexer.Update(block.BlockCycle, block)
-		i.consultationIndexer.Update(block.BlockCycle, block)
 
 		//_ = i.consensusIndexer.Index()
 	}
+
+	i.consultationIndexer.Update(block.BlockCycle, block)
 }

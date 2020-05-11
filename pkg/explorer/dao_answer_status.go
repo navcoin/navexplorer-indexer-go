@@ -11,7 +11,7 @@ type AnswerStatus struct {
 
 var (
 	AnswerPending   = AnswerStatus{0, "waiting for support"}
-	AnswerSupported = AnswerStatus{1, "answer already has enough support votes"}
+	AnswerSupported = AnswerStatus{1, "found support"}
 	AnswerPassed    = AnswerStatus{7, "passed"}
 )
 

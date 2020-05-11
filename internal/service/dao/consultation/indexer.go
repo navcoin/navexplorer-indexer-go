@@ -48,6 +48,7 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 		if c == nil {
 			continue
 		}
+		log.Infof("Update Consultation at height %d: %s", block.Height, c.Hash)
 
 		navC, err := i.navcoin.GetConsultation(c.Hash)
 		if err != nil {

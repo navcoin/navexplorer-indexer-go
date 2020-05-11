@@ -38,6 +38,7 @@ func Execute() {
 		log.Debug("Get block cycle")
 		container.GetDaoProposalService().LoadVotingProposals(block)
 		container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(block)
+		container.GetDaoConsultationService().LoadOpenConsultations(block)
 	}
 
 	log.Debug("Bulk index the backlog")

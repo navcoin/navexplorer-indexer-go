@@ -41,7 +41,7 @@
         "type" : "nested",
         "properties": {
           "version": {
-            "type": "long"
+            "type": "integer"
           },
           "answer": {
             "type": "text",
@@ -53,10 +53,10 @@
             }
           },
           "support": {
-            "type": "long"
+            "type": "integer"
           },
           "votes": {
-            "type": "long"
+            "type": "integer"
           },
           "status": {
             "type": "text",
@@ -68,7 +68,10 @@
             }
           },
           "state": {
-            "type": "long"
+            "type": "integer"
+          },
+          "foundSupport": {
+            "type": "boolean"
           },
           "stateChangedOnBlock": {
             "type": "text",
@@ -115,7 +118,7 @@
         "type": "long"
       },
       "votingCycle": {
-        "type": "long"
+        "type": "integer"
       },
       "status": {
         "type": "text",
@@ -127,7 +130,10 @@
         }
       },
       "state": {
-        "type": "long"
+        "type": "integer"
+      },
+      "foundSupport": {
+        "type": "boolean"
       },
       "stateChangedOnBlock": {
         "type": "text",

@@ -3,6 +3,7 @@ package consultation
 import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	log "github.com/sirupsen/logrus"
 )
 
 func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTransaction) *explorer.Consultation {
@@ -17,6 +18,7 @@ func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTr
 		VotingCycle:         consultation.VotingCycle,
 		State:               consultation.State,
 		Status:              explorer.GetConsultationStatusByState(uint(consultation.State)).Status,
+		FoundSupport:        false,
 		StateChangedOnBlock: consultation.StateChangedOnBlock,
 		Answers:             createAnswers(consultation),
 		Height:              tx.Height,
@@ -57,6 +59,7 @@ func createAnswer(a *navcoind.Answer) *explorer.Answer {
 		State:               a.State,
 		Status:              explorer.GetAnswerStatusByState(uint(a.State)).Status,
 		StateChangedOnBlock: a.StateChangedOnBlock,
+		FoundSupport:        false,
 		TxBlockHash:         a.TxBlockHash,
 		Parent:              a.Parent,
 		Hash:                a.Hash,
@@ -75,22 +78,23 @@ func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bo
 		updated = true
 	}
 
-	if navC.Status != c.Status {
-		c.Status = navC.Status
+	if updateAnswers(navC, c) {
 		updated = true
 	}
 
 	if navC.State != c.State {
 		c.State = navC.State
+		c.Status = explorer.GetAnswerStatusByState(uint(c.State)).Status
+		updated = true
+	}
+
+	if c.FoundSupport != c.HasAnswerWithSupport() {
+		c.FoundSupport = c.HasAnswerWithSupport()
 		updated = true
 	}
 
 	if navC.StateChangedOnBlock != c.StateChangedOnBlock {
 		c.StateChangedOnBlock = navC.StateChangedOnBlock
-		updated = true
-	}
-
-	if updateAnswers(navC, c) {
 		updated = true
 	}
 
@@ -115,10 +119,16 @@ func updateAnswers(navC navcoind.Consultation, c *explorer.Consultation) bool {
 			}
 			if a.State != navA.State {
 				a.State = navA.State
+				a.Status = explorer.GetAnswerStatusByState(uint(a.State)).Status
 				updated = true
 			}
-			if a.Status != navA.Status {
-				a.Status = navA.Status
+			log.WithFields(log.Fields{
+				"support":  a.Support,
+				"required": AnswerSupportRequired(),
+			}).Info("Found Support?")
+			supported := a.Support >= AnswerSupportRequired()
+			if a.FoundSupport != supported {
+				a.FoundSupport = supported
 				updated = true
 			}
 			if a.Votes != navA.Votes {
