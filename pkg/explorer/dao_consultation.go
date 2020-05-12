@@ -43,15 +43,15 @@ func (c *Consultation) HasAnswerWithSupport() bool {
 }
 
 type Answer struct {
-	Version             uint32 `json:"version,omitempty"`
-	Answer              string `json:"answer,omitempty"`
-	Support             int    `json:"support,omitempty"`
-	Votes               int    `json:"votes,omitempty"`
-	State               int    `json:"state,omitempty"`
-	Status              string `json:"status,omitempty"`
-	FoundSupport        bool   `json:"foundSupport,omitempty"`
+	Version             uint32 `json:"version"`
+	Answer              string `json:"answer"`
+	Support             int    `json:"support"`
+	Votes               int    `json:"votes"`
+	State               int    `json:"state"`
+	Status              string `json:"status"`
+	FoundSupport        bool   `json:"foundSupport"`
 	StateChangedOnBlock string `json:"stateChangedOnBlock"`
 	TxBlockHash         string `json:"txblockhash"`
-	Parent              string `json:"parent,omitempty"`
-	Hash                string `json:"hash,omitempty"`
+	Parent              string `json:"parent"`
+	Hash                string `json:"hash"`
 }
