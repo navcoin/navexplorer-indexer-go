@@ -26,15 +26,15 @@ func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTr
 		ProposedBy:          tx.Vin.First().Addresses[0],
 	}
 
-	if consultation.Version>>1 == 1 {
+	if consultation.Version>>1&1 == 1 {
 		c.AnswerIsARange = true
 	}
 
-	if consultation.Version>>2 == 1 {
+	if consultation.Version>>2&1 == 1 {
 		c.MoreAnswers = true
 	}
 
-	if consultation.Version>>3 == 1 {
+	if consultation.Version>>3&1 == 1 {
 		c.ConsensusParameter = true
 	}
 
