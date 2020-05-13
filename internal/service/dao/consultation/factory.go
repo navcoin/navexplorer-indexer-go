@@ -62,6 +62,7 @@ func createAnswer(a *navcoind.Answer) *explorer.Answer {
 		TxBlockHash:         a.TxBlockHash,
 		Parent:              a.Parent,
 		Hash:                a.Hash,
+		MapState:            a.MapState,
 	}
 }
 
@@ -139,6 +140,10 @@ func updateAnswers(navC navcoind.Consultation, c *explorer.Consultation) bool {
 			}
 			if a.Votes != navA.Votes {
 				a.Votes = navA.Votes
+				updated = true
+			}
+			if reflect.DeepEqual(navA.MapState, a.MapState) {
+				a.MapState = navA.MapState
 				updated = true
 			}
 		}
