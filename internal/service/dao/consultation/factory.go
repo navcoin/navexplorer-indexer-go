@@ -3,7 +3,7 @@ package consultation
 import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"reflect"
 )
 
 func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTransaction) *explorer.Consultation {
@@ -15,7 +15,6 @@ func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTr
 		Support:             consultation.Support,
 		Min:                 consultation.Min,
 		Max:                 consultation.Max,
-		VotingCycle:         consultation.VotingCycle,
 		State:               consultation.State,
 		Status:              explorer.GetConsultationStatusByState(uint(consultation.State)).Status,
 		FoundSupport:        false,
@@ -73,8 +72,13 @@ func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bo
 		updated = true
 	}
 
-	if navC.VotingCycle != c.VotingCycle {
-		c.VotingCycle = navC.VotingCycle
+	if navC.VotingCyclesFromCreation != c.VotingCyclesFromCreation {
+		c.VotingCyclesFromCreation = navC.VotingCyclesFromCreation
+		updated = true
+	}
+
+	if navC.VotingCycleForState.Current != c.VotingCycleForState {
+		c.VotingCycleForState = navC.VotingCycleForState.Current
 		updated = true
 	}
 
@@ -84,7 +88,7 @@ func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bo
 
 	if navC.State != c.State {
 		c.State = navC.State
-		c.Status = explorer.GetAnswerStatusByState(uint(c.State)).Status
+		c.Status = explorer.GetConsultationStatusByState(uint(c.State)).Status
 		updated = true
 	}
 
@@ -95,6 +99,11 @@ func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bo
 
 	if navC.StateChangedOnBlock != c.StateChangedOnBlock {
 		c.StateChangedOnBlock = navC.StateChangedOnBlock
+		updated = true
+	}
+
+	if reflect.DeepEqual(navC.MapState, c.MapState) {
+		c.MapState = navC.MapState
 		updated = true
 	}
 
@@ -122,10 +131,7 @@ func updateAnswers(navC navcoind.Consultation, c *explorer.Consultation) bool {
 				a.Status = explorer.GetAnswerStatusByState(uint(a.State)).Status
 				updated = true
 			}
-			log.WithFields(log.Fields{
-				"support":  a.Support,
-				"required": AnswerSupportRequired(),
-			}).Info("Found Support?")
+
 			supported := a.Support >= AnswerSupportRequired()
 			if a.FoundSupport != supported {
 				a.FoundSupport = supported

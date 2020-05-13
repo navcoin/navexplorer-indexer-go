@@ -5,23 +5,25 @@ import (
 )
 
 type Consultation struct {
-	Version             uint32    `json:"version"`
-	Hash                string    `json:"hash"`
-	BlockHash           string    `json:"blockHash"`
-	Question            string    `json:"question"`
-	Support             int       `json:"support"`
-	Abstain             int       `json:"abstain,omitempty"`
-	Answers             []*Answer `json:"answers"`
-	Min                 int       `json:"min"`
-	Max                 int       `json:"max"`
-	VotingCycle         int       `json:"votingCycle"`
-	State               int       `json:"state"`
-	Status              string    `json:"status"`
-	FoundSupport        bool      `json:"foundSupport,omitempty"`
-	StateChangedOnBlock string    `json:"stateChangedOnBlock"`
-	Height              uint64    `json:"height"`
-	UpdatedOnBlock      uint64    `json:"updatedOnBlock"`
-	ProposedBy          string    `json:"proposedBy"`
+	Version                  uint32         `json:"version"`
+	Hash                     string         `json:"hash"`
+	BlockHash                string         `json:"blockHash"`
+	Question                 string         `json:"question"`
+	Support                  int            `json:"support"`
+	Abstain                  int            `json:"abstain,omitempty"`
+	Answers                  []*Answer      `json:"answers"`
+	Min                      int            `json:"min"`
+	Max                      int            `json:"max"`
+	VotingCyclesFromCreation int            `json:"votingCyclesFromCreation"`
+	VotingCycleForState      int            `json:"votingCycleForState"`
+	State                    int            `json:"state"`
+	Status                   string         `json:"status"`
+	FoundSupport             bool           `json:"foundSupport,omitempty"`
+	StateChangedOnBlock      string         `json:"stateChangedOnBlock"`
+	Height                   uint64         `json:"height"`
+	UpdatedOnBlock           uint64         `json:"updatedOnBlock"`
+	ProposedBy               string         `json:"proposedBy"`
+	MapState                 map[string]int `json:"mapState"`
 
 	AnswerIsARange     bool `json:"answerIsARange"`
 	MoreAnswers        bool `json:"moreAnswers"`
