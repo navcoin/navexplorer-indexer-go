@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
@@ -116,7 +118,7 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 		_, err := r.Client.
 			Index().
 			Index(elastic_cache.AddressIndex.Get()).
-			Id(address.Slug()).
+			Id(fmt.Sprintf("%s-%s", config.Get().Network, address.Slug())).
 			BodyJson(address).
 			Do(context.Background())
 		if err != nil {

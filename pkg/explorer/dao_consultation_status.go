@@ -10,15 +10,17 @@ type ConsultationStatus struct {
 }
 
 var (
-	ConsultationPending      = ConsultationStatus{0, "waiting for support"}
-	ConsultationExpired      = ConsultationStatus{3, "expired"}
-	ConsultationPassed       = ConsultationStatus{7, "passed"}
-	ConsultationReflection   = ConsultationStatus{8, "reflection"}
-	ConsultationFoundSupport = ConsultationStatus{9, "found support"}
+	ConsultationPending       = ConsultationStatus{0, "waiting for support"}
+	ConsultationVotingStarted = ConsultationStatus{1, "voting started"}
+	ConsultationExpired       = ConsultationStatus{3, "expired"}
+	ConsultationPassed        = ConsultationStatus{7, "passed"}
+	ConsultationReflection    = ConsultationStatus{8, "reflection"}
+	ConsultationFoundSupport  = ConsultationStatus{9, "found support"}
 )
 
-var consultationStatus = [5]ConsultationStatus{
+var consultationStatus = [6]ConsultationStatus{
 	ConsultationPending,
+	ConsultationVotingStarted,
 	ConsultationExpired,
 	ConsultationPassed,
 	ConsultationReflection,

@@ -2,7 +2,9 @@ package consultation
 
 import (
 	"context"
+	"fmt"
 	"github.com/NavExplorer/navcoind-go"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
@@ -30,7 +32,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 			index := elastic_cache.DaoConsultationIndex.Get()
 			_, err := i.elastic.Client.Index().
 				Index(index).
-				Id(consultation.Slug()).
+				Id(fmt.Sprintf("%s-%s", config.Get().Network, consultation.Slug())).
 				BodyJson(consultation).
 				Do(context.Background())
 			if err != nil {
@@ -48,7 +50,6 @@ func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block)
 		if c == nil {
 			continue
 		}
-		log.Infof("Update Consultation at height %d: %s", block.Height, c.Hash)
 
 		navC, err := i.navcoin.GetConsultation(c.Hash)
 		if err != nil {

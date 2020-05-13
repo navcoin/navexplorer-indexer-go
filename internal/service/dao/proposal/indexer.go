@@ -2,7 +2,9 @@ package proposal
 
 import (
 	"context"
+	"fmt"
 	"github.com/NavExplorer/navcoind-go"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
@@ -30,7 +32,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 
 			_, err := i.elastic.Client.Index().
 				Index(elastic_cache.ProposalIndex.Get()).
-				Id(proposal.Slug()).
+				Id(fmt.Sprintf("%s-%s", config.Get().Network, proposal.Slug())).
 				BodyJson(proposal).
 				Do(context.Background())
 			if err != nil {

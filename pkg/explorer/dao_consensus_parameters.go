@@ -45,5 +45,5 @@ type ConsensusParameter struct {
 }
 
 func (cp *ConsensusParameter) Slug() string {
-	return slug.Make(fmt.Sprintf("%d", cp.Id))
+	return slug.Make(fmt.Sprintf("consensus-%d", cp.Id))
 }

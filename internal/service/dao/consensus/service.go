@@ -3,6 +3,7 @@ package consensus
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -42,7 +43,7 @@ func (s *Service) InitConsensusParameters() {
 		initialParam.UpdatedOnBlock = 0
 		_, err := s.elastic.Client.Index().
 			Index(elastic_cache.ConsensusIndex.Get()).
-			Id(initialParam.Slug()).
+			Id(fmt.Sprintf("%s-%s", config.Get().Network, initialParam.Slug())).
 			BodyJson(initialParam).
 			Do(context.Background())
 		if err != nil {

@@ -2,6 +2,8 @@ package address
 
 import (
 	"context"
+	"fmt"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
@@ -81,7 +83,7 @@ func (r *Rewinder) RewindAddressToHeight(address *explorer.Address, height uint6
 	_, err = r.elastic.Client.Index().
 		Index(elastic_cache.AddressIndex.Get()).
 		BodyJson(address).
-		Id(address.Slug()).
+		Id(fmt.Sprintf("%s-%s", config.Get().Network, address.Slug())).
 		Do(context.Background())
 
 	if err != nil {

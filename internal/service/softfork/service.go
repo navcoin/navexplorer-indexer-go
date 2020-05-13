@@ -2,7 +2,9 @@ package softfork
 
 import (
 	"context"
+	"fmt"
 	"github.com/NavExplorer/navcoind-go"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
@@ -39,7 +41,7 @@ func (i *Service) InitSoftForks() {
 			_, err := i.elastic.Client.
 				Index().
 				Index(elastic_cache.SoftForkIndex.Get()).
-				Id(softFork.Slug()).
+				Id(fmt.Sprintf("%s-%s", config.Get().Network, softFork.Slug())).
 				BodyJson(softFork).
 				Do(context.Background())
 			if err != nil {

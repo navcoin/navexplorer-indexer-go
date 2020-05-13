@@ -2,7 +2,9 @@ package consensus
 
 import (
 	"context"
+	"fmt"
 	"github.com/NavExplorer/navcoind-go"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
@@ -34,7 +36,7 @@ func (r *Rewinder) Rewind() error {
 				_, err = r.elastic.Client.Index().
 					Index(elastic_cache.ConsensusIndex.Get()).
 					BodyJson(initialParameter).
-					Id(consensusParameter.Slug()).
+					Id(fmt.Sprintf("%s-%s", config.Get().Network, consensusParameter.Slug())).
 					Do(context.Background())
 
 				if err != nil {

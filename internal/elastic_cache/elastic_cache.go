@@ -107,9 +107,10 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 	if request := i.GetRequest(index, entity.Slug()); request != nil {
 		request.Entity = entity
 	} else {
+
 		i.requests = append(i.requests, &Request{
 			Index:  index,
-			Id:     entity.Slug(),
+			Id:     fmt.Sprintf("%s-%s", config.Get().Network, entity.Slug()),
 			Entity: entity,
 			Type:   reqType,
 		})
