@@ -3,6 +3,7 @@ package consultation
 import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	log "github.com/sirupsen/logrus"
 	"reflect"
 )
 
@@ -69,41 +70,49 @@ func createAnswer(a *navcoind.Answer) *explorer.Answer {
 func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bool {
 	updated := false
 	if navC.Support != c.Support {
+		log.Info("Update Support")
 		c.Support = navC.Support
 		updated = true
 	}
 
 	if navC.VotingCyclesFromCreation != c.VotingCyclesFromCreation {
+		log.Info("Update VotingCyclesFromCreation")
 		c.VotingCyclesFromCreation = navC.VotingCyclesFromCreation
 		updated = true
 	}
 
 	if navC.VotingCycleForState.Current != c.VotingCycleForState {
+		log.Info("Update VotingCycleForState")
 		c.VotingCycleForState = navC.VotingCycleForState.Current
 		updated = true
 	}
 
 	if updateAnswers(navC, c) {
+		log.Info("Update updateAnswers")
 		updated = true
 	}
 
 	if navC.State != c.State {
+		log.Info("Update State")
 		c.State = navC.State
 		c.Status = explorer.GetConsultationStatusByState(uint(c.State)).Status
 		updated = true
 	}
 
 	if c.FoundSupport != c.HasAnswerWithSupport() {
+		log.Info("Update FoundSupport")
 		c.FoundSupport = c.HasAnswerWithSupport()
 		updated = true
 	}
 
 	if navC.StateChangedOnBlock != c.StateChangedOnBlock {
+		log.Info("Update StateChangedOnBlock")
 		c.StateChangedOnBlock = navC.StateChangedOnBlock
 		updated = true
 	}
 
 	if reflect.DeepEqual(navC.MapState, c.MapState) {
+		log.Info("Update MapState")
 		c.MapState = navC.MapState
 		updated = true
 	}
@@ -120,14 +129,17 @@ func updateAnswers(navC navcoind.Consultation, c *explorer.Consultation) bool {
 			updated = true
 		} else {
 			if a.Support != navA.Support {
+				log.Info("UpdateAnswer Support")
 				a.Support = navA.Support
 				updated = true
 			}
 			if a.StateChangedOnBlock != navA.StateChangedOnBlock {
+				log.Info("UpdateAnswer StateChangedOnBlock")
 				a.StateChangedOnBlock = navA.StateChangedOnBlock
 				updated = true
 			}
 			if a.State != navA.State {
+				log.Info("UpdateAnswer State")
 				a.State = navA.State
 				a.Status = explorer.GetAnswerStatusByState(uint(a.State)).Status
 				updated = true
@@ -135,17 +147,20 @@ func updateAnswers(navC navcoind.Consultation, c *explorer.Consultation) bool {
 
 			supported := a.Support >= AnswerSupportRequired()
 			if a.FoundSupport != supported {
+				log.Info("UpdateAnswer AnswerSupportRequired")
 				a.FoundSupport = supported
 				updated = true
 			}
 			if a.Votes != navA.Votes {
+				log.Info("UpdateAnswer Votes")
 				a.Votes = navA.Votes
 				updated = true
 			}
-			if reflect.DeepEqual(navA.MapState, a.MapState) {
-				a.MapState = navA.MapState
-				updated = true
-			}
+			//if reflect.DeepEqual(navA.MapState, a.MapState) {
+			//	log.Info("UpdateAnswer MapState")
+			//	a.MapState = navA.MapState
+			//	updated = true
+			//}
 		}
 	}
 
