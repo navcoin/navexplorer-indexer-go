@@ -56,3 +56,15 @@ func (p *consensusParameters) Get(parameter Parameter) *explorer.ConsensusParame
 
 	return nil
 }
+
+func (p *consensusParameters) GetById(id int) *explorer.ConsensusParameter {
+	for _, c := range Parameters {
+		if id == c.Id {
+			return c
+		}
+	}
+
+	log.Fatalf("Failed to get consensus parameter %d", id)
+
+	return nil
+}
