@@ -44,6 +44,32 @@ func (c *Consultation) HasAnswerWithSupport() bool {
 	return false
 }
 
+func (c *Consultation) HasPassedAnswer() bool {
+	if uint(c.State) != ConsultationPassed.State {
+		return false
+	}
+	for _, a := range c.Answers {
+		if uint(a.State) == AnswerPassed.State {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c *Consultation) GetPassedAnswer() *Answer {
+	if uint(c.State) != ConsultationPassed.State {
+		return nil
+	}
+	for _, a := range c.Answers {
+		if uint(a.State) == AnswerPassed.State {
+			return a
+		}
+	}
+
+	return nil
+}
+
 type Answer struct {
 	Version             uint32         `json:"version"`
 	Answer              string         `json:"answer"`
