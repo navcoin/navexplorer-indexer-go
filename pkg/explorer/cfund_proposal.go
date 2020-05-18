@@ -22,6 +22,11 @@ type Proposal struct {
 	StateChangedOnBlock string  `json:"stateChangedOnBlock,omitempty"`
 	Height              uint64  `json:"height"`
 	UpdatedOnBlock      uint64  `json:"updatedOnBlock"`
+
+	VotesYes    uint `json:"votesYes,omitempty"`
+	VotesAbs    uint `json:"votesAbs,omitempty"`
+	VotesNo     uint `json:"votesNo,omitempty"`
+	VotingCycle uint `json:"votingCycle,omitempty"`
 }
 
 func (p *Proposal) Slug() string {
