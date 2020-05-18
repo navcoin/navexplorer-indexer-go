@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func CreateBlock(block *navcoind.Block, cycleSize uint) *explorer.Block {
+func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize uint) *explorer.Block {
 	return &explorer.Block{
 		RawBlock: explorer.RawBlock{
 			Hash:              block.Hash,
@@ -29,28 +29,31 @@ func CreateBlock(block *navcoind.Block, cycleSize uint) *explorer.Block {
 			Previousblockhash: block.PreviousBlockHash,
 			Nextblockhash:     block.NextBlockHash,
 		},
-		BlockCycle: createBlockCycle(cycleSize, block),
+		BlockCycle: createBlockCycle(cycleSize, previousBlock),
 		TxCount:    uint(len(block.Tx)),
 	}
 }
 
-func createBlockCycle(size uint, block *navcoind.Block) *explorer.BlockCycle {
-	cycle := getCycleForHeight(size, block.Height)
+func createBlockCycle(size uint, previousBlock *explorer.Block) *explorer.BlockCycle {
+	var cycle uint
+	var index uint
+
+	if previousBlock == nil {
+		cycle = 1
+		index = 1
+	} else if previousBlock.BlockCycle.IsEnd() {
+		cycle = previousBlock.BlockCycle.Cycle + 1
+		index = 0
+	} else {
+		cycle = previousBlock.BlockCycle.Cycle
+		index = previousBlock.BlockCycle.Index + 1
+	}
 
 	return &explorer.BlockCycle{
 		Size:  size,
 		Cycle: cycle,
-		Index: getCycleIndex(block.Height, cycle, size),
+		Index: index,
 	}
-}
-
-func getCycleForHeight(size uint, height uint64) uint {
-	return (uint(height) / size) + 1
-}
-
-func getCycleIndex(height uint64, cycle uint, size uint) uint {
-	base := (cycle * size) - size
-	return uint(height) - base
 }
 
 func CreateBlockTransaction(navTx navcoind.RawTransaction, index uint) *explorer.BlockTransaction {
