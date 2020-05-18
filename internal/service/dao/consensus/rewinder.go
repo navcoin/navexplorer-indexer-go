@@ -1,13 +1,11 @@
 package consensus
 
 import (
-	"context"
-	"fmt"
 	"github.com/NavExplorer/navcoind-go"
-	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
-	"github.com/getsentry/raven-go"
+	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 type Rewinder struct {
@@ -21,7 +19,7 @@ func NewRewinder(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo 
 	return &Rewinder{navcoin, elastic, repo, service}
 }
 
-func (r *Rewinder) Rewind() error {
+func (r *Rewinder) Rewind(consultations []*explorer.Consultation) error {
 	log.Debug("Rewind consensus")
 	initialParameters, _ := r.service.InitialState()
 
@@ -33,17 +31,18 @@ func (r *Rewinder) Rewind() error {
 	for _, initialParameter := range initialParameters {
 		for _, consensusParameter := range consensusParameters {
 			if initialParameter.Id == consensusParameter.Id {
-				_, err = r.elastic.Client.Index().
-					Index(elastic_cache.ConsensusIndex.Get()).
-					BodyJson(initialParameter).
-					Id(fmt.Sprintf("%s-%s", config.Get().Network, consensusParameter.Slug())).
-					Do(context.Background())
+				r.elastic.AddUpdateRequest(elastic_cache.ConsensusIndex.Get(), consensusParameter)
+			}
+		}
+	}
 
-				if err != nil {
-					log.WithField("consensusParameter", consensusParameter).WithError(err).Error("Failed to persist the rewind")
-					raven.CaptureError(err, nil)
-					return err
-				}
+	for _, c := range consultations {
+		for _, p := range consensusParameters {
+			if c.Min == p.Id {
+				value, _ := strconv.Atoi(c.GetPassedAnswer().Answer)
+				p.Value = value
+				r.elastic.AddUpdateRequest(elastic_cache.ConsensusIndex.Get(), p)
+				break
 			}
 		}
 	}
