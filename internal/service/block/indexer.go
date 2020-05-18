@@ -15,10 +15,11 @@ type Indexer struct {
 	elastic       *elastic_cache.Index
 	orphanService *OrphanService
 	repository    *Repository
+	service       *Service
 }
 
-func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphanService *OrphanService, repository *Repository) *Indexer {
-	return &Indexer{navcoin, elastic, orphanService, repository}
+func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphanService *OrphanService, repository *Repository, service *Service) *Indexer {
+	return &Indexer{navcoin, elastic, orphanService, repository, service}
 }
 
 func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []*explorer.BlockTransaction, error) {
@@ -31,7 +32,9 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		return nil, nil, err
 	}
 
-	block := CreateBlock(navBlock, uint(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value))
+	block := CreateBlock(navBlock, i.service.GetLastBlockIndexed(), uint(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value))
+	LastBlockIndexed = block
+
 	if option == IndexOption.SingleIndex {
 		log.Info("Indexing in single block mode")
 		orphan, err := i.orphanService.IsOrphanBlock(block)
