@@ -62,9 +62,14 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction)
 	if block.BlockCycle.IsEnd() {
 		i.proposalIndexer.Update(block.BlockCycle, block)
 		i.paymentRequestIndexer.Update(block.BlockCycle, block)
-
-		//_ = i.consensusIndexer.Index()
 	}
 
 	i.consultationIndexer.Update(block.BlockCycle, block)
+	if block.BlockCycle.IsEnd() {
+		log.WithFields(log.Fields{
+			"size":   block.BlockCycle.Size,
+			"height": block.Height,
+		}).Infof("Blockcycle %d complete", block.BlockCycle.Cycle)
+		i.consensusIndexer.Update(block)
+	}
 }
