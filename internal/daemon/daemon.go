@@ -4,6 +4,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/generated/dic"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
 	"github.com/getsentry/raven-go"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
@@ -49,12 +50,16 @@ func Execute() {
 }
 
 func getHeight() uint64 {
-	if height, err := container.GetBlockRepo().GetHeight(); err != nil {
-		log.WithError(err).Fatal("Failed to get block height")
-	} else {
-		if height >= uint64(config.Get().BulkIndexSize) {
-			return height - uint64(config.Get().BulkIndexSize)
+	height, err := container.GetBlockRepo().GetHeight()
+	if err != nil {
+		if err == block.ErrBlockNotFound {
+			return 0
 		}
+		log.WithError(err).Fatal("Failed to get block height")
+	}
+
+	if height >= uint64(config.Get().BulkIndexSize) {
+		return height - uint64(config.Get().BulkIndexSize)
 	}
 
 	return 0
