@@ -17,26 +17,35 @@ func NewRepo(Client *elastic.Client) *Repository {
 	return &Repository{Client}
 }
 
-func (r *Repository) GetHeight() (uint64, error) {
+func (r *Repository) GetBestBlock() (*explorer.Block, error) {
 	results, err := r.Client.
 		Search(elastic_cache.BlockIndex.Get()).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
 	if err != nil || results == nil {
-		return 0, err
+		return nil, err
 	}
 
 	if len(results.Hits.Hits) == 0 {
-		return 0, nil
+		return nil, ErrBlockNotFound
 	}
 
 	var block *explorer.Block
 	if err = json.Unmarshal(results.Hits.Hits[0].Source, &block); err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
+func (r *Repository) GetHeight() (uint64, error) {
+	b, err := r.GetBestBlock()
+	if err != nil {
 		return 0, err
 	}
 
-	return block.Height, nil
+	return b.Height, nil
 }
 
 func (r *Repository) GetBlockByHash(hash string) (*explorer.Block, error) {
