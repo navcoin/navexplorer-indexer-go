@@ -23,7 +23,7 @@ type Consultation struct {
 	Height                   uint64         `json:"height"`
 	UpdatedOnBlock           uint64         `json:"updatedOnBlock"`
 	ProposedBy               string         `json:"proposedBy"`
-	MapState                 map[string]int `json:"mapState"`
+	MapState                 map[int]string `json:"mapState"`
 
 	AnswerIsARange     bool `json:"answerIsARange"`
 	MoreAnswers        bool `json:"moreAnswers"`
@@ -82,5 +82,5 @@ type Answer struct {
 	TxBlockHash         string         `json:"txblockhash"`
 	Parent              string         `json:"parent"`
 	Hash                string         `json:"hash"`
-	MapState            map[string]int `json:"mapState"`
+	MapState            map[int]string `json:"mapState"`
 }
