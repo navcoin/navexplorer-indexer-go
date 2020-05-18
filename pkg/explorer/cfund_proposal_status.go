@@ -61,3 +61,12 @@ func IsProposalStatusValid(status string) bool {
 	}
 	return false
 }
+
+func IsProposalStateValid(state uint) bool {
+	for idx := range proposalStatus {
+		if proposalStatus[idx].State == state {
+			return true
+		}
+	}
+	return false
+}
