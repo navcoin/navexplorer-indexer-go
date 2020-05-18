@@ -93,9 +93,15 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "block.service",
+		Build: func(repository *block.Repository) (*block.Service, error) {
+			return block.NewService(repository), nil
+		},
+	},
+	{
 		Name: "block.indexer",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphanedService *block.OrphanService, repository *block.Repository) (*block.Indexer, error) {
-			return block.NewIndexer(navcoin, elastic, orphanedService, repository), nil
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphanedService *block.OrphanService, repository *block.Repository, service *block.Service) (*block.Indexer, error) {
+			return block.NewIndexer(navcoin, elastic, orphanedService, repository, service), nil
 		},
 	},
 	{
@@ -161,7 +167,7 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.consensus.Rewinder",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository, service *consensus.Service) (*consensus.Rewinder, error) {
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository, service *consensus.Service, consultationRepo *consultation.Repository) (*consensus.Rewinder, error) {
 			return consensus.NewRewinder(navcoin, elastic, repo, service), nil
 		},
 	},
@@ -179,8 +185,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.consultation.Indexer",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index) (*consultation.Indexer, error) {
-			return consultation.NewIndexer(navcoin, elastic), nil
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, blockRepo *block.Repository) (*consultation.Indexer, error) {
+			return consultation.NewIndexer(navcoin, elastic, blockRepo), nil
 		},
 	},
 	{
@@ -191,8 +197,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.Rewinder",
-		Build: func(elastic *elastic_cache.Index, consensusRewinder *consensus.Rewinder) (*dao.Rewinder, error) {
-			return dao.NewRewinder(elastic, consensusRewinder), nil
+		Build: func(elastic *elastic_cache.Index, consensusRewinder *consensus.Rewinder, repository *consultation.Repository) (*dao.Rewinder, error) {
+			return dao.NewRewinder(elastic, consensusRewinder, repository), nil
 		},
 	},
 	{
