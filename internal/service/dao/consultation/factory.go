@@ -70,49 +70,41 @@ func createAnswer(a *navcoind.Answer) *explorer.Answer {
 func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bool {
 	updated := false
 	if navC.Support != c.Support {
-		log.Info("Update Support")
 		c.Support = navC.Support
 		updated = true
 	}
 
 	if navC.VotingCyclesFromCreation != c.VotingCyclesFromCreation {
-		log.Info("Update VotingCyclesFromCreation")
 		c.VotingCyclesFromCreation = navC.VotingCyclesFromCreation
 		updated = true
 	}
 
 	if navC.VotingCycleForState.Current != c.VotingCycleForState {
-		log.Info("Update VotingCycleForState")
 		c.VotingCycleForState = navC.VotingCycleForState.Current
 		updated = true
 	}
 
 	if updateAnswers(navC, c) {
-		log.Info("Update updateAnswers")
 		updated = true
 	}
 
 	if navC.State != c.State {
-		log.Info("Update State")
 		c.State = navC.State
 		c.Status = explorer.GetConsultationStatusByState(uint(c.State)).Status
 		updated = true
 	}
 
 	if c.FoundSupport != c.HasAnswerWithSupport() {
-		log.Info("Update FoundSupport")
 		c.FoundSupport = c.HasAnswerWithSupport()
 		updated = true
 	}
 
 	if navC.StateChangedOnBlock != c.StateChangedOnBlock {
-		log.Info("Update StateChangedOnBlock")
 		c.StateChangedOnBlock = navC.StateChangedOnBlock
 		updated = true
 	}
 
 	if reflect.DeepEqual(navC.MapState, c.MapState) {
-		log.Info("Update MapState")
 		c.MapState = navC.MapState
 		updated = true
 	}
