@@ -11,7 +11,7 @@ func CreateVotes(block *explorer.Block, tx *explorer.BlockTransaction, header *n
 		return nil
 	}
 
-	daoVote := &explorer.DaoVotes{Height: tx.Height, Address: block.StakedBy}
+	daoVote := &explorer.DaoVotes{Cycle: block.BlockCycle.Cycle, Height: tx.Height, Address: block.StakedBy}
 
 	for _, v := range header.CfundVotes {
 		vote := explorer.Vote{Type: explorer.ProposalVote, Hash: v.Hash, Vote: v.Vote}

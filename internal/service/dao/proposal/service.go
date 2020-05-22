@@ -15,8 +15,6 @@ func NewService(repo *Repository) *Service {
 }
 
 func (s *Service) LoadVotingProposals(block *explorer.Block) {
-	log.Debug("Load Voting Proposals")
-
 	excludeOlderThan := block.Height - (uint64(block.BlockCycle.Size * 2))
 	if excludeOlderThan < 0 {
 		excludeOlderThan = 0
@@ -27,6 +25,7 @@ func (s *Service) LoadVotingProposals(block *explorer.Block) {
 		raven.CaptureError(err, nil)
 		log.WithError(err).Error("Failed to load pending proposals")
 	}
+	log.Infof("Load Voting Proposals (%d)", len(proposals))
 
 	Proposals = proposals
 }
