@@ -1,6 +1,9 @@
 {
   "mappings": {
     "properties": {
+      "cycle": {
+        "type": "integer"
+      },
       "height": {
         "type": "long"
       },
