@@ -48,9 +48,11 @@ func (b *Block) Slug() string {
 }
 
 type BlockCycle struct {
-	Size  uint
-	Cycle uint
-	Index uint
+	Size           uint `json:"size"`
+	Cycle          uint `json:"cycle"`
+	Index          uint `json:"index"`
+	Transitory     bool `json:"transitory"`
+	TransitorySize uint `json:"transitorySize"`
 }
 
 func (b *BlockCycle) IsEnd() bool {

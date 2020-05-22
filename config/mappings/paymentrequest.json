@@ -75,6 +75,18 @@
       },
       "updatedOnBlock": {
         "type": "long"
+      },
+      "votesYes": {
+        "type": "integer"
+      },
+      "votesAbs": {
+        "type": "integer"
+      },
+      "votesNo": {
+        "type": "integer"
+      },
+      "votingCycle": {
+        "type": "integer"
       }
     }
   },

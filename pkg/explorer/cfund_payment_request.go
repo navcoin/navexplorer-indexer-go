@@ -6,6 +6,9 @@ import (
 )
 
 type RawPaymentRequest struct {
+}
+
+type PaymentRequest struct {
 	Version             uint32  `json:"version"`
 	Hash                string  `json:"hash"`
 	BlockHash           string  `json:"blockHash"`
@@ -15,12 +18,14 @@ type RawPaymentRequest struct {
 	Status              string  `json:"status"`
 	State               uint    `json:"state"`
 	StateChangedOnBlock string  `json:"stateChangedOnBlock,omitempty"`
-}
 
-type PaymentRequest struct {
-	RawPaymentRequest
 	Height         uint64 `json:"height"`
 	UpdatedOnBlock uint64 `json:"updatedOnBlock"`
+
+	VotesYes    uint `json:"votesYes"`
+	VotesAbs    uint `json:"votesAbs"`
+	VotesNo     uint `json:"votesNo"`
+	VotingCycle uint `json:"votingCycle"`
 }
 
 func (p *PaymentRequest) Slug() string {

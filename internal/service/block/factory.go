@@ -35,25 +35,33 @@ func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize
 }
 
 func createBlockCycle(size uint, previousBlock *explorer.Block) *explorer.BlockCycle {
-	var cycle uint
-	var index uint
-
 	if previousBlock == nil {
-		cycle = 1
-		index = 1
-	} else if previousBlock.BlockCycle.IsEnd() {
-		cycle = previousBlock.BlockCycle.Cycle + 1
-		index = 0
-	} else {
-		cycle = previousBlock.BlockCycle.Cycle
-		index = previousBlock.BlockCycle.Index + 1
+		return &explorer.BlockCycle{
+			Size:  size,
+			Cycle: 1,
+			Index: 1,
+		}
 	}
 
-	return &explorer.BlockCycle{
-		Size:  size,
-		Cycle: cycle,
-		Index: index,
+	if !previousBlock.BlockCycle.IsEnd() {
+		return &explorer.BlockCycle{
+			Size:  size,
+			Cycle: previousBlock.BlockCycle.Cycle,
+			Index: previousBlock.BlockCycle.Index + 1,
+		}
 	}
+
+	bc := &explorer.BlockCycle{
+		Size:  size,
+		Cycle: previousBlock.BlockCycle.Cycle + 1,
+		Index: uint(previousBlock.Height+1) % size,
+	}
+	if bc.Index != 0 {
+		bc.Transitory = true
+		bc.TransitorySize = size - bc.Index
+	}
+
+	return bc
 }
 
 func CreateBlockTransaction(navTx navcoind.RawTransaction, index uint) *explorer.BlockTransaction {

@@ -57,14 +57,12 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction)
 		raven.CaptureError(err, nil)
 		log.WithError(err).Fatal("Failed to get blockHeader")
 	}
+
 	i.voteIndexer.IndexVotes(txs, block, header)
-
-	if block.BlockCycle.IsEnd() {
-		i.proposalIndexer.Update(block.BlockCycle, block)
-		i.paymentRequestIndexer.Update(block.BlockCycle, block)
-	}
-
+	i.proposalIndexer.Update(block.BlockCycle, block)
+	i.paymentRequestIndexer.Update(block.BlockCycle, block)
 	i.consultationIndexer.Update(block.BlockCycle, block)
+
 	if block.BlockCycle.IsEnd() {
 		log.WithFields(log.Fields{
 			"size":   block.BlockCycle.Size,

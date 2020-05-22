@@ -25,6 +25,10 @@ func CreateProposal(proposal navcoind.Proposal, height uint64) *explorer.Proposa
 		StateChangedOnBlock: proposal.StateChangedOnBlock,
 		Height:              height,
 		UpdatedOnBlock:      height,
+		VotesYes:            proposal.VotesYes,
+		VotesAbs:            proposal.VotesAbs,
+		VotesNo:             proposal.VotesNo,
+		VotingCycle:         proposal.VotingCycle,
 	}
 }
 
@@ -47,6 +51,26 @@ func UpdateProposal(proposal navcoind.Proposal, height uint64, p *explorer.Propo
 
 	if p.StateChangedOnBlock != proposal.StateChangedOnBlock {
 		p.StateChangedOnBlock = proposal.StateChangedOnBlock
+		p.UpdatedOnBlock = height
+	}
+
+	if p.VotesYes != proposal.VotesYes {
+		p.VotesYes = proposal.VotesYes
+		p.UpdatedOnBlock = height
+	}
+
+	if p.VotesAbs != proposal.VotesAbs {
+		p.VotesAbs = proposal.VotesAbs
+		p.UpdatedOnBlock = height
+	}
+
+	if p.VotesNo != proposal.VotesNo {
+		p.VotesNo = proposal.VotesNo
+		p.UpdatedOnBlock = height
+	}
+
+	if p.VotingCycle != proposal.VotingCycle {
+		p.VotingCycle = proposal.VotingCycle
 		p.UpdatedOnBlock = height
 	}
 }
