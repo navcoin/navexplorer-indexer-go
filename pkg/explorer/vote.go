@@ -6,6 +6,7 @@ import (
 )
 
 type DaoVotes struct {
+	Cycle   uint   `json:"cycle"`
 	Height  uint64 `json:"height"`
 	Address string `json:"address"`
 	Votes   []Vote `json:"votes"`
