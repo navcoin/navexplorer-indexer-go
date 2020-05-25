@@ -55,3 +55,12 @@ func IsPaymentRequestStatusValid(status string) bool {
 	}
 	return false
 }
+
+func IsPaymentRequestStateValid(state uint) bool {
+	for idx := range paymentRequestStatus {
+		if paymentRequestStatus[idx].State == state {
+			return true
+		}
+	}
+	return false
+}
