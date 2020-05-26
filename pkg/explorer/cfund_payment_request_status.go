@@ -11,7 +11,7 @@ var (
 	PaymentRequestPending  = PaymentRequestStatus{0, "pending"}
 	PaymentRequestAccepted = PaymentRequestStatus{1, "accepted"}
 	PaymentRequestRejected = PaymentRequestStatus{2, "rejected"}
-	PaymentRequestExpired  = PaymentRequestStatus{4, "expired"}
+	PaymentRequestExpired  = PaymentRequestStatus{3, "expired"}
 	PaymentRequestPaid     = PaymentRequestStatus{6, "paid"}
 )
 
@@ -31,7 +31,7 @@ func GetPaymentRequestStatusByState(state uint) PaymentRequestStatus {
 		}
 	}
 
-	log.Fatal("PaymentRequestStatus state does not exist", state)
+	log.Fatal("PaymentRequestStatus state does not exist ", state)
 	panic(0)
 }
 
