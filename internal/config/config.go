@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/getsentry/raven-go"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -62,6 +63,10 @@ func Init() {
 
 	if Get().Debug {
 		log.SetLevel(log.DebugLevel)
+	}
+
+	if Get().Sentry.Active {
+		_ = raven.SetDSN(Get().Sentry.DSN)
 	}
 
 	initLogger()
