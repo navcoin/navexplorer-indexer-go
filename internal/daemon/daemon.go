@@ -5,7 +5,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
-	"github.com/getsentry/raven-go"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,10 +19,6 @@ func Execute() {
 	container.GetSoftforkService().InitSoftForks()
 	container.GetDaoConsensusService().InitConsensusParameters()
 
-	if config.Get().Sentry.Active {
-		_ = raven.SetDSN(config.Get().Sentry.DSN)
-	}
-
 	indexer.LastBlockIndexed = getHeight()
 	if indexer.LastBlockIndexed != 0 {
 		log.Infof("Rewind from %d to %d", indexer.LastBlockIndexed+uint64(config.Get().BulkIndexSize), indexer.LastBlockIndexed)
@@ -31,15 +26,15 @@ func Execute() {
 			log.WithError(err).Fatal("Failed to rewind index")
 		}
 
-		block, err := container.GetBlockRepo().GetBlockByHeight(indexer.LastBlockIndexed)
+		b, err := container.GetBlockRepo().GetBlockByHeight(indexer.LastBlockIndexed)
 		if err != nil {
 			log.WithError(err).Fatal("Failed to get block at height: ", indexer.LastBlockIndexed)
 		}
 
 		log.Debug("Get block cycle")
-		container.GetDaoProposalService().LoadVotingProposals(block)
-		container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(block)
-		container.GetDaoConsultationService().LoadOpenConsultations(block)
+		container.GetDaoProposalService().LoadVotingProposals(b)
+		container.GetDaoPaymentRequestService().LoadVotingPaymentRequests(b)
+		container.GetDaoConsultationService().LoadOpenConsultations(b)
 	}
 
 	log.Debug("Bulk index the backlog")
