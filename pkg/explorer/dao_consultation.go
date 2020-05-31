@@ -34,6 +34,10 @@ func (c *Consultation) Slug() string {
 	return slug.Make(c.Hash)
 }
 
+func (c *Consultation) GetHeight() uint64 {
+	return c.Height
+}
+
 func (c *Consultation) HasAnswerWithSupport() bool {
 	for _, a := range c.Answers {
 		if a.FoundSupport == true {
