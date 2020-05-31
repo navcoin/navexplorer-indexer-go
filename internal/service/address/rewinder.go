@@ -55,10 +55,8 @@ func (r *Rewinder) Rewind(height uint64) error {
 	return nil
 }
 
-func (r *Rewinder) RewindAddressToHeight(address *explorer.Address, height uint64) error {
-	log.WithField("address", address.Hash).Debug("Reindexing address index")
-
-	address = ResetAddress(address)
+func (r *Rewinder) ResetAddressToHeight(address *explorer.Address, height uint64) error {
+	ResetAddress(address)
 	address.Height = height
 
 	addressTxs, err := r.repo.GetTxsRangeForAddress(address.Hash, 0, height)
@@ -78,7 +76,18 @@ func (r *Rewinder) RewindAddressToHeight(address *explorer.Address, height uint6
 		address.Height = addressTx.Height
 	}
 
+	return nil
+}
+
+func (r *Rewinder) RewindAddressToHeight(address *explorer.Address, height uint64) error {
 	log.WithField("address", address.Hash).Debugf("Rewind balance to height %d: %d", address.Height, address.Balance)
+
+	err := r.ResetAddressToHeight(address, height)
+	if err != nil {
+		log.WithField("address", address.Hash).WithError(err).Error("Failed to rest the address")
+		raven.CaptureError(err, nil)
+		return err
+	}
 
 	_, err = r.elastic.Client.Index().
 		Index(elastic_cache.AddressIndex.Get()).
