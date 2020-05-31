@@ -37,11 +37,9 @@ func Execute() {
 		container.GetDaoConsultationService().LoadOpenConsultations(b)
 	}
 
-	log.Debug("Bulk index the backlog")
 	container.GetIndexer().BulkIndex()
 
-	log.Debug("Subscribe to 0MQ")
-	container.GetSubscriber().Subscribe()
+	container.GetSubscriber().Subscribe(container.GetIndexer().SingleIndex)
 }
 
 func getHeight() uint64 {
