@@ -29,6 +29,8 @@ github.com/NavExplorer/navcoind-go v0.1.8-0.20200516202154-f528c63e3a1d h1:Pi/mp
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200516202154-f528c63e3a1d/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200518235421-aef73039a473 h1:ajTMeFd0lPuY/x35BvZBq2SJX1/L5agsiboNlJos8e8=
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200518235421-aef73039a473/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
+github.com/NavExplorer/navcoind-go v0.1.8-0.20200527214456-804845973a06 h1:ezTriPNd8773iTdIchMNieriXMqa/5d3fmOlJnZscIc=
+github.com/NavExplorer/navcoind-go v0.1.8-0.20200527214456-804845973a06/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
