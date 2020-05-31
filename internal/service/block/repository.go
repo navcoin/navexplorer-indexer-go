@@ -99,3 +99,19 @@ func (r *Repository) GetBlockByHeight(height uint64) (*explorer.Block, error) {
 
 	return block, nil
 }
+
+func (r *Repository) GetTransactionsWithCfundPayment() error {
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("vout.scriptPubKey.type.keyword", explorer.VoutCfundContribution))
+
+	results, err := r.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+		Query(query).
+		Do(context.Background())
+
+	if err != nil || results == nil {
+		raven.CaptureError(err, nil)
+		return err
+	}
+
+	return nil
+}
