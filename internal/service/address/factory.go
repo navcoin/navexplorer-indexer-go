@@ -10,8 +10,21 @@ func CreateAddress(hash string) *explorer.Address {
 	return &explorer.Address{Hash: hash}
 }
 
-func ResetAddress(address *explorer.Address) *explorer.Address {
-	return &explorer.Address{Hash: address.Hash}
+func ResetAddress(address *explorer.Address) {
+	address.ColdBalance = 0
+	address.ColdReceived = 0
+	address.ColdReceivedCount = 0
+	address.ColdSent = 0
+	address.ColdSentCount = 0
+	address.ColdStaked = 0
+	address.ColdStakedCount = 0
+	address.Balance = 0
+	address.Received = 0
+	address.ReceivedCount = 0
+	address.Sent = 0
+	address.SentCount = 0
+	address.Staked = 0
+	address.StakedCount = 0
 }
 
 func ApplyTxToAddress(address *explorer.Address, tx *explorer.AddressTransaction) {
