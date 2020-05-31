@@ -25,6 +25,8 @@ type Address struct {
 	ColdStakedCount   uint  `json:"coldStakedCount"`
 	ColdBalance       int64 `json:"coldBalance"`
 
+	ValidatedAt uint64 `json:"validatedAt"`
+
 	Position uint `json:"position"`
 }
 

@@ -218,3 +218,31 @@ func (r *Repository) GetTxsForAddress(hash string) ([]*explorer.AddressTransacti
 
 	return txs, nil
 }
+
+func (r *Repository) GetAddressesByValidateAtDesc(size int) ([]*explorer.Address, error) {
+	log.Debug("ValidateAddresses()")
+
+	query := elastic.NewBoolQuery()
+	query = query.MustNot(elastic.NewExistsQuery("validatedAt"))
+
+	results, err := r.Client.Search(elastic_cache.AddressIndex.Get()).
+		Query(query).
+		Size(size).
+		Sort("validatedAt", true).
+		TrackTotalHits(true).
+		Do(context.Background())
+	if err != nil || results == nil {
+		return nil, err
+	}
+
+	addresses := make([]*explorer.Address, 0)
+	for _, hit := range results.Hits.Hits {
+		var address *explorer.Address
+		if err = json.Unmarshal(hit.Source, &address); err != nil {
+			return nil, err
+		}
+		addresses = append(addresses, address)
+	}
+
+	return addresses, nil
+}
