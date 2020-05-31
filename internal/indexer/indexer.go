@@ -45,11 +45,22 @@ func NewIndexer(
 }
 
 func (i *Indexer) BulkIndex() {
+	log.Debug("Subscribe to 0MQ")
+
 	if err := i.Index(IndexOption.BatchIndex); err != nil {
 		if err.Error() == "-8: Block height out of range" {
 			i.elastic.Persist()
 		} else {
 			log.WithError(err).Fatal("Failed to index blocks")
+		}
+	}
+}
+
+func (i *Indexer) SingleIndex() {
+	if err := i.Index(IndexOption.SingleIndex); err != nil {
+		if err.Error() != "-8: Block height out of range" {
+			raven.CaptureErrorAndWait(err, nil)
+			log.WithError(err).Fatal("Failed to index subscribed block")
 		}
 	}
 }
