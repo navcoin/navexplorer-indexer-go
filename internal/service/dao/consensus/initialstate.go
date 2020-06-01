@@ -77,7 +77,7 @@ var mainnet = `[
     "id": 12,
     "desc": "Minimum fee to submit a fund proposal",
     "type": 2,
-    "value": 10000
+    "value": 5000000000
   },
   {
     "id": 13,
