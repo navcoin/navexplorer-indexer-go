@@ -12,5 +12,5 @@ echo "Using tag $tag"
 
 dingo -src=./internal/config/di -dest=./generated
 
-docker build -f ./build/indexerd/Dockerfile . -t navexplorer/indexer:$tag
+docker build -f ./make/indexerd/Dockerfile . -t navexplorer/indexer:$tag
 docker push navexplorer/indexer:$tag
