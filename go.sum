@@ -31,6 +31,10 @@ github.com/NavExplorer/navcoind-go v0.1.8-0.20200518235421-aef73039a473 h1:ajTMe
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200518235421-aef73039a473/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200527214456-804845973a06 h1:ezTriPNd8773iTdIchMNieriXMqa/5d3fmOlJnZscIc=
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200527214456-804845973a06/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
+github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af h1:KWrfS1eDXRPSpY6pyBMGYiqLSIJ08TargSgbFeUTaMA=
+github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
+github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=
+github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
@@ -116,6 +120,8 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2 h1:DB17ag19krx9CFsz4o3enTrPXyIXCl+2iCXH/aMAp9s=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
+github.com/konsorten/go-windows-terminal-sequences v1.0.3 h1:CE8S1cTafDpPvMhIxNJKvHsGVBgn1xWYf1NbHQhywc8=
+github.com/konsorten/go-windows-terminal-sequences v1.0.3/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
@@ -142,6 +148,8 @@ github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFSt
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=
 github.com/pebbe/zmq4 v1.0.0 h1:D+MSmPpqkL5PSSmnh8g51ogirUCyemThuZzLW7Nrt78=
 github.com/pebbe/zmq4 v1.0.0/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
+github.com/pebbe/zmq4 v1.2.1 h1:jrXQW3mD8Si2mcSY/8VBs2nNkK/sKCOEM0rHAfxyc8c=
+github.com/pebbe/zmq4 v1.2.1/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
@@ -178,6 +186,8 @@ github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeV
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2 h1:SPIRibHv4MatM3XXNO2BJeFLZwZ2LvZgfQ5+UNI2im4=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
+github.com/sirupsen/logrus v1.6.0 h1:UBcNElsrwanuuMsnGSlYmtmgbb23qDR5dG+6X6Oo89I=
+github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
 github.com/smartystreets/go-aws-auth v0.0.0-20180515143844-0c1422d1fdb9/go.mod h1:SnhjPscd9TpLiy1LpzGSKh3bXCfxxXuqd9xmQJy3slM=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=

@@ -5,6 +5,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
+	"github.com/getsentry/raven-go"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -39,7 +40,11 @@ func Execute() {
 
 	container.GetIndexer().BulkIndex()
 
-	container.GetSubscriber().Subscribe(container.GetIndexer().SingleIndex)
+	err := container.GetSubscriber().Subscribe(container.GetIndexer().SingleIndex)
+	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
+		log.WithError(err).Fatal("Failed to subscribe to ZMQ")
+	}
 }
 
 func getHeight() uint64 {

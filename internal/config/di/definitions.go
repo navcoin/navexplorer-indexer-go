@@ -15,7 +15,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/vote"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/softfork"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/softfork/signal"
-	"github.com/NavExplorer/navexplorer-indexer-go/internal/zeromq"
+	"github.com/NavExplorer/subscriber"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -251,8 +251,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "subscriber",
-		Build: func(indexer *indexer.Indexer) (*zeromq.Subscriber, error) {
-			return zeromq.New(config.Get().ZeroMq.Address, indexer), nil
+		Build: func() (*subscriber.Subscriber, error) {
+			return subscriber.NewSubscriber(config.Get().ZeroMq.Address), nil
 		},
 	},
 }
