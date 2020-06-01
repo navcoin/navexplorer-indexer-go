@@ -20,10 +20,14 @@ func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTr
 		Status:              explorer.GetConsultationStatusByState(uint(consultation.State)).Status,
 		FoundSupport:        false,
 		StateChangedOnBlock: consultation.StateChangedOnBlock,
-		Answers:             createAnswers(consultation),
 		Height:              tx.Height,
 		UpdatedOnBlock:      tx.Height,
 		ProposedBy:          tx.Vin.First().Addresses[0],
+	}
+
+	answers := createAnswers(consultation)
+	if len(answers) != 0 {
+		c.Answers = answers
 	}
 
 	if consultation.Version>>1&1 == 1 {
