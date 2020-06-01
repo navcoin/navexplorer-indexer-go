@@ -3,37 +3,53 @@ package explorer
 type VoutType string
 
 var (
-	VoutNonstandard               VoutType = "nonstandard"
-	VoutNulldata                  VoutType = "nulldata"
-	VoutPubkeyhash                VoutType = "pubkeyhash"
-	VoutPubkey                    VoutType = "pubkey"
-	VoutScripthash                VoutType = "scripthash"
-	VoutColdStaking               VoutType = "cold_staking"
-	VoutColdStakingV2             VoutType = "cold_staking_v2"
-	VoutCfundContribution         VoutType = "cfund_contribution"
-	VoutProposalNoVote            VoutType = "proposal_no_vote"
-	VoutProposalYesVote           VoutType = "proposal_yes_vote"
-	VoutProposalAbstainVote       VoutType = "proposal_abstain_vote"
-	VoutPaymentRequestNoVote      VoutType = "payment_request_no_vote"
-	VoutPaymentRequestYesVote     VoutType = "payment_request_yes_vote"
-	VoutPaymentRequestAbstainVote VoutType = "payment_request_abstain_vote"
-	VoutPoolStaking               VoutType = "pool_staking"
+	VoutNonstandard                VoutType = "nonstandard"
+	VoutPubkey                     VoutType = "pubkey"
+	VoutPubkeyhash                 VoutType = "pubkeyhash"
+	VoutScripthash                 VoutType = "scripthash"
+	VoutMultiSig                   VoutType = "multisig"
+	VoutNulldata                   VoutType = "nulldata"
+	VoutCfundContribution          VoutType = "cfund_contribution"
+	VoutProposalYesVote            VoutType = "proposal_yes_vote"
+	VoutPaymentRequestYesVote      VoutType = "payment_request_yes_vote"
+	VoutProposalNoVote             VoutType = "proposal_no_vote"
+	VoutPaymentRequestNoVote       VoutType = "payment_request_no_vote"
+	VoutProposalAbstainVote        VoutType = "proposal_abstain_vote"
+	VoutProposalRemoveVote         VoutType = "proposal_remove_vote"
+	VoutPaymentRequestAbstainVote  VoutType = "payment_request_abstain_vote"
+	VoutPaymentRequestRemoveVote   VoutType = "payment_request_remove_vote"
+	VoutConsultationVote           VoutType = "consultation_vote"
+	VoutConsultationVoteRemove     VoutType = "consultation_vote_remove"
+	VoutConsultationVoteAbstention VoutType = "consultation_vote_abstention"
+	VoutDaoSupport                 VoutType = "dao_support"
+	VoutDaoSupportRemove           VoutType = "dao_support_remove"
+	VoutColdStaking                VoutType = "cold_staking"
+	VoutColdStakingV2              VoutType = "cold_staking_v2"
+	VoutPoolStaking                VoutType = "pool_staking"
 )
 
 var VoutTypes = map[string]VoutType{
 	"nonstandard":                  VoutNonstandard,
-	"nulldata":                     VoutNulldata,
-	"pubkeyhash":                   VoutPubkeyhash,
 	"pubkey":                       VoutPubkey,
+	"pubkeyhash":                   VoutPubkeyhash,
 	"scripthash":                   VoutScripthash,
+	"multisig":                     VoutMultiSig,
+	"nulldata":                     VoutNulldata,
+	"cfund_contribution":           VoutCfundContribution,
+	"proposal_yes_vote":            VoutProposalYesVote,
+	"payment_request_yes_vote":     VoutPaymentRequestYesVote,
+	"proposal_no_vote":             VoutProposalNoVote,
+	"payment_request_no_vote":      VoutPaymentRequestNoVote,
+	"proposal_abstain_vote":        VoutProposalAbstainVote,
+	"proposal_remove_vote":         VoutProposalRemoveVote,
+	"payment_request_abstain_vote": VoutPaymentRequestAbstainVote,
+	"payment_request_remove_vote":  VoutPaymentRequestRemoveVote,
+	"consultation_vote":            VoutConsultationVote,
+	"consultation_vote_remove":     VoutConsultationVoteRemove,
+	"consultation_vote_abstention": VoutConsultationVoteAbstention,
+	"dao_support":                  VoutDaoSupport,
+	"dao_support_remove":           VoutDaoSupportRemove,
 	"cold_staking":                 VoutColdStaking,
 	"cold_staking_v2":              VoutColdStakingV2,
-	"cfund_contribution":           VoutCfundContribution,
-	"proposal_no_vote":             VoutProposalNoVote,
-	"proposal_yes_vote":            VoutProposalYesVote,
-	"proposal_abstain_vote":        VoutProposalAbstainVote,
-	"payment_request_no_vote":      VoutPaymentRequestNoVote,
-	"payment_request_yes_vote":     VoutPaymentRequestYesVote,
-	"payment_request_abstain_vote": VoutPaymentRequestAbstainVote,
 	"pool_staking":                 VoutPoolStaking,
 }
