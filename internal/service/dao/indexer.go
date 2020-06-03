@@ -7,6 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/payment_request"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/proposal"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/vote"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/softfork"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
@@ -40,6 +41,10 @@ func NewIndexer(
 }
 
 func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction) {
+	if !softfork.SoftForks.GetSoftFork("communityfund").IsActive() {
+		return
+	}
+
 	if consensus.Parameters == nil {
 		err := i.consensusIndexer.Index()
 		if err != nil {
