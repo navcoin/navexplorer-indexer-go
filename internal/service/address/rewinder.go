@@ -56,6 +56,8 @@ func (r *Rewinder) Rewind(height uint64) error {
 }
 
 func (r *Rewinder) ResetAddressToHeight(address *explorer.Address, height uint64) error {
+	log.Infof("Resetting address %s from %d to %d", address.Hash, 0, height)
+
 	ResetAddress(address)
 	address.Height = height
 
@@ -72,6 +74,7 @@ func (r *Rewinder) ResetAddressToHeight(address *explorer.Address, height uint64
 			address.ColdBalance = int64(addressTx.Balance)
 		} else {
 			address.Balance = int64(addressTx.Balance)
+			log.Debugf("Setting address balance to %d", address.Balance)
 		}
 		address.Height = addressTx.Height
 	}
