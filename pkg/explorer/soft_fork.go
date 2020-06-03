@@ -44,6 +44,13 @@ func (s *SoftFork) IsOpen() bool {
 	return s.State == SoftForkDefined || s.State == SoftForkStarted || s.State == SoftForkFailed
 }
 
+func (s *SoftFork) IsActive() bool {
+	if s.State == "" {
+		log.Fatal("State cannot be null")
+	}
+	return s.State == SoftForkActive
+}
+
 func (s *SoftFork) GetCycle(cycle uint) *SoftForkCycle {
 	for i, c := range s.Cycles {
 		if c.Cycle == cycle {
