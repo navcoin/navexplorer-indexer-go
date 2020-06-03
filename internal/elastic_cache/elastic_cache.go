@@ -104,10 +104,15 @@ func (i *Index) AddUpdateRequest(index string, entity explorer.Entity) {
 }
 
 func (i *Index) AddRequest(index string, entity explorer.Entity, reqType RequestType) {
+	logrus.WithFields(logrus.Fields{
+		"index": index,
+		"type":  reqType,
+		"slug":  entity.Slug(),
+	}).Debugf("AddRequest")
+
 	if request := i.GetRequest(index, entity.Slug()); request != nil {
 		request.Entity = entity
 	} else {
-
 		i.requests = append(i.requests, &Request{
 			Index:  index,
 			Id:     fmt.Sprintf("%s-%s", config.Get().Network, entity.Slug()),
@@ -120,8 +125,7 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 func (i *Index) GetRequest(index string, id string) *Request {
 	for _, r := range i.requests {
 		if r == nil {
-			logrus.WithFields(logrus.Fields{"index": index, "id": id}).Error("Request not found")
-			return nil
+			continue
 		}
 
 		if r.Index == index && r.Id == id {
