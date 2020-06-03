@@ -222,11 +222,7 @@ func (r *Repository) GetTxsForAddress(hash string) ([]*explorer.AddressTransacti
 func (r *Repository) GetAddressesByValidateAtDesc(size int) ([]*explorer.Address, error) {
 	log.Debug("ValidateAddresses()")
 
-	query := elastic.NewBoolQuery()
-	query = query.MustNot(elastic.NewExistsQuery("validatedAt"))
-
 	results, err := r.Client.Search(elastic_cache.AddressIndex.Get()).
-		Query(query).
 		Size(size).
 		Sort("validatedAt", true).
 		TrackTotalHits(true).
