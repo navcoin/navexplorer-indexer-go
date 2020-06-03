@@ -35,10 +35,10 @@ func ApplyTxToAddress(address *explorer.Address, tx *explorer.AddressTransaction
 			address.ColdStaked += tx.Total
 			address.ColdStakedCount++
 		} else if tx.Type == explorer.TransferSend {
-			address.ColdSent += int64(tx.Input)
+			address.ColdSent += tx.Total
 			address.ColdSentCount++
 		} else if tx.Type == explorer.TransferReceive {
-			address.ColdReceived += int64(tx.Output)
+			address.ColdReceived += tx.Total
 			address.ColdReceivedCount++
 		}
 	} else {
@@ -46,16 +46,19 @@ func ApplyTxToAddress(address *explorer.Address, tx *explorer.AddressTransaction
 			address.Staked += tx.Total
 			address.StakedCount++
 		} else if tx.Type == explorer.TransferSend {
-			address.Sent += int64(tx.Input)
+			address.Sent += tx.Total
 			address.SentCount++
 		} else if tx.Type == explorer.TransferReceive {
-			address.Received += int64(tx.Output)
+			address.Received += tx.Total
 			address.ReceivedCount++
 		} else if tx.Type == explorer.TransferPoolFee {
 			address.Staked += tx.Total
 			address.StakedCount++
 		}
 	}
+
+	log.WithFields(log.Fields{"address": address.Hash, "staked": address.StakedCount, "sent": address.SentCount, "received": address.ReceivedCount}).
+		Debugf("Tx count at height %d", tx.Height)
 
 	log.WithFields(log.Fields{"address": address.Hash, "tx": tx.Txid}).
 		Debugf("Balance at height %d: %d", tx.Height, tx.Balance)
