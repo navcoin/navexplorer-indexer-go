@@ -22,7 +22,7 @@ func Execute() {
 
 	indexer.LastBlockIndexed = getHeight()
 	if indexer.LastBlockIndexed != 0 {
-		log.Infof("Rewind from %d to %d", indexer.LastBlockIndexed+uint64(config.Get().BulkIndexSize), indexer.LastBlockIndexed)
+		log.Infof("Rewind from %d to %d", indexer.LastBlockIndexed+config.Get().BulkIndexSize, indexer.LastBlockIndexed)
 		if err := container.GetRewinder().RewindToHeight(indexer.LastBlockIndexed); err != nil {
 			log.WithError(err).Fatal("Failed to rewind index")
 		}
@@ -56,8 +56,8 @@ func getHeight() uint64 {
 		log.WithError(err).Fatal("Failed to get block height")
 	}
 
-	if height >= uint64(config.Get().BulkIndexSize) {
-		return height - uint64(config.Get().BulkIndexSize)
+	if height >= config.Get().ReindexSize {
+		return height - config.Get().ReindexSize
 	}
 
 	return 0

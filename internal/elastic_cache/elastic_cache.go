@@ -18,7 +18,7 @@ import (
 type Index struct {
 	Client        *elastic.Client
 	requests      []*Request
-	bulkIndexSize uint
+	bulkIndexSize uint64
 }
 
 type Request struct {
@@ -137,7 +137,7 @@ func (i *Index) GetRequest(index string, id string) *Request {
 }
 
 func (i *Index) BatchPersist(height uint64) {
-	if height%uint64(i.bulkIndexSize) != 0 || len(i.requests) == 0 {
+	if height%i.bulkIndexSize != 0 || len(i.requests) == 0 {
 		return
 	}
 
