@@ -18,8 +18,8 @@ type Config struct {
 	Network            string
 	Debug              bool
 	Reindex            bool
-	ReindexSize        uint
-	BulkIndexSize      uint
+	ReindexSize        uint64
+	BulkIndexSize      uint64
 	SoftForkBlockCycle int
 	SoftForkQuorum     int
 	Navcoind           NavcoindConfig
@@ -108,8 +108,8 @@ func Get() *Config {
 		SoftForkQuorum:     getInt("SOFTFORK_QUORUM", 75),
 		Debug:              getBool("DEBUG", false),
 		Reindex:            getBool("REINDEX", false),
-		ReindexSize:        getUint("REINDEX_SIZE", 200),
-		BulkIndexSize:      getUint("BULK_INDEX_SIZE", 200),
+		ReindexSize:        getUint64("REINDEX_SIZE", 200),
+		BulkIndexSize:      getUint64("BULK_INDEX_SIZE", 200),
 		Navcoind: NavcoindConfig{
 			Host:     getString("NAVCOIND_HOST", ""),
 			Port:     getInt("NAVCOIND_PORT", 8332),
@@ -155,6 +155,10 @@ func getInt(key string, defaultValue int) int {
 
 func getUint(key string, defaultValue uint) uint {
 	return uint(getInt(key, int(defaultValue)))
+}
+
+func getUint64(key string, defaultValue uint) uint64 {
+	return uint64(getInt(key, int(defaultValue)))
 }
 
 func getBool(key string, defaultValue bool) bool {
