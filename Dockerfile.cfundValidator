@@ -7,7 +7,7 @@ WORKDIR $GOPATH/src/mypackage/myapp/
 COPY . .
 
 RUN go env CGO_ENABLED
-RUN go mod download
+RUN go mod download -x
 RUN go mod verify
 
 RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/cfundValidator ./cmd/cfund-validator
