@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -e
+
+if [ $# -eq 0 ]
+  then
+    tag="latest"
+  else
+    tag=$1
+fi
+
+echo "Using tag $tag"
+
+dingo -src=./internal/config/di -dest=./generated
+
+docker build -f ./Dockerfile.indexerd . -t navexplorer/indexer:$tag
+docker build -f ./Dockerfile.addressValidator . -t navexplorer/address-validator:$tag
+docker build -f ./Dockerfile.cfundValidator . -t navexplorer/cfund-validator:$tag
+
+docker push navexplorer/indexer:$tag
+docker push navexplorer/address-validator:$tag
+docker push navexplorer/cfund-validator:$tag
