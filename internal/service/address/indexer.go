@@ -40,7 +40,6 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 				addressTx.Balance = uint64(Addresses[addressTx.Hash].Balance + addressTx.Total)
 			}
 
-			log.WithField("tx", tx).Debug("CreateTransaction")
 			log.WithField("address", addressTx.Hash).Debug("PreviousBalance: ", previousBalance)
 
 			i.elastic.AddIndexRequest(elastic_cache.AddressTransactionIndex.Get(), addressTx)
