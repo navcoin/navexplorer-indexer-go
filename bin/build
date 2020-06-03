@@ -12,6 +12,8 @@ echo "Using tag $tag"
 
 dingo -src=./internal/config/di -dest=./generated
 
+export DOCKER_BUILDKIT=1
+
 docker build -f ./Dockerfile.indexerd . -t navexplorer/indexer:$tag
 docker build -f ./Dockerfile.addressValidator . -t navexplorer/address-validator:$tag
 docker build -f ./Dockerfile.cfundValidator . -t navexplorer/cfund-validator:$tag
