@@ -15,9 +15,13 @@ dingo -src=./internal/config/di -dest=./generated
 export DOCKER_BUILDKIT=1
 
 docker build -f ./Dockerfile.indexerd . -t navexplorer/indexer:$tag
-docker build -f ./Dockerfile.addressValidator . -t navexplorer/address-validator:$tag
-docker build -f ./Dockerfile.cfundValidator . -t navexplorer/cfund-validator:$tag
-
 docker push navexplorer/indexer:$tag
-docker push navexplorer/address-validator:$tag
-docker push navexplorer/cfund-validator:$tag
+
+#docker build -f ./Dockerfile.indexerCli . -t navexplorer/indexer-cli:$tag
+#docker push navexplorer/indexer-cli:$tag
+
+#docker build -f ./Dockerfile.addressValidator . -t navexplorer/address-validator:$tag
+#docker push navexplorer/address-validator:$tag
+
+#docker build -f ./Dockerfile.cfundValidator . -t navexplorer/cfund-validator:$tag
+#docker push navexplorer/cfund-validator:$tag
