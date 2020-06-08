@@ -110,12 +110,12 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 		"slug":  entity.Slug(),
 	}).Debugf("AddRequest")
 
-	if request := i.GetRequest(index, entity.Slug()); request != nil {
+	if request := i.GetRequest(index, networkId(entity)); request != nil {
 		request.Entity = entity
 	} else {
 		i.requests = append(i.requests, &Request{
 			Index:  index,
-			Id:     fmt.Sprintf("%s-%s", config.Get().Network, entity.Slug()),
+			Id:     networkId(entity),
 			Entity: entity,
 			Type:   reqType,
 		})
@@ -136,13 +136,13 @@ func (i *Index) GetRequest(index string, id string) *Request {
 	return nil
 }
 
-func (i *Index) BatchPersist(height uint64) {
+func (i *Index) BatchPersist(height uint64) bool {
 	if height%i.bulkIndexSize != 0 || len(i.requests) == 0 {
-		return
+		return false
 	}
 
-	actions := i.Persist()
-	logrus.WithField("actions", actions).Info("Indexed height ", height)
+	i.Persist()
+	return true
 }
 
 func (i *Index) Persist() int {
@@ -157,7 +157,7 @@ func (i *Index) Persist() int {
 
 	actions := bulk.NumberOfActions()
 	if actions != 0 {
-		i.persist(bulk)
+		go i.persist(bulk)
 	}
 
 	i.requests = make([]*Request, 0)
@@ -228,4 +228,8 @@ func (i *Index) createIndex(index string, mapping []byte) error {
 	}
 
 	return nil
+}
+
+func networkId(entity explorer.Entity) string {
+	return fmt.Sprintf("%s-%s", config.Get().Network, entity.Slug())
 }
