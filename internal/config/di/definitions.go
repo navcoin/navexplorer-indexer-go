@@ -4,6 +4,7 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/event"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
@@ -71,13 +72,14 @@ var Definitions = []dingo.Def{
 		Name: "indexer",
 		Build: func(
 			elastic *elastic_cache.Index,
+			publisher *event.Publisher,
 			blockIndexer *block.Indexer,
 			addressIndexer *address.Indexer,
 			softForkIndexer *softfork.Indexer,
 			daoIndexer *dao.Indexer,
 			rewinder *indexer.Rewinder,
 		) (*indexer.Indexer, error) {
-			return indexer.NewIndexer(elastic, blockIndexer, addressIndexer, softForkIndexer, daoIndexer, rewinder), nil
+			return indexer.NewIndexer(elastic, publisher, blockIndexer, addressIndexer, softForkIndexer, daoIndexer, rewinder), nil
 		},
 	},
 	{
@@ -253,6 +255,18 @@ var Definitions = []dingo.Def{
 		Name: "subscriber",
 		Build: func() (*subscriber.Subscriber, error) {
 			return subscriber.NewSubscriber(config.Get().ZeroMq.Address), nil
+		},
+	},
+	{
+		Name: "event.publisher",
+		Build: func() (*event.Publisher, error) {
+			return event.NewPublisher(
+				config.Get().Network,
+				config.Get().RabbitMq.User,
+				config.Get().RabbitMq.Password,
+				config.Get().RabbitMq.Host,
+				config.Get().RabbitMq.Port,
+			), nil
 		},
 	},
 }

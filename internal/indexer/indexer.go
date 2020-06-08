@@ -1,8 +1,10 @@
 package indexer
 
 import (
+	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/event"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/indexer/IndexOption"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
@@ -15,6 +17,7 @@ import (
 
 type Indexer struct {
 	elastic         *elastic_cache.Index
+	publisher       *event.Publisher
 	blockIndexer    *block.Indexer
 	addressIndexer  *address.Indexer
 	softForkIndexer *softfork.Indexer
@@ -28,6 +31,7 @@ var (
 
 func NewIndexer(
 	elastic *elastic_cache.Index,
+	publisher *event.Publisher,
 	blockIndexer *block.Indexer,
 	addressIndexer *address.Indexer,
 	softForkIndexer *softfork.Indexer,
@@ -36,6 +40,7 @@ func NewIndexer(
 ) *Indexer {
 	return &Indexer{
 		elastic,
+		publisher,
 		blockIndexer,
 		addressIndexer,
 		softForkIndexer,
@@ -57,18 +62,21 @@ func (i *Indexer) BulkIndex() {
 }
 
 func (i *Indexer) SingleIndex() {
-	if err := i.Index(IndexOption.SingleIndex); err != nil {
+	err := i.Index(IndexOption.SingleIndex)
+	if err != nil {
 		if err.Error() != "-8: Block height out of range" {
 			raven.CaptureErrorAndWait(err, nil)
 			log.WithError(err).Fatal("Failed to index subscribed block")
 		}
 	}
+
+	i.publisher.PublishToQueue("indexed.block", fmt.Sprintf("%d", LastBlockIndexed))
 }
 
 func (i *Indexer) Index(option IndexOption.IndexOption) error {
 	err := i.index(LastBlockIndexed+1, option)
 	if err == block.ErrOrphanBlockFound {
-		err = i.rewinder.RewindToHeight(LastBlockIndexed - uint64(config.Get().ReindexSize))
+		err = i.rewinder.RewindToHeight(LastBlockIndexed - config.Get().ReindexSize)
 	}
 
 	if err == nil {
@@ -86,28 +94,27 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		}
 		return err
 	}
+	log.Infof("Indexed block     at height %d", height)
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
-		log.Debugf("Index addresses at height %d", height)
 		i.addressIndexer.Index(txs, b)
+		log.Infof("Indexed addresses at height %d", height)
 	}()
 
 	go func() {
 		defer wg.Done()
-		log.Debugf("Index soft forks at height %d", height)
 		i.softForkIndexer.Index(b)
+		log.Infof("Indexed softforks at height %d", height)
 	}()
 
 	go func() {
 		defer wg.Done()
-		//if softfork.SoftForks.GetSoftFork("communityfund").State == "active" {
-		log.Debugf("Index dao at height %d", height)
 		i.daoIndexer.Index(b, txs)
-		//}
+		log.Infof("Indexed dao       at height %d", height)
 	}()
 
 	wg.Wait()
@@ -118,7 +125,6 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		i.elastic.BatchPersist(height)
 	} else {
 		i.elastic.Persist()
-		log.Infof("Indexed height: %d", height)
 	}
 
 	return i.index(height+1, option)

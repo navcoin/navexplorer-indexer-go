@@ -26,6 +26,7 @@ type Config struct {
 	ElasticSearch      ElasticSearchConfig
 	ZeroMq             ZeroMqConfig
 	Sentry             SentryConfig
+	RabbitMq           RabbitMqConfig
 }
 
 type NavcoindConfig struct {
@@ -48,6 +49,13 @@ type ElasticSearchConfig struct {
 
 type ZeroMqConfig struct {
 	Address string
+}
+
+type RabbitMqConfig struct {
+	User     string
+	Password string
+	Host     string
+	Port     int
 }
 
 type SentryConfig struct {
@@ -128,6 +136,12 @@ func Get() *Config {
 		},
 		ZeroMq: ZeroMqConfig{
 			Address: getString("ZEROMQ_ADDRESS", "tcp://navcoind:28332"),
+		},
+		RabbitMq: RabbitMqConfig{
+			User:     getString("RABBITMQ_USER", "user"),
+			Password: getString("RABBITMQ_PASSWORD", "user"),
+			Host:     getString("RABBITMQ_HOST", "localhost"),
+			Port:     getInt("RABBITMQ_PORT", 5672),
 		},
 		Sentry: SentryConfig{
 			Active: getBool("SENTRY_ACTIVE", false),
