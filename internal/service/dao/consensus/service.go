@@ -30,10 +30,7 @@ func (s *Service) InitConsensusParameters() {
 	}
 
 	if len(parameters) != 0 {
-		log.Info("Consensus parameters already initialised")
-		for _, p := range parameters {
-			log.Infof("Consensus parameter %s is %d", p.Description, p.Value)
-		}
+		log.Info("Consensus parameters initialised")
 		Parameters = parameters
 		return
 	}
