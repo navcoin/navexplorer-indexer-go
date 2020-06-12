@@ -16,7 +16,7 @@ var (
 )
 
 func IsStake(tt TransferType) bool {
-	return tt == TransferStake || tt == TransferDelegateStake
+	return tt == TransferStake || tt == TransferDelegateStake || tt == TransferPoolStake
 }
 
 func IsColdStake(tt TransferType) bool {
