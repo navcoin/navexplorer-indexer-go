@@ -51,6 +51,9 @@ func ApplyTxToAddress(address *explorer.Address, tx *explorer.AddressTransaction
 		} else if tx.Type == explorer.TransferReceive {
 			address.Received += tx.Total
 			address.ReceivedCount++
+		} else if tx.Type == explorer.TransferCommunityFundPayout {
+			address.Received += tx.Total
+			address.ReceivedCount++
 		} else if tx.Type == explorer.TransferPoolFee {
 			address.Staked += tx.Total
 			address.StakedCount++
