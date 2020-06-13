@@ -9,6 +9,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/cfund"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consultation"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/payment_request"
@@ -150,8 +151,9 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.Indexer",
-		Build: func(proposalIndexer *proposal.Indexer, paymentRequestIndexer *payment_request.Indexer, consultationIndexer *consultation.Indexer, voteIndexer *vote.Indexer, consensusIndexer *consensus.Indexer, navcoin *navcoind.Navcoind) (*dao.Indexer, error) {
+		Build: func(cfundIndexer *cfund.Indexer, proposalIndexer *proposal.Indexer, paymentRequestIndexer *payment_request.Indexer, consultationIndexer *consultation.Indexer, voteIndexer *vote.Indexer, consensusIndexer *consensus.Indexer, navcoin *navcoind.Navcoind) (*dao.Indexer, error) {
 			return dao.NewIndexer(
+				cfundIndexer,
 				proposalIndexer,
 				paymentRequestIndexer,
 				consultationIndexer,
@@ -171,6 +173,12 @@ var Definitions = []dingo.Def{
 		Name: "dao.consensus.Rewinder",
 		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *consensus.Repository, service *consensus.Service, consultationRepo *consultation.Repository) (*consensus.Rewinder, error) {
 			return consensus.NewRewinder(navcoin, elastic, repo, service), nil
+		},
+	},
+	{
+		Name: "dao.cfund.Indexer",
+		Build: func(elastic *elastic_cache.Index) (*cfund.Indexer, error) {
+			return cfund.NewIndexer(elastic), nil
 		},
 	},
 	{

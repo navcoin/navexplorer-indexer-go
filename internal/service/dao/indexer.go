@@ -2,6 +2,7 @@ package dao
 
 import (
 	"github.com/NavExplorer/navcoind-go"
+	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/cfund"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consultation"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/payment_request"
@@ -13,6 +14,7 @@ import (
 )
 
 type Indexer struct {
+	cfundIndexer          *cfund.Indexer
 	proposalIndexer       *proposal.Indexer
 	paymentRequestIndexer *payment_request.Indexer
 	consultationIndexer   *consultation.Indexer
@@ -22,6 +24,7 @@ type Indexer struct {
 }
 
 func NewIndexer(
+	cfundIndexer *cfund.Indexer,
 	proposalIndexer *proposal.Indexer,
 	paymentRequestIndexer *payment_request.Indexer,
 	consultationIndexer *consultation.Indexer,
@@ -30,6 +33,7 @@ func NewIndexer(
 	navcoin *navcoind.Navcoind,
 ) *Indexer {
 	return &Indexer{
+		cfundIndexer,
 		proposalIndexer,
 		paymentRequestIndexer,
 		consultationIndexer,
@@ -58,6 +62,7 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction)
 		log.WithError(err).Fatal("Failed to get blockHeader")
 	}
 
+	i.cfundIndexer.Index(header)
 	i.voteIndexer.IndexVotes(txs, block, header)
 	i.proposalIndexer.Update(block.BlockCycle, block)
 	i.paymentRequestIndexer.Update(block.BlockCycle, block)
