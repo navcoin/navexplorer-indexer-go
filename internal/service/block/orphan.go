@@ -5,6 +5,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type OrphanService struct {
@@ -24,9 +25,18 @@ func (o *OrphanService) IsOrphanBlock(block *explorer.Block) (bool, error) {
 		return false, nil
 	}
 
-	previousBlock, err := o.repository.GetBlockByHeight(block.Height - 1)
+	getPreviousBlock := func(height uint64) (*explorer.Block, error) {
+		return o.repository.GetBlockByHeight(height - 1)
+	}
+
+	previousBlock, err := getPreviousBlock(block.Height - 1)
 	if err != nil {
-		log.WithError(err).WithField("height", block.Height-1).Fatal("Failed to get previous block")
+		log.Info("Retry get previous block in 5 seconds")
+		time.Sleep(5 * time.Second)
+		previousBlock, err = getPreviousBlock(block.Height - 1)
+		if err != nil {
+			log.WithError(err).WithField("height", block.Height-1).Fatal("Failed to get previous block")
+		}
 	}
 
 	orphan := previousBlock.Hash != block.Previousblockhash
