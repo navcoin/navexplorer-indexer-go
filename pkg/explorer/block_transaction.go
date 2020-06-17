@@ -39,7 +39,11 @@ type BlockTransaction struct {
 }
 
 func (tx *BlockTransaction) Slug() string {
-	return slug.Make(fmt.Sprintf("blocktx-%s", tx.Hash))
+	return CreateBlockTxSlug(tx.Hash)
+}
+
+func CreateBlockTxSlug(hash string) string {
+	return slug.Make(fmt.Sprintf("blocktx-%s", hash))
 }
 
 type BlockTransactions []*BlockTransaction
