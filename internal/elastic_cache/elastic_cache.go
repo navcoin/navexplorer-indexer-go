@@ -122,6 +122,10 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 	}
 }
 
+func (i *Index) GetRequests() []*Request {
+	return i.requests
+}
+
 func (i *Index) GetRequest(index string, id string) *Request {
 	for _, r := range i.requests {
 		if r == nil {
@@ -148,6 +152,7 @@ func (i *Index) BatchPersist(height uint64) bool {
 func (i *Index) Persist() int {
 	bulk := i.Client.Bulk()
 	for _, r := range i.requests {
+		logrus.Debugf("Persisting %s %s %s", r.Type, r.Index, r.Id)
 		if r.Type == IndexRequest {
 			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Id).Doc(r.Entity))
 		} else if r.Type == UpdateRequest {
@@ -159,7 +164,6 @@ func (i *Index) Persist() int {
 	if actions != 0 {
 		go i.persist(bulk)
 	}
-
 	i.requests = make([]*Request, 0)
 
 	return actions
