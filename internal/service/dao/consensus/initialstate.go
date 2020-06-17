@@ -111,7 +111,7 @@ var mainnet = `[
   },
   {
     "id": 18,
-    "desc": "Maximum of voting cycles for fund proposal votings",
+    "desc": "Maximum of voting cycles for fund payment request votings",
     "type": 0,
     "value": 8
   },
@@ -258,7 +258,7 @@ var testnet = `[
   },
   {
     "id": 18,
-    "desc": "Maximum of voting cycles for fund proposal votings",
+    "desc": "Maximum of voting cycles for fund payment request votings",
     "type": 0,
     "value": 8
   },
