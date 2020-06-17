@@ -16,6 +16,7 @@ type Config struct {
 	Logging            bool
 	LogPath            string
 	Network            string
+	Index              string
 	Debug              bool
 	Reindex            bool
 	ReindexSize        uint64
@@ -112,6 +113,7 @@ func Get() *Config {
 		Logging:            getBool("LOGGING", false),
 		LogPath:            getString("LOG_PATH", "/app/logs"),
 		Network:            getString("NAVCOIND_NETWORK", "mainnet"),
+		Index:              getString("INDEX_NAME", "xxx"),
 		SoftForkBlockCycle: getInt("SOFTFORK_BLOCKCYCLE", 20160),
 		SoftForkQuorum:     getInt("SOFTFORK_QUORUM", 75),
 		Debug:              getBool("DEBUG", false),

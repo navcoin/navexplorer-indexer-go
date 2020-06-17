@@ -2,7 +2,6 @@ package softfork
 
 import (
 	"context"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/softfork/signal"
@@ -92,7 +91,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 	for _, sf := range SoftForks {
 		bulk.Add(elastic.NewBulkUpdateRequest().
 			Index(elastic_cache.SoftForkIndex.Get()).
-			Id(fmt.Sprintf("%s-%s", config.Get().Network, sf.Slug())).
+			Id(sf.Slug()).
 			Doc(sf))
 	}
 

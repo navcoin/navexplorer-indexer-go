@@ -8,19 +8,21 @@ import (
 
 type Publisher struct {
 	network string
+	index   string
 	address string
 }
 
-func NewPublisher(network string, user string, password string, host string, port int) *Publisher {
+func NewPublisher(network string, index string, user string, password string, host string, port int) *Publisher {
 	return &Publisher{
 		network: network,
+		index:   index,
 		address: fmt.Sprintf("amqp://%s:%s@%s:%d", user, password, host, port),
 	}
 }
 
 func (p *Publisher) PublishToQueue(name string, msg string) {
 	go func() {
-		xname := fmt.Sprintf("%s.%s", p.network, name)
+		xname := fmt.Sprintf("%s.%s.%s", p.network, p.index, name)
 
 		conn, err := amqp.Dial(p.address)
 		p.handleError(err, "Failed to connect to RabbitMQ")

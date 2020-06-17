@@ -8,6 +8,12 @@ type RawVout struct {
 }
 type Vout struct {
 	RawVout
+	RedeemedIn *RedeemedIn `json:"redeemedIn,omitempty"`
+}
+
+type RedeemedIn struct {
+	Hash   string `json:"hash,omitempty"`
+	Height uint64 `json:"height,omitempty"`
 }
 
 func (o *Vout) IsColdStaking() bool {

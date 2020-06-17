@@ -2,9 +2,7 @@ package cfund
 
 import (
 	"context"
-	"fmt"
 	"github.com/NavExplorer/navcoind-go"
-	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +31,7 @@ func (i *Indexer) Index(header *navcoind.BlockHeader) {
 
 	_, err = i.elastic.Client.Get().
 		Index(elastic_cache.CfundIndex.Get()).
-		Id(fmt.Sprintf("%s-%s", config.Get().Network, cfund.Slug())).
+		Id(cfund.Slug()).
 		Do(context.Background())
 	if err != nil {
 		i.elastic.AddIndexRequest(elastic_cache.CfundIndex.Get(), &cfund)

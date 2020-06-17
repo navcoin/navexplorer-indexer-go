@@ -81,6 +81,19 @@ func (i *Indexer) indexPreviousTxData(tx explorer.BlockTransaction) {
 			continue
 		}
 
+		//var prevTx *explorer.BlockTransaction
+		//request := i.elastic.GetRequest(elastic_cache.BlockTransactionIndex.Get(), fmt.Sprintf("blocktx-%s", *vin[vdx].Txid))
+		//if request != nil {
+		//	log.WithFields(log.Fields{"hash": *vin[vdx].Txid}).Info("Found previous transaction in pending")
+		//	prevTx = request.Entity.(*explorer.BlockTransaction)
+		//} else {
+		//	var err error
+		//	if prevTx, err = i.repository.GetTransactionByHash(*vin[vdx].Txid); err != nil {
+		//		raven.CaptureError(err, nil)
+		//		log.WithFields(log.Fields{"hash": *vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
+		//	}
+		//}
+		//
 		rawTx, err := i.navcoin.GetRawTransaction(*vin[vdx].Txid, true)
 		if err != nil {
 			raven.CaptureError(err, nil)
@@ -98,6 +111,12 @@ func (i *Indexer) indexPreviousTxData(tx explorer.BlockTransaction) {
 		vin[vdx].Addresses = previousOutput.ScriptPubKey.Addresses
 		vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
 		vin[vdx].PreviousOutput.Height = prevTx.Height
+
+		prevTx.Vout[*vin[vdx].Vout].RedeemedIn = &explorer.RedeemedIn{
+			Hash:   *vin[vdx].Txid,
+			Height: tx.Height,
+		}
+		i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), prevTx)
 	}
 
 	i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), &tx)

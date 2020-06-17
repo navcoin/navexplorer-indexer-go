@@ -270,6 +270,7 @@ var Definitions = []dingo.Def{
 		Build: func() (*event.Publisher, error) {
 			return event.NewPublisher(
 				config.Get().Network,
+				config.Get().Index,
 				config.Get().RabbitMq.User,
 				config.Get().RabbitMq.Password,
 				config.Get().RabbitMq.Host,

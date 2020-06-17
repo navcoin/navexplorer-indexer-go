@@ -2,9 +2,7 @@ package consultation
 
 import (
 	"context"
-	"fmt"
 	"github.com/NavExplorer/navcoind-go"
-	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/consensus"
@@ -36,7 +34,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 			index := elastic_cache.DaoConsultationIndex.Get()
 			_, err := i.elastic.Client.Index().
 				Index(index).
-				Id(fmt.Sprintf("%s-%s", config.Get().Network, consultation.Slug())).
+				Id(consultation.Slug()).
 				BodyJson(consultation).
 				Do(context.Background())
 			if err != nil {

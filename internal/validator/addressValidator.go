@@ -2,7 +2,6 @@ package validator
 
 import (
 	"context"
-	"fmt"
 	_ "github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/generated/dic"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/config"
@@ -49,7 +48,7 @@ func (v *AddressValidator) Execute() {
 					_, err = container.GetElastic().Client.Index().
 						Index(elastic_cache.AddressTransactionIndex.Get()).
 						BodyJson(addressTx).
-						Id(fmt.Sprintf("%s-%s", config.Get().Network, addressTx.Slug())).
+						Id(addressTx.Slug()).
 						Do(context.Background())
 				}
 			}
@@ -58,7 +57,7 @@ func (v *AddressValidator) Execute() {
 			_, err = container.GetElastic().Client.Index().
 				Index(elastic_cache.AddressIndex.Get()).
 				BodyJson(a).
-				Id(fmt.Sprintf("%s-%s", config.Get().Network, a.Slug())).
+				Id(a.Slug()).
 				Do(context.Background())
 		}
 	}

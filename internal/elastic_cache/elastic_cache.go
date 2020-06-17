@@ -88,7 +88,7 @@ func (i *Index) InstallMappings() {
 			logrus.WithError(err).Fatal("Failed to initialize ES")
 		}
 
-		index := fmt.Sprintf("%s.%s", config.Get().Network, f.Name()[0:len(f.Name())-len(filepath.Ext(f.Name()))])
+		index := fmt.Sprintf("%s.%s.%s", config.Get().Network, config.Get().Index, f.Name()[0:len(f.Name())-len(filepath.Ext(f.Name()))])
 		if err = i.createIndex(index, b); err != nil {
 			logrus.WithError(err).Fatal("Failed to initialize ES")
 		}
@@ -110,12 +110,12 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 		"slug":  entity.Slug(),
 	}).Debugf("AddRequest")
 
-	if request := i.GetRequest(index, networkId(entity)); request != nil {
+	if request := i.GetRequest(index, entity.Slug()); request != nil {
 		request.Entity = entity
 	} else {
 		i.requests = append(i.requests, &Request{
 			Index:  index,
-			Id:     networkId(entity),
+			Id:     entity.Slug(),
 			Entity: entity,
 			Type:   reqType,
 		})
@@ -228,8 +228,4 @@ func (i *Index) createIndex(index string, mapping []byte) error {
 	}
 
 	return nil
-}
-
-func networkId(entity explorer.Entity) string {
-	return fmt.Sprintf("%s-%s", config.Get().Network, entity.Slug())
 }
