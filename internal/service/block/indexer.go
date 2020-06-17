@@ -74,10 +74,12 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		applyStaking(tx, block)
 		applySpend(tx, block)
 		applyCFundPayout(tx, block)
+
+		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
+
 		i.indexPreviousTxData(tx)
 
 		txs = append(txs, tx)
-		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
 	}
 
 	if option == IndexOption.SingleIndex {
@@ -114,6 +116,7 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		}
 		i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), prevTx)
 	}
+	i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
 }
 
 func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
