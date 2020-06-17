@@ -80,7 +80,7 @@ func (r *Repository) GetBlockByHash(hash string) (*explorer.Block, error) {
 func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransaction, error) {
 	request := r.elastic.GetRequest(elastic_cache.BlockTransactionIndex.Get(), explorer.CreateBlockTxSlug(hash))
 	if request != nil {
-		log.WithFields(log.Fields{"hash": hash}).Info("Found previous transaction in pending")
+		log.WithFields(log.Fields{"hash": hash}).Debug("Found previous transaction in pending")
 		return request.Entity.(*explorer.BlockTransaction), nil
 	}
 
