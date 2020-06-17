@@ -144,22 +144,18 @@
           }
         }
       },
+      "cfund": {
+        "type": "nested",
+        "properties": {
+          "available": {
+            "type": "float"
+          },
+          "locked": {
+            "type": "float"
+          }
+        }
+      },
       "tx_count": {
-        "type": "integer"
-      },
-      "proposal_count": {
-        "type": "integer"
-      },
-      "payment_request_count": {
-        "type": "integer"
-      },
-      "proposal_votes_count": {
-        "type": "integer"
-      },
-      "payment_request_votes_count": {
-        "type": "integer"
-      },
-      "payment_request_payouts_count": {
         "type": "integer"
       }
     }

@@ -87,7 +87,7 @@ func (i *Indexer) Index(option IndexOption.IndexOption) error {
 }
 
 func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
-	b, txs, err := i.blockIndexer.Index(height, option)
+	b, txs, header, err := i.blockIndexer.Index(height, option)
 	if err != nil {
 		if err.Error() != "-8: Block height out of range" {
 			raven.CaptureError(err, nil)
@@ -113,7 +113,7 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 
 	go func() {
 		defer wg.Done()
-		i.daoIndexer.Index(b, txs)
+		i.daoIndexer.Index(b, txs, header)
 		log.Infof("Indexed dao       at height %d", height)
 	}()
 

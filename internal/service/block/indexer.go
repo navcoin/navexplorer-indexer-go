@@ -8,6 +8,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 type Indexer struct {
@@ -22,17 +23,32 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphan
 	return &Indexer{navcoin, elastic, orphanService, repository, service}
 }
 
-func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []*explorer.BlockTransaction, error) {
+func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []*explorer.BlockTransaction, *navcoind.BlockHeader, error) {
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
 		if err.Error() != "-8: Block height out of range" {
 			raven.CaptureError(err, nil)
 			log.WithFields(log.Fields{"height": height}).WithError(err).Error("Failed to GetBlockHash")
 		}
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+	header, err := i.navcoin.GetBlockheader(navBlock.Hash)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	block := CreateBlock(navBlock, i.service.GetLastBlockIndexed(), uint(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value))
+
+	available, err := strconv.ParseFloat(header.NcfSupply, 64)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to parse header.NcfSupply: %s", header.NcfSupply)
+	}
+	locked, err := strconv.ParseFloat(header.NcfLocked, 64)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to parse header.NcfLocked: %s", header.NcfLocked)
+	}
+	block.Cfund = &explorer.Cfund{Available: available, Locked: locked}
+
 	LastBlockIndexed = block
 
 	if option == IndexOption.SingleIndex {
@@ -41,7 +57,7 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		if orphan == true || err != nil {
 			log.WithFields(log.Fields{"block": block, "orphan": orphan}).WithError(err).Info("Orphan Block Found")
 
-			return nil, nil, ErrOrphanBlockFound
+			return nil, nil, nil, ErrOrphanBlockFound
 		}
 	}
 
@@ -51,14 +67,14 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		if err != nil {
 			raven.CaptureError(err, nil)
 			log.WithFields(log.Fields{"hash": block.Hash, "txHash": txHash, "height": height}).WithError(err).Error("Failed to GetRawTransaction")
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx))
 		applyType(tx)
 		applyStaking(tx, block)
 		applySpend(tx, block)
 		applyCFundPayout(tx, block)
-		i.indexPreviousTxData(*tx)
+		i.indexPreviousTxData(tx)
 
 		txs = append(txs, tx)
 		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
@@ -70,56 +86,34 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 
 	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
 
-	return block, txs, err
+	return block, txs, header, err
 }
 
-func (i *Indexer) indexPreviousTxData(tx explorer.BlockTransaction) {
-	vin := tx.Vin
-
-	for vdx := range vin {
-		if vin[vdx].Vout == nil || vin[vdx].Txid == nil {
+func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
+	for vdx := range tx.Vin {
+		if tx.Vin[vdx].Vout == nil || tx.Vin[vdx].Txid == nil {
 			continue
 		}
 
-		//var prevTx *explorer.BlockTransaction
-		//request := i.elastic.GetRequest(elastic_cache.BlockTransactionIndex.Get(), fmt.Sprintf("blocktx-%s", *vin[vdx].Txid))
-		//if request != nil {
-		//	log.WithFields(log.Fields{"hash": *vin[vdx].Txid}).Info("Found previous transaction in pending")
-		//	prevTx = request.Entity.(*explorer.BlockTransaction)
-		//} else {
-		//	var err error
-		//	if prevTx, err = i.repository.GetTransactionByHash(*vin[vdx].Txid); err != nil {
-		//		raven.CaptureError(err, nil)
-		//		log.WithFields(log.Fields{"hash": *vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
-		//	}
-		//}
-		//
-		rawTx, err := i.navcoin.GetRawTransaction(*vin[vdx].Txid, true)
+		prevTx, err := i.repository.GetTransactionByHash(*tx.Vin[vdx].Txid)
 		if err != nil {
 			raven.CaptureError(err, nil)
-			log.WithFields(log.Fields{"hash": *vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction")
+			log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
 		}
 
-		prevTx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), 0)
-		if len(prevTx.Vout) <= *vin[vdx].Vout {
-			log.WithFields(log.Fields{"index": vdx, "tx": prevTx.Hash}).Fatal("Vout does not exist")
-		}
+		previousOutput := prevTx.Vout[*tx.Vin[vdx].Vout]
+		tx.Vin[vdx].Value = previousOutput.Value
+		tx.Vin[vdx].ValueSat = previousOutput.ValueSat
+		tx.Vin[vdx].Addresses = previousOutput.ScriptPubKey.Addresses
+		tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
+		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
 
-		previousOutput := prevTx.Vout[*vin[vdx].Vout]
-		vin[vdx].Value = previousOutput.Value
-		vin[vdx].ValueSat = previousOutput.ValueSat
-		vin[vdx].Addresses = previousOutput.ScriptPubKey.Addresses
-		vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
-		vin[vdx].PreviousOutput.Height = prevTx.Height
-
-		prevTx.Vout[*vin[vdx].Vout].RedeemedIn = &explorer.RedeemedIn{
-			Hash:   *vin[vdx].Txid,
+		prevTx.Vout[*tx.Vin[vdx].Vout].RedeemedIn = &explorer.RedeemedIn{
+			Hash:   *tx.Vin[vdx].Txid,
 			Height: tx.Height,
 		}
 		i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), prevTx)
 	}
-
-	i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), &tx)
 }
 
 func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {

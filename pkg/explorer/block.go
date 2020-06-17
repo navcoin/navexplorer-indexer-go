@@ -38,6 +38,7 @@ type Block struct {
 	CFundPayout uint64 `json:"cfundPayout"`
 
 	BlockCycle *BlockCycle `json:"block_cycle"`
+	Cfund      *Cfund      `json:"cfund"`
 
 	// Transient
 	Best bool `json:"best,omitempty"`
@@ -61,4 +62,9 @@ func (b *BlockCycle) IsEnd() bool {
 
 func GetQuorum(size uint, quorum int) int {
 	return int((float64(quorum) / 100) * float64(size))
+}
+
+type Cfund struct {
+	Available float64 `json:"available"`
+	Locked    float64 `json:"locked"`
 }
