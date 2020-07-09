@@ -10,6 +10,7 @@ type Indices string
 var (
 	AddressIndex            Indices = "address"
 	AddressTransactionIndex Indices = "addresstransaction"
+	AddressHistoryIndex     Indices = "addresshistory"
 	BlockIndex              Indices = "block"
 	BlockTransactionIndex   Indices = "blocktransaction"
 	ConsensusIndex          Indices = "consensus"
@@ -30,6 +31,7 @@ func All() []Indices {
 	return []Indices{
 		AddressIndex,
 		AddressTransactionIndex,
+		AddressHistoryIndex,
 		BlockIndex,
 		BlockTransactionIndex,
 		ConsensusIndex,

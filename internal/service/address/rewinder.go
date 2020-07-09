@@ -27,6 +27,11 @@ func (r *Rewinder) Rewind(height uint64) error {
 	}
 
 	log.Infof("Rewinding %d addresses", len(addresses))
+	err = r.elastic.DeleteHeightGT(height, elastic_cache.AddressHistoryIndex.Get())
+	if err != nil {
+		log.Error("Failed to delete address history greater than ", height)
+		return err
+	}
 	err = r.elastic.DeleteHeightGT(height, elastic_cache.AddressTransactionIndex.Get())
 	if err != nil {
 		log.Error("Failed to delete address transactions greater than ", height)

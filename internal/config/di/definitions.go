@@ -114,8 +114,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "address.indexer",
-		Build: func(elastic *elastic_cache.Index, repo *address.Repository) (*address.Indexer, error) {
-			return address.NewIndexer(elastic, repo), nil
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *address.Repository) (*address.Indexer, error) {
+			return address.NewIndexer(navcoin, elastic, repo), nil
 		},
 	},
 	{

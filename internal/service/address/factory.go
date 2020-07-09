@@ -2,8 +2,10 @@ package address
 
 import (
 	"encoding/json"
+	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 func CreateAddress(hash string) *explorer.Address {
@@ -81,6 +83,18 @@ func CreateAddressTransaction(tx *explorer.BlockTransaction, block *explorer.Blo
 	}
 
 	return addressTxs
+}
+
+func CreateAddressHistory(history *navcoind.AddressHistory) *explorer.AddressHistory {
+	return &explorer.AddressHistory{
+		Height:  history.Block,
+		TxIndex: history.TxIndex,
+		Time:    time.Unix(history.Time, 0),
+		TxId:    history.TxId,
+		Address: history.Address,
+		Changes: history.Changes,
+		Result:  history.Result,
+	}
 }
 
 func createTransaction(address string, tx *explorer.BlockTransaction, block *explorer.Block) *explorer.AddressTransaction {
