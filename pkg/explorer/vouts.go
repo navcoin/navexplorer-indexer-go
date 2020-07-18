@@ -3,6 +3,18 @@ package explorer
 type RawVouts []RawVout
 type Vouts []Vout
 
+func (vouts *Vouts) WithAddress(hash string) []Vout {
+	filtered := make([]Vout, 0)
+
+	for _, v := range *vouts {
+		if v.HasAddress(hash) {
+			filtered = append(filtered, v)
+		}
+	}
+
+	return filtered
+}
+
 func (vouts *Vouts) HasOutputOfType(txType VoutType) bool {
 	for _, vout := range *vouts {
 		if vout.ScriptPubKey.Type == txType {

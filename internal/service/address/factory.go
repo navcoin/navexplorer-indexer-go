@@ -85,16 +85,49 @@ func CreateAddressTransaction(tx *explorer.BlockTransaction, block *explorer.Blo
 	return addressTxs
 }
 
-func CreateAddressHistory(history *navcoind.AddressHistory) *explorer.AddressHistory {
-	return &explorer.AddressHistory{
+func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTransaction) *explorer.AddressHistory {
+	h := &explorer.AddressHistory{
 		Height:  history.Block,
 		TxIndex: history.TxIndex,
 		Time:    time.Unix(history.Time, 0),
 		TxId:    history.TxId,
-		Address: history.Address,
-		Changes: history.Changes,
-		Result:  history.Result,
+		Hash:    history.Address,
+		Changes: explorer.AddressHistoryChanges{
+			Spending: history.Changes.Balance,
+			Staking:  history.Changes.Stakable,
+			Voting:   history.Changes.VotingWeight,
+		},
+		Balance: explorer.AddressHistoryBalance{
+			Spending: history.Result.Balance,
+			Staking:  history.Result.Stakable,
+			Voting:   history.Result.VotingWeight,
+		},
 	}
+
+	hasPubKeyHashOutput := func() bool {
+		for _, v := range tx.Vout.WithAddress(h.Hash) {
+			if v.ScriptPubKey.Type == explorer.VoutPubkeyhash {
+				return true
+			}
+		}
+		return false
+	}
+	h.CfundPayout = history.Changes.Flags == 1 && tx.Version == 3 && hasPubKeyHashOutput()
+
+	h.Stake = history.Changes.Flags == 1 && !h.CfundPayout
+
+	if h.IsSpend() {
+		switch tx.Version {
+		case 4:
+			h.Changes.Proposal = true
+		case 5:
+			h.Changes.PaymentRequest = true
+		case 6:
+			h.Changes.Consultation = true
+		}
+	}
+
+	return h
 }
 
 func createTransaction(address string, tx *explorer.BlockTransaction, block *explorer.Block) *explorer.AddressTransaction {

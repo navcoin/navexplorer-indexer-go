@@ -11,24 +11,37 @@ type AddressHistory struct {
 	TxIndex uint                  `json:"txindex"`
 	Time    time.Time             `json:"time"`
 	TxId    string                `json:"txid"`
-	Address string                `json:"address"`
+	Hash    string                `json:"hash"`
 	Changes AddressHistoryChanges `json:"changes"`
-	Result  AddressHistoryResult  `json:"result"`
+	Balance AddressHistoryBalance `json:"balance"`
+
+	Stake       bool `json:"is_stake"`
+	CfundPayout bool `json:"is_cfund_payout"`
 }
 
 type AddressHistoryChanges struct {
-	Balance      int64 `json:"balance"`
-	Stakable     int64 `json:"stakable"`
-	VotingWeight int64 `json:"voting_weight"`
-	Flags        uint  `json:"flags"`
+	Spending       int64 `json:"spending"`
+	Staking        int64 `json:"staking"`
+	Voting         int64 `json:"voting"`
+	Proposal       bool  `json:"proposal,omitempty"`
+	PaymentRequest bool  `json:"payment_request,omitempty"`
+	Consultation   bool  `json:"consultation,omitempty"`
 }
 
-type AddressHistoryResult struct {
-	Balance      int64 `json:"balance"`
-	Stakable     int64 `json:"stakable"`
-	VotingWeight int64 `json:"voting_weight"`
+type AddressHistoryBalance struct {
+	Spending int64 `json:"spending"`
+	Staking  int64 `json:"staking"`
+	Voting   int64 `json:"voting"`
 }
 
 func (a *AddressHistory) Slug() string {
-	return slug.Make(fmt.Sprintf("addresshistory-%s-%s-%t", a.Address, a.TxId))
+	return slug.Make(fmt.Sprintf("addresshistory-%s-%s", a.Hash, a.TxId))
+}
+
+func (a *AddressHistory) IsSpend() bool {
+	return a.Changes.Spending < 0
+}
+
+func (a *AddressHistory) IsReceive() bool {
+	return a.Changes.Spending > 0
 }

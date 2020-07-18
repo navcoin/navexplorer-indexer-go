@@ -16,6 +16,16 @@ type RedeemedIn struct {
 	Height uint64 `json:"height,omitempty"`
 }
 
+func (o *Vout) HasAddress(hash string) bool {
+	for _, a := range o.ScriptPubKey.Addresses {
+		if a == hash {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (o *Vout) IsColdStaking() bool {
 	return o.ScriptPubKey.Type == VoutColdStaking || o.ScriptPubKey.Type == VoutColdStakingV2
 }
