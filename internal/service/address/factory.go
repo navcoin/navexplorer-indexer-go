@@ -85,8 +85,8 @@ func CreateAddressTransaction(tx *explorer.BlockTransaction, block *explorer.Blo
 	return addressTxs
 }
 
-func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTransaction) *explorer.AddressHistory {
-	h := &explorer.AddressHistory{
+func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTransaction) explorer.AddressHistory {
+	h := explorer.AddressHistory{
 		Height:  history.Block,
 		TxIndex: history.TxIndex,
 		Time:    time.Unix(history.Time, 0),
