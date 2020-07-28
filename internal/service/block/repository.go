@@ -77,6 +77,34 @@ func (r *Repository) GetBlockByHash(hash string) (*explorer.Block, error) {
 	return block, nil
 }
 
+func (r *Repository) GetTransactionsByBlock(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
+	results, err := r.elastic.Client.
+		Search(elastic_cache.BlockTransactionIndex.Get()).
+		Query(elastic.NewMatchQuery("height", block.Height)).
+		Do(context.Background())
+	if err != nil || results == nil {
+		raven.CaptureError(err, nil)
+		return nil, err
+	}
+
+	if len(results.Hits.Hits) == 0 {
+		raven.CaptureError(err, nil)
+		return nil, elastic_cache.ErrRecordNotFound
+	}
+
+	var txs []*explorer.BlockTransaction
+	for _, hit := range results.Hits.Hits {
+		var tx *explorer.BlockTransaction
+		if err = json.Unmarshal(hit.Source, &tx); err != nil {
+			raven.CaptureError(err, nil)
+			return nil, err
+		}
+		txs = append(txs, tx)
+	}
+
+	return txs, nil
+}
+
 func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransaction, error) {
 	request := r.elastic.GetRequest(explorer.CreateBlockTxSlug(hash))
 	if request != nil {
