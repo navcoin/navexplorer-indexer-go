@@ -1,5 +1,7 @@
 package explorer
 
+import "errors"
+
 type RawVouts []RawVout
 type Vouts []Vout
 
@@ -23,6 +25,25 @@ func (vouts *Vouts) HasAddress(address string) bool {
 	}
 
 	return false
+}
+
+func (vouts *Vouts) GetVotingAddress() (string, error) {
+	for _, vout := range *vouts {
+		if vout.ScriptPubKey.Type == VoutNonstandard {
+			continue
+		}
+		if vout.ScriptPubKey.Type == VoutColdStaking && len(vout.ScriptPubKey.Addresses) == 2 {
+			return vout.ScriptPubKey.Addresses[0], nil
+		}
+		if vout.ScriptPubKey.Type == VoutColdStakingV2 && len(vout.ScriptPubKey.Addresses) == 3 {
+			return vout.ScriptPubKey.Addresses[2], nil
+		}
+		if vout.ScriptPubKey.Type == VoutPubkey && len(vout.ScriptPubKey.Addresses) == 1 {
+			return vout.ScriptPubKey.Addresses[0], nil
+		}
+	}
+
+	return "", errors.New("Unable to retrieve Voting Address")
 }
 
 func (vouts *Vouts) GetSpendableAmount() uint64 {
