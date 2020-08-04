@@ -11,7 +11,12 @@ func CreateVotes(block *explorer.Block, tx *explorer.BlockTransaction, header *n
 		return nil
 	}
 
-	daoVote := &explorer.DaoVotes{Cycle: block.BlockCycle.Cycle, Height: tx.Height, Address: block.StakedBy}
+	address, err := tx.Vout.GetVotingAddress()
+	if err != nil {
+		log.WithError(err).Fatalf("Unable to identify the voting address")
+	}
+
+	daoVote := &explorer.DaoVotes{Cycle: block.BlockCycle.Cycle, Height: tx.Height, Address: address}
 
 	for _, v := range header.CfundVotes {
 		vote := explorer.Vote{Type: explorer.ProposalVote, Hash: v.Hash, Vote: v.Vote}
