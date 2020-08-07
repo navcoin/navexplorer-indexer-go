@@ -6,17 +6,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateVotes(block *explorer.Block, tx *explorer.BlockTransaction, header *navcoind.BlockHeader) *explorer.DaoVotes {
+func CreateVotes(block *explorer.Block, tx *explorer.BlockTransaction, header *navcoind.BlockHeader, votingAddress string) *explorer.DaoVotes {
 	if !tx.IsCoinbase() {
 		return nil
 	}
 
-	address, err := tx.Vout.GetVotingAddress()
-	if err != nil {
-		log.WithError(err).Fatalf("Unable to identify the voting address")
-	}
-
-	daoVote := &explorer.DaoVotes{Cycle: block.BlockCycle.Cycle, Height: tx.Height, Address: address}
+	daoVote := &explorer.DaoVotes{Cycle: block.BlockCycle.Cycle, Height: tx.Height, Address: votingAddress}
 
 	for _, v := range header.CfundVotes {
 		vote := explorer.Vote{Type: explorer.ProposalVote, Hash: v.Hash, Vote: v.Vote}
