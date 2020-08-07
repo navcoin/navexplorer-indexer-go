@@ -112,9 +112,10 @@ func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTr
 		}
 		return false
 	}
-	h.CfundPayout = history.Changes.Flags == 1 && tx.Version == 3 && hasPubKeyHashOutput()
-
-	h.Stake = history.Changes.Flags == 1 && !h.CfundPayout
+	if history.Changes.Flags == 1 {
+		h.CfundPayout = tx.Type == explorer.TxCoinbase && tx.Version == 3 && hasPubKeyHashOutput()
+		h.Stake = !h.CfundPayout
+	}
 
 	if h.IsSpend() {
 		switch tx.Version {
