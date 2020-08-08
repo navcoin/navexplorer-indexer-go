@@ -13,6 +13,7 @@ import (
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"sync"
+	"time"
 )
 
 type Indexer struct {
@@ -87,6 +88,7 @@ func (i *Indexer) Index(option IndexOption.IndexOption) error {
 }
 
 func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
+	start := time.Now()
 	b, txs, header, err := i.blockIndexer.Index(height, option)
 	if err != nil {
 		if err.Error() != "-8: Block height out of range" {
@@ -94,27 +96,34 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		}
 		return err
 	}
-	log.Infof("Indexed block     at height %d", height)
+	elapsed := time.Since(start)
+	log.WithField("took", elapsed).Infof("Indexed block     at height %d", height)
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
+		start := time.Now()
 		i.addressIndexer.Index(txs, b)
-		log.Infof("Indexed addresses at height %d", height)
+		elapsed := time.Since(start)
+		log.WithField("took", elapsed).Infof("Indexed addresses at height %d", height)
 	}()
 
 	go func() {
 		defer wg.Done()
+		start := time.Now()
 		i.softForkIndexer.Index(b)
-		log.Infof("Indexed softforks at height %d", height)
+		elapsed := time.Since(start)
+		log.WithField("took", elapsed).Infof("Indexed softforks at height %d", height)
 	}()
 
 	go func() {
 		defer wg.Done()
+		start := time.Now()
 		i.daoIndexer.Index(b, txs, header)
-		log.Infof("Indexed dao       at height %d", height)
+		elapsed := time.Since(start)
+		log.WithField("took", elapsed).Infof("Indexed dao       at height %d", height)
 	}()
 
 	wg.Wait()
