@@ -85,7 +85,7 @@ func CreateAddressTransaction(tx *explorer.BlockTransaction, block *explorer.Blo
 	return addressTxs
 }
 
-func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTransaction) *explorer.AddressHistory {
+func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTransaction, block *explorer.Block) *explorer.AddressHistory {
 	h := &explorer.AddressHistory{
 		Height:  history.Block,
 		TxIndex: history.TxIndex,
@@ -114,7 +114,12 @@ func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTr
 	}
 	if history.Changes.Flags == 1 {
 		h.CfundPayout = tx.Type == explorer.TxCoinbase && tx.Version == 3 && hasPubKeyHashOutput()
-		h.Stake = !h.CfundPayout
+
+		if tx.Vout.Count() > 1 && !tx.Vout[1].HasAddress(h.Hash) {
+			h.StakePayout = true
+		} else {
+			h.Stake = true
+		}
 	}
 
 	if h.IsSpend() {

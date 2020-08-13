@@ -44,6 +44,15 @@
           "stakable": {"type": "long"},
           "voting_weight": {"type": "long"}
         }
+      },
+      "is_stake": {
+        "type": "boolean"
+      },
+      "is_cfund_payout": {
+        "type": "boolean"
+      },
+      "is_stake_payout": {
+        "type": "boolean"
       }
     }
   },

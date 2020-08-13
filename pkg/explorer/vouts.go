@@ -5,6 +5,14 @@ import "errors"
 type RawVouts []RawVout
 type Vouts []Vout
 
+func (vouts *Vouts) Count() int {
+	count := 0
+	for range *vouts {
+		count++
+	}
+	return count
+}
+
 func (vouts *Vouts) WithAddress(hash string) []Vout {
 	filtered := make([]Vout, 0)
 

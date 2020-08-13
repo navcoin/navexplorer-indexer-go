@@ -22,21 +22,21 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 		return
 	}
 
-	for _, addressHistory := range i.generateAddressHistory(block.Height, txs) {
+	for _, addressHistory := range i.generateAddressHistory(block, txs) {
 		i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 	}
 }
 
-func (i *Indexer) generateAddressHistory(height uint64, txs []*explorer.BlockTransaction) []*explorer.AddressHistory {
+func (i *Indexer) generateAddressHistory(block *explorer.Block, txs []*explorer.BlockTransaction) []*explorer.AddressHistory {
 	addresses := getAddressesForTxs(txs)
-	history, err := i.navcoin.GetAddressHistory(&height, &height, addresses...)
+	history, err := i.navcoin.GetAddressHistory(&block.Height, &block.Height, addresses...)
 	if err != nil {
-		log.WithError(err).Fatalf("Could not get address history for height: %d", height)
+		log.WithError(err).Fatalf("Could not get address history for height: %d", block.Height)
 	}
 
 	addressHistory := make([]*explorer.AddressHistory, 0)
 	for _, h := range history {
-		addressHistory = append(addressHistory, CreateAddressHistory(h, getTxsById(h.TxId, txs)))
+		addressHistory = append(addressHistory, CreateAddressHistory(h, getTxsById(h.TxId, txs), block))
 	}
 
 	return addressHistory

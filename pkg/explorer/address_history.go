@@ -17,6 +17,7 @@ type AddressHistory struct {
 
 	Stake       bool `json:"is_stake"`
 	CfundPayout bool `json:"is_cfund_payout"`
+	StakePayout bool `json:"is_stake_payout"`
 }
 
 type AddressHistoryChanges struct {
