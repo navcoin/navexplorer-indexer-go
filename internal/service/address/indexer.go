@@ -52,9 +52,17 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 			}
 
 			if addressTx.Cold == true {
-				addressTx.Balance = uint64(Addresses[addressTx.Hash].ColdBalance + addressTx.Total)
+				newBalance := Addresses[addressTx.Hash].ColdBalance + addressTx.Total
+				if newBalance > 9223372036854775807 {
+					newBalance = 0
+				}
+				addressTx.Balance = uint64(newBalance)
 			} else {
-				addressTx.Balance = uint64(Addresses[addressTx.Hash].Balance + addressTx.Total)
+				newBalance := Addresses[addressTx.Hash].Balance + addressTx.Total
+				if newBalance > 9223372036854775807 {
+					newBalance = 0
+				}
+				addressTx.Balance = uint64(newBalance)
 			}
 
 			i.elastic.AddIndexRequest(elastic_cache.AddressTransactionIndex.Get(), addressTx)
