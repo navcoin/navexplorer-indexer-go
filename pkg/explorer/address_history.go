@@ -35,6 +35,14 @@ type AddressHistoryBalance struct {
 	Voting   int64 `json:"voting"`
 }
 
+type HistoryBalanceType string
+
+var (
+	HistorySpending HistoryBalanceType = "spending"
+	HistoryStaking  HistoryBalanceType = "staking"
+	HistoryVoting   HistoryBalanceType = "voting"
+)
+
 func (a *AddressHistory) Slug() string {
 	return slug.Make(fmt.Sprintf("addresshistory-%s-%s", a.Hash, a.TxId))
 }
