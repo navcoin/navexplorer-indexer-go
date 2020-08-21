@@ -9,6 +9,8 @@ type Address struct {
 	Hash    string         `json:"hash"`
 	Height  uint64         `json:"height"`
 	Balance AddressBalance `json:"balance"`
+
+	Position uint64 `json:"position,omitempty"`
 }
 
 func (a *Address) Slug() string {
