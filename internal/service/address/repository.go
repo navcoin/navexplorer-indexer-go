@@ -9,7 +9,6 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
-	"io"
 	"strings"
 )
 
@@ -19,6 +18,30 @@ type Repository struct {
 
 func NewRepo(Client *elastic.Client) *Repository {
 	return &Repository{Client}
+}
+
+func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
+	log.Debugf("GetAddress(hash:%s)", hash)
+
+	results, err := r.Client.Search(elastic_cache.AddressIndex.Get()).
+		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Size(1).
+		Do(context.Background())
+	if err != nil {
+		raven.CaptureError(err, nil)
+		return nil, err
+	}
+
+	if results == nil || len(results.Hits.Hits) != 1 {
+		return nil, errors.New("Invalid result found")
+	}
+
+	var address *explorer.Address
+	if err = json.Unmarshal(results.Hits.Hits[0].Source, &address); err != nil {
+		return nil, err
+	}
+
+	return address, nil
 }
 
 func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) {
@@ -44,58 +67,28 @@ func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) 
 	return addresses, nil
 }
 
-func (r *Repository) GetAddressesHeightGt(height uint64) ([]string, error) {
+func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, error) {
 	log.Debugf("GetAddressesHeightGt(height:%d)", height)
 
-	addresses := make(map[string]struct{}, 0)
-	getAddresses := func(addresses map[string]struct{}, results *elastic.SearchResult) map[string]struct{} {
-		if agg, found := results.Aggregations.Terms("hash"); found {
-			for _, bucket := range agg.Buckets {
-				addresses[bucket.Key.(string)] = struct{}{}
-			}
-		}
-		return addresses
-	}
-	getAddressesHeightGtByIndex := func(height uint64, index elastic_cache.Indices) (*elastic.SearchResult, error) {
-		return r.Client.
-			Search(index.Get()).
-			Query(elastic.NewRangeQuery("height").Gt(height)).
-			Aggregation("hash", elastic.NewTermsAggregation().Field("hash.keyword").Size(50000000)).
-			Size(0).
-			Do(context.Background())
-	}
-
-	results, err := getAddressesHeightGtByIndex(height, elastic_cache.AddressIndex)
-	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
-		return nil, err
-	}
-	addresses = getAddresses(addresses, results)
-
-	results, err = getAddressesHeightGtByIndex(height, elastic_cache.AddressTransactionIndex)
-	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
-		return nil, err
-	}
-	addresses = getAddresses(addresses, results)
-
-	addressesSlice := make([]string, len(addresses))
-	i := 0
-	for f, _ := range addresses {
-		addressesSlice[i] = f
-		i++
-	}
-
-	return addressesSlice, nil
-}
-
-func (r *Repository) getAddressesHeightGtByIndex(height uint64, index elastic_cache.Indices) (*elastic.SearchResult, error) {
-	return r.Client.
-		Search(index.Get()).
+	results, err := r.Client.
+		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewRangeQuery("height").Gt(height)).
-		Aggregation("hash", elastic.NewTermsAggregation().Field("hash.keyword").Size(50000000)).
-		Size(0).
+		Size(50000).
 		Do(context.Background())
+	if err != nil || results == nil {
+		return nil, err
+	}
+
+	addresses := make([]*explorer.Address, 0)
+	for _, hit := range results.Hits.Hits {
+		var address *explorer.Address
+		if err = json.Unmarshal(hit.Source, &address); err != nil {
+			return nil, err
+		}
+		addresses = append(addresses, address)
+	}
+
+	return addresses, nil
 }
 
 func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) {
@@ -111,7 +104,7 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 	}
 
 	var address *explorer.Address
-	if len(results.Hits.Hits) == 0 {
+	if results.TotalHits() == 0 {
 		address = CreateAddress(hash)
 		_, err := r.Client.
 			Index().
@@ -133,136 +126,29 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 	return address, nil
 }
 
-func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
-	log.Debugf("GetAddress(hash:%s)", hash)
+func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHistory, error) {
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
-	results, err := r.Client.
-		Search(elastic_cache.AddressIndex.Get()).
-		Query(elastic.NewMatchQuery("hash", hash)).
+	results, err := r.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+		Query(query).
+		Sort("height", false).
 		Size(1).
 		Do(context.Background())
-	if err != nil {
-		raven.CaptureError(err, nil)
-		return nil, err
-	}
-
-	if results == nil || len(results.Hits.Hits) != 1 {
-		return nil, errors.New("Invalid result found")
-	}
-
-	var address *explorer.Address
-	if err = json.Unmarshal(results.Hits.Hits[0].Source, &address); err != nil {
-		return nil, err
-	}
-
-	return address, nil
-}
-
-func (r *Repository) GetTxsRangeForAddress(hash string, from uint64, to uint64) ([]*explorer.AddressTransaction, error) {
-	log.WithField("address", hash).Debugf("GetTxsRangeForAddress: from:%d to:%d", from, to)
-
-	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
-	query = query.Must(elastic.NewRangeQuery("height").Gt(from).Lte(to))
-
-	service := r.Client.Scroll(elastic_cache.AddressTransactionIndex.Get()).Query(query).Size(10000).Sort("height", true)
-	txs := make([]*explorer.AddressTransaction, 0)
-
-	for {
-		results, err := service.Do(context.Background())
-		if err == io.EOF {
-			break
-		}
-		if err != nil || results == nil {
-			log.Fatal(err)
-		}
-
-		for _, hit := range results.Hits.Hits {
-			var tx *explorer.AddressTransaction
-			if err = json.Unmarshal(hit.Source, &tx); err != nil {
-				raven.CaptureError(err, nil)
-				return nil, err
-			}
-			txs = append(txs, tx)
-		}
-	}
-
-	return txs, nil
-}
-
-func (r *Repository) GetTxsForAddress(hash string) ([]*explorer.AddressTransaction, error) {
-	log.Debugf("GetTxsForAddress(hash:%s)", hash)
-
-	results, err := r.Client.
-		Search(elastic_cache.AddressTransactionIndex.Get()).
-		Query(elastic.NewMatchQuery("hash", hash)).
-		Size(50000000).
-		Sort("height", true).
-		Do(context.Background())
-	if err != nil {
-		raven.CaptureError(err, nil)
-		return nil, err
-	}
-
-	txs := make([]*explorer.AddressTransaction, 0)
-	for _, hit := range results.Hits.Hits {
-		var tx *explorer.AddressTransaction
-		if err = json.Unmarshal(hit.Source, &tx); err != nil {
-			raven.CaptureError(err, nil)
-			return nil, err
-		}
-		txs = append(txs, tx)
-	}
-
-	return txs, nil
-}
-
-func (r *Repository) GetAddressesByValidateAtDesc(size int) ([]*explorer.Address, error) {
-	log.Debug("ValidateAddresses()")
-
-	results, err := r.Client.Search(elastic_cache.AddressIndex.Get()).
-		Size(size).
-		Sort("validatedAt", true).
-		TrackTotalHits(true).
-		Do(context.Background())
 	if err != nil || results == nil {
+		log.WithError(err).Fatal("Failed to find address")
+	}
+
+	if results.TotalHits() != 1 {
+		return nil, nil
+	}
+
+	var history *explorer.AddressHistory
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(hit.Source, &history)
+	if err != nil {
 		return nil, err
 	}
 
-	addresses := make([]*explorer.Address, 0)
-	for _, hit := range results.Hits.Hits {
-		var address *explorer.Address
-		if err = json.Unmarshal(hit.Source, &address); err != nil {
-			return nil, err
-		}
-		addresses = append(addresses, address)
-	}
-
-	return addresses, nil
-}
-
-func (r *Repository) GetAllAddresses() ([]*explorer.Address, error) {
-	service := r.Client.Scroll(elastic_cache.AddressIndex.Get()).Size(10000).Sort("hash.keyword", true)
-	addresses := make([]*explorer.Address, 0)
-
-	for {
-		results, err := service.Do(context.Background())
-		if err == io.EOF {
-			break
-		}
-		if err != nil || results == nil {
-			log.Fatal(err)
-		}
-
-		for _, hit := range results.Hits.Hits {
-			var a *explorer.Address
-			if err = json.Unmarshal(hit.Source, &a); err != nil {
-				raven.CaptureError(err, nil)
-				return nil, err
-			}
-			addresses = append(addresses, a)
-		}
-	}
-
-	return addresses, nil
+	return history, err
 }

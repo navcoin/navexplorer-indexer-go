@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,79 +31,28 @@ func (r *Rewinder) Rewind(height uint64) error {
 		log.Error("Failed to delete address history greater than ", height)
 		return err
 	}
-	err = r.elastic.DeleteHeightGT(height, elastic_cache.AddressTransactionIndex.Get())
-	if err != nil {
-		log.Error("Failed to delete address transactions greater than ", height)
-		return err
-	}
 
-	for idx, hash := range addresses {
-		Addresses.Delete(hash)
+	for _, address := range addresses {
+		log.Infof("Rewinding address: %s", address.Hash)
 
-		log.Infof("Rewinding address %d: %s", idx+1, hash)
-		address, err := r.repo.GetAddress(hash)
+		latestHistory, err := r.repo.GetLatestHistoryByHash(address.Hash)
 		if err != nil {
-			log.Error("Failed to get address with hash ", hash)
-			return err
+			log.Fatal(err.Error())
 		}
 
-		err = r.RewindAddressToHeight(address, height)
-		if err != nil {
-			log.Errorf("Failed to rewind address %s to height %s", address, height)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *Rewinder) ResetAddressToHeight(address *explorer.Address, height uint64) error {
-	log.Infof("Resetting address %s from %d to %d", address.Hash, 0, height)
-
-	ResetAddress(address)
-	address.Height = height
-
-	addressTxs, err := r.repo.GetTxsRangeForAddress(address.Hash, 0, height)
-	if err != nil {
-		log.WithField("address", address.Hash).WithError(err).Error("Failed to get tx range")
-		raven.CaptureError(err, nil)
-		return err
-	}
-
-	for _, addressTx := range addressTxs {
-		ApplyTxToAddress(address, addressTx)
-		if addressTx.Cold == true {
-			address.ColdBalance = int64(addressTx.Balance)
+		if latestHistory == nil {
+			address.Height = 0
+			address.Balance = explorer.AddressBalance{}
 		} else {
-			address.Balance = int64(addressTx.Balance)
-			log.Debugf("Setting address balance to %d", address.Balance)
+			address.Height = latestHistory.Height
+			address.Balance = latestHistory.Balance
 		}
-		address.Height = addressTx.Height
-	}
 
-	return nil
-}
-
-func (r *Rewinder) RewindAddressToHeight(address *explorer.Address, height uint64) error {
-	log.WithField("address", address.Hash).Debugf("Rewind balance to height %d: %d", address.Height, address.Balance)
-
-	err := r.ResetAddressToHeight(address, height)
-	if err != nil {
-		log.WithField("address", address.Hash).WithError(err).Error("Failed to rest the address")
-		raven.CaptureError(err, nil)
-		return err
-	}
-
-	_, err = r.elastic.Client.Index().
-		Index(elastic_cache.AddressIndex.Get()).
-		BodyJson(address).
-		Id(address.Slug()).
-		Do(context.Background())
-
-	if err != nil {
-		log.WithField("address", address.Hash).WithError(err).Error("Failed to persist the rewind")
-		raven.CaptureError(err, nil)
-		return err
+		_, err = r.elastic.Client.Index().
+			Index(elastic_cache.AddressIndex.Get()).
+			BodyJson(address).
+			Id(address.Slug()).
+			Do(context.Background())
 	}
 
 	return nil

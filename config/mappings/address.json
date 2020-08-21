@@ -11,47 +11,14 @@
         }
       },
       "height": {"type": "long"},
-      "balance": {"type": "long"},
-      "received": {
-        "type": "long"
-      },
-      "receivedCount": {
-        "type": "long"
-      },
-      "sent": {
-        "type": "long"
-      },
-      "sentCount": {
-        "type": "long"
-      },
-      "staked": {
-        "type": "long"
-      },
-      "stakedCount": {
-        "type": "long"
-      },
-      "coldReceived": {
-        "type": "long"
-      },
-      "coldReceivedCount": {
-        "type": "long"
-      },
-      "coldSent": {
-        "type": "long"
-      },
-      "coldSentCount": {
-        "type": "long"
-      },
-      "coldStaked": {
-        "type": "long"
-      },
-      "coldStakedCount": {
-        "type": "long"
-      },
-      "coldBalance": {
-        "type": "long"
-      },
-      "position": {"type": "long"}
+      "balance": {
+        "type": "nested",
+        "properties": {
+          "spending": {"type": "long"},
+          "staking": {"type": "long"},
+          "voting": {"type": "long"}
+        }
+      }
     }
   },
   "settings": {

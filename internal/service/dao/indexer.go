@@ -8,8 +8,8 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/proposal"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/service/dao/vote"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
+	"sync"
 )
 
 type Indexer struct {
@@ -40,17 +40,34 @@ func NewIndexer(
 }
 
 func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction, header *navcoind.BlockHeader) {
-	if consensus.Parameters == nil {
-		err := i.consensusIndexer.Index()
-		if err != nil {
-			raven.CaptureError(err, nil)
-			log.WithError(err).Fatal("Failed to get Consensus")
-		}
-	}
+	var wg sync.WaitGroup
+	wg.Add(4)
 
-	i.proposalIndexer.Index(txs)
-	i.paymentRequestIndexer.Index(txs)
-	i.consultationIndexer.Index(txs)
+	go func() {
+		defer wg.Done()
+		if consensus.Parameters == nil {
+			if err := i.consensusIndexer.Index(); err != nil {
+				log.WithError(err).Fatal("Failed to get Consensus")
+			}
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		i.proposalIndexer.Index(txs)
+	}()
+
+	go func() {
+		defer wg.Done()
+		i.paymentRequestIndexer.Index(txs)
+	}()
+
+	go func() {
+		defer wg.Done()
+		i.consultationIndexer.Index(txs)
+	}()
+
+	wg.Wait()
 
 	i.voteIndexer.IndexVotes(txs, block, header)
 	i.proposalIndexer.Update(block.BlockCycle, block)
@@ -58,10 +75,9 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction,
 	i.consultationIndexer.Update(block.BlockCycle, block)
 
 	if block.BlockCycle.IsEnd() {
-		log.WithFields(log.Fields{
-			"size":   block.BlockCycle.Size,
-			"height": block.Height,
-		}).Infof("Blockcycle %d complete", block.BlockCycle.Cycle)
+		log.
+			WithFields(log.Fields{"size": block.BlockCycle.Size, "height": block.Height}).
+			Infof("Blockcycle %d complete", block.BlockCycle.Cycle)
 		i.consensusIndexer.Update(block)
 	}
 }

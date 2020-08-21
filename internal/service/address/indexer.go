@@ -24,6 +24,11 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 
 	for _, addressHistory := range i.generateAddressHistory(block, txs) {
 		i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
+
+		err := i.updateAddress(addressHistory)
+		if err != nil {
+			log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
+		}
 	}
 }
 
@@ -42,17 +47,33 @@ func (i *Indexer) generateAddressHistory(block *explorer.Block, txs []*explorer.
 	return addressHistory
 }
 
-func getAddressesForTxs(txs []*explorer.BlockTransaction) []string {
-	aMap := make(map[string]struct{})
-	for _, tx := range txs {
-		for _, a := range tx.GetAllAddresses() {
-			aMap[a] = struct{}{}
+func (i *Indexer) updateAddress(history *explorer.AddressHistory) error {
+	address := Addresses.GetByHash(history.Hash)
+	if address == nil {
+		var err error
+		address, err = i.repo.GetOrCreateAddress(history.Hash)
+		if err != nil {
+			return err
 		}
 	}
 
+	address.Height = history.Height
+	address.Balance.Spending = history.Balance.Spending
+	address.Balance.Staking = history.Balance.Staking
+	address.Balance.Voting = history.Balance.Voting
+
+	Addresses[address.Hash] = address
+
+	i.elastic.AddUpdateRequest(elastic_cache.AddressIndex.Get(), address)
+	return nil
+}
+
+func getAddressesForTxs(txs []*explorer.BlockTransaction) []string {
 	addresses := make([]string, 0)
-	for k := range aMap {
-		addresses = append(addresses, k)
+	for _, tx := range txs {
+		for _, address := range tx.GetAllAddresses() {
+			addresses = append(addresses, address)
+		}
 	}
 
 	return addresses

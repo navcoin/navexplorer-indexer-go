@@ -7,20 +7,20 @@ import (
 )
 
 type AddressHistory struct {
-	Height  uint64                `json:"height"`
-	TxIndex uint                  `json:"txindex"`
-	Time    time.Time             `json:"time"`
-	TxId    string                `json:"txid"`
-	Hash    string                `json:"hash"`
-	Changes AddressHistoryChanges `json:"changes"`
-	Balance AddressHistoryBalance `json:"balance"`
+	Height  uint64         `json:"height"`
+	TxIndex uint           `json:"txindex"`
+	Time    time.Time      `json:"time"`
+	TxId    string         `json:"txid"`
+	Hash    string         `json:"hash"`
+	Changes AddressChanges `json:"changes"`
+	Balance AddressBalance `json:"balance"`
 
 	Stake       bool `json:"is_stake"`
 	CfundPayout bool `json:"is_cfund_payout"`
 	StakePayout bool `json:"is_stake_payout"`
 }
 
-type AddressHistoryChanges struct {
+type AddressChanges struct {
 	Spending       int64 `json:"spending"`
 	Staking        int64 `json:"staking"`
 	Voting         int64 `json:"voting"`
@@ -29,7 +29,7 @@ type AddressHistoryChanges struct {
 	Consultation   bool  `json:"consultation,omitempty"`
 }
 
-type AddressHistoryBalance struct {
+type AddressBalance struct {
 	Spending int64 `json:"spending"`
 	Staking  int64 `json:"staking"`
 	Voting   int64 `json:"voting"`

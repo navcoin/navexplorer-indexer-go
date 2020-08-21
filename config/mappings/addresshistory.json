@@ -33,7 +33,7 @@
         "properties": {
           "spending": {"type": "long"},
           "staking": {"type": "long"},
-          "voting": {"type": "long"},
+          "voting": {"type": "long"}
         }
       },
       "balance": {
