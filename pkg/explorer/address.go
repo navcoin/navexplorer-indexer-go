@@ -6,9 +6,12 @@ import (
 )
 
 type Address struct {
-	Hash    string         `json:"hash"`
-	Height  uint64         `json:"height"`
-	Balance AddressBalance `json:"balance"`
+	Hash   string `json:"hash"`
+	Height uint64 `json:"height"`
+
+	Spending int64 `json:"spending"`
+	Staking  int64 `json:"staking"`
+	Voting   int64 `json:"voting"`
 
 	Position uint64 `json:"position,omitempty"`
 }

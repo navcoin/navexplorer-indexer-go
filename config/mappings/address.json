@@ -11,14 +11,9 @@
         }
       },
       "height": {"type": "long"},
-      "balance": {
-        "type": "nested",
-        "properties": {
-          "spending": {"type": "long"},
-          "staking": {"type": "long"},
-          "voting": {"type": "long"}
-        }
-      }
+      "spending": {"type": "long"},
+      "staking": {"type": "long"},
+      "voting": {"type": "long"}
     }
   },
   "settings": {

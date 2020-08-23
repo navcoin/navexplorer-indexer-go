@@ -3,7 +3,6 @@ package address
 import (
 	"context"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,10 +41,14 @@ func (r *Rewinder) Rewind(height uint64) error {
 
 		if latestHistory == nil {
 			address.Height = 0
-			address.Balance = explorer.AddressBalance{}
+			address.Spending = 0
+			address.Staking = 0
+			address.Voting = 0
 		} else {
 			address.Height = latestHistory.Height
-			address.Balance = latestHistory.Balance
+			address.Spending = latestHistory.Balance.Spending
+			address.Staking = latestHistory.Balance.Staking
+			address.Voting = latestHistory.Balance.Voting
 		}
 
 		_, err = r.elastic.Client.Index().

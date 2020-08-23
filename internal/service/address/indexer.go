@@ -58,9 +58,9 @@ func (i *Indexer) updateAddress(history *explorer.AddressHistory) error {
 	}
 
 	address.Height = history.Height
-	address.Balance.Spending = history.Balance.Spending
-	address.Balance.Staking = history.Balance.Staking
-	address.Balance.Voting = history.Balance.Voting
+	address.Spending = history.Balance.Spending
+	address.Staking = history.Balance.Staking
+	address.Voting = history.Balance.Voting
 
 	Addresses[address.Hash] = address
 
