@@ -70,8 +70,14 @@ func (r *Rewinder) ResetAddressToHeight(address *explorer.Address, height uint64
 		ApplyTxToAddress(address, addressTx)
 		if addressTx.Cold == true {
 			address.ColdBalance = int64(addressTx.Balance)
+			if address.ColdBalance > 9223372036854775807 {
+				address.ColdBalance = 0
+			}
 		} else {
 			address.Balance = int64(addressTx.Balance)
+			if address.Balance > 9223372036854775807 {
+				address.Balance = 0
+			}
 			log.Debugf("Setting address balance to %d", address.Balance)
 		}
 		address.Height = addressTx.Height
