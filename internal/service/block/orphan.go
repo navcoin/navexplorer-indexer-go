@@ -3,7 +3,6 @@ package block
 import (
 	"errors"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
@@ -20,7 +19,7 @@ var (
 	ErrOrphanBlockFound = errors.New("Orphan block_indexer found")
 )
 
-func (o *OrphanService) IsOrphanBlock(block *explorer.Block) (bool, error) {
+func (o *OrphanService) IsOrphanBlock(block *explorer.Block, previousBlock *explorer.Block) (bool, error) {
 	if block.Height == 1 {
 		return false, nil
 	}
@@ -29,19 +28,21 @@ func (o *OrphanService) IsOrphanBlock(block *explorer.Block) (bool, error) {
 		return o.repository.GetBlockByHeight(height - 1)
 	}
 
-	previousBlock, err := getPreviousBlock(block.Height)
-	if err != nil {
-		log.Info("Retry get previous block in 5 seconds")
-		time.Sleep(5 * time.Second)
+	if previousBlock == nil {
+		var err error
 		previousBlock, err = getPreviousBlock(block.Height)
 		if err != nil {
-			log.WithError(err).WithField("height", block.Height-1).Fatal("Failed to get previous block")
+			log.Info("Retry get previous block in 1 seconds")
+			time.Sleep(1 * time.Second)
+			previousBlock, err = getPreviousBlock(block.Height)
+			if err != nil {
+				log.WithError(err).WithField("height", block.Height-1).Fatal("Failed to get previous block")
+			}
 		}
 	}
 
 	orphan := previousBlock.Hash != block.Previousblockhash
 	if orphan == true {
-		raven.CaptureError(err, nil)
 		log.WithFields(log.Fields{"height": block.Height, "block": block.Hash, "previous": previousBlock.Hash}).Info("Orphan block found")
 	}
 

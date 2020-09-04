@@ -22,7 +22,7 @@ func (r *Repository) GetPossibleVotingProposals(height uint64) ([]*explorer.Prop
 	var proposals []*explorer.Proposal
 
 	query := elastic.NewBoolQuery()
-	query = query.Should(elastic.NewMatchQuery("status", "pending accepted pending_voting_preq"))
+	query = query.Should(elastic.NewMatchQuery("status", "pending accepted pending_voting_preq pending_funds"))
 	query = query.Should(elastic.NewRangeQuery("updatedOnBlock").Gte(height))
 
 	results, err := r.Client.Search(elastic_cache.ProposalIndex.Get()).

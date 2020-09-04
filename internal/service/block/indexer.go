@@ -9,7 +9,6 @@ import (
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -30,11 +29,13 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
-		log.Fatal("Failed to get block at height ", height)
+		log.Error("Failed to get block at height ", height)
+		return nil, nil, nil, err
 	}
 	header, err := i.navcoin.GetBlockheader(navBlock.Hash)
 	if err != nil {
-		log.Fatal("Failed to get block at height ", height)
+		log.Error("Failed to get header at height ", height)
+		return nil, nil, nil, err
 	}
 
 	block := CreateBlock(navBlock, i.service.GetLastBlockIndexed(), uint(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value))
@@ -51,57 +52,46 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 
 	block.Cfund = &explorer.Cfund{Available: available, Locked: locked}
 
-	LastBlockIndexed = block
-
 	if option == IndexOption.SingleIndex {
 		log.Info("Indexing in single block mode")
-		orphan, err := i.orphanService.IsOrphanBlock(block)
+		orphan, err := i.orphanService.IsOrphanBlock(block, LastBlockIndexed)
 		if orphan == true || err != nil {
 			log.WithFields(log.Fields{"block": block, "orphan": orphan}).WithError(err).Info("Orphan Block Found")
-
+			LastBlockIndexed = nil
 			return nil, nil, nil, ErrOrphanBlockFound
 		}
 	}
+	LastBlockIndexed = block
+
 	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
 	elapsed := time.Since(start)
 	log.WithField("time", elapsed).Infof("Indexed block     at height %d", height)
 
-	start = time.Now()
 	var txs = make([]*explorer.BlockTransaction, 0)
-
-	var wg sync.WaitGroup
-	wg.Add(len(block.Tx))
-
 	for idx, txHash := range block.Tx {
-		go func(index int, hash string) {
-			defer wg.Done()
-			rawTx, err := i.navcoin.GetRawTransaction(hash, true)
-			if err != nil {
-				log.WithFields(log.Fields{"hash": block.Hash, "txHash": hash, "height": height}).WithError(err).
-					Fatal("Failed to GetRawTransaction")
-			}
+		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
+		if err != nil {
+			raven.CaptureError(err, nil)
+			log.WithFields(log.Fields{"hash": block.Hash, "txHash": txHash, "height": height}).WithError(err).Error("Failed to GetRawTransaction")
+			return nil, nil, nil, err
+		}
+		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx))
+		applyType(tx)
+		applyStaking(tx, block)
+		applySpend(tx, block)
+		applyCFundPayout(tx, block)
 
-			tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(index))
-			applyType(tx)
-			applyStaking(tx, block)
-			applySpend(tx, block)
-			applyCFundPayout(tx, block)
+		i.indexPreviousTxData(tx)
+		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
 
-			i.indexPreviousTxData(tx)
-			i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
-
-			txs = append(txs, tx)
-		}(idx, txHash)
+		txs = append(txs, tx)
 	}
-
-	wg.Wait()
-
-	elapsed = time.Since(start)
-	log.WithField("time", elapsed).Infof("Indexed %d txs     at height %d", len(block.Tx), height)
 
 	if option == IndexOption.SingleIndex {
 		i.updateNextHashOfPreviousBlock(block)
 	}
+
+	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
 
 	return block, txs, header, err
 }
