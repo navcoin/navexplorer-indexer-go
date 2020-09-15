@@ -54,9 +54,13 @@ func (s *Service) InitConsensusParameters() {
 
 func (s *Service) InitialState() ([]*explorer.ConsensusParameter, error) {
 	parameters := make([]*explorer.ConsensusParameter, 0)
-	byteParams := []byte(mainnet)
-	if config.Get().Network != "mainnet" {
+	var byteParams []byte
+	if config.Get().SoftForkBlockCycle != 20160 {
+		log.Info("Initialising Testnet Consensus parameters")
 		byteParams = []byte(testnet)
+	} else {
+		log.Info("Initialising Mainnet Consensus parameters")
+		byteParams = []byte(mainnet)
 	}
 
 	err := json.Unmarshal(byteParams, &parameters)
