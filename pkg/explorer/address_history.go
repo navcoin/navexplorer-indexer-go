@@ -35,12 +35,12 @@ type AddressBalance struct {
 	Voting   int64 `json:"voting"`
 }
 
-type HistoryBalanceType string
+type BalanceType string
 
 var (
-	HistorySpending HistoryBalanceType = "spending"
-	HistoryStaking  HistoryBalanceType = "staking"
-	HistoryVoting   HistoryBalanceType = "voting"
+	Spending BalanceType = "spending"
+	Staking  BalanceType = "staking"
+	Voting   BalanceType = "voting"
 )
 
 func (a *AddressHistory) Slug() string {
