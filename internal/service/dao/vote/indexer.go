@@ -25,7 +25,8 @@ func (i *Indexer) IndexVotes(txs []*explorer.BlockTransaction, block *explorer.B
 		}
 	}
 	if votingAddress == "" {
-		log.WithField("height", block.Height).Fatalf("Unable to identify the voting address")
+		log.WithField("height", block.Height).Error("Unable to identify the voting address")
+		return
 	}
 
 	for _, tx := range txs {
