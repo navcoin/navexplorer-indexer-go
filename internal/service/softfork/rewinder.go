@@ -50,7 +50,6 @@ func (r *Rewinder) Rewind(height uint64) error {
 		}
 
 		signals := r.signalRepo.GetSignals(start, end)
-		log.WithFields(log.Fields{"start": start, "end": end}).Info("Loading signals")
 
 		for _, s := range signals {
 			for _, sf := range s.SoftForks {
