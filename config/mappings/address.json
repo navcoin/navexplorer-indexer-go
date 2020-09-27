@@ -13,7 +13,13 @@
       "height": {"type": "long"},
       "spending": {"type": "long"},
       "staking": {"type": "long"},
-      "voting": {"type": "long"}
+      "voting": {"type": "long"},
+      "created_time": {
+        "type": "date"
+      },
+      "created_block": {
+        "type": "long"
+      }
     }
   },
   "settings": {
