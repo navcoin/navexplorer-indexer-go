@@ -17,10 +17,11 @@ type Address struct {
 	CreatedTime  time.Time `json:"created_time"`
 	CreatedBlock uint64    `json:"created_block"`
 
-	Position Position `json:"position,omitempty"`
+	// Transient
+	RichList RichList `json:"rich_list,omitempty"`
 }
 
-type Position struct {
+type RichList struct {
 	Spending uint64 `json:"spending"`
 	Staking  uint64 `json:"staking"`
 	Voting   uint64 `json:"voting"`
