@@ -25,7 +25,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 	for _, addressHistory := range i.generateAddressHistory(block, txs) {
 		i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 
-		err := i.updateAddress(addressHistory)
+		err := i.updateAddress(addressHistory, block)
 		if err != nil {
 			log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
 		}
@@ -47,11 +47,11 @@ func (i *Indexer) generateAddressHistory(block *explorer.Block, txs []*explorer.
 	return addressHistory
 }
 
-func (i *Indexer) updateAddress(history *explorer.AddressHistory) error {
+func (i *Indexer) updateAddress(history *explorer.AddressHistory, block *explorer.Block) error {
 	address := Addresses.GetByHash(history.Hash)
 	if address == nil {
 		var err error
-		address, err = i.repo.GetOrCreateAddress(history.Hash)
+		address, err = i.repo.GetOrCreateAddress(history.Hash, block)
 		if err != nil {
 			return err
 		}

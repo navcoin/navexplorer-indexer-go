@@ -91,7 +91,7 @@ func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, e
 	return addresses, nil
 }
 
-func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) {
+func (r *Repository) GetOrCreateAddress(hash string, block *explorer.Block) (*explorer.Address, error) {
 	log.WithField("address", hash).Debug("GetOrCreateAddress")
 
 	results, err := r.Client.
@@ -105,7 +105,7 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 
 	var address *explorer.Address
 	if results.TotalHits() == 0 {
-		address = CreateAddress(hash)
+		address = CreateAddress(hash, block.Height, block.MedianTime)
 		_, err := r.Client.
 			Index().
 			Index(elastic_cache.AddressIndex.Get()).
