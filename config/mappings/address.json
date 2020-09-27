@@ -1,5 +1,8 @@
 {
   "mappings": {
+    "_source": {
+      "excludes": ["rich_list"]
+    },
     "properties": {
       "hash": {
         "type": "text",
