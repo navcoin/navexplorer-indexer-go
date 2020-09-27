@@ -175,6 +175,31 @@ func (r *Repository) GetBlockByHeight(height uint64) (*explorer.Block, error) {
 	return block, nil
 }
 
+func (r *Repository) GetBlocksBetweenHeight(start uint64, end uint64) ([]*explorer.Block, error) {
+	results, err := r.elastic.Client.
+		Search(elastic_cache.BlockIndex.Get()).
+		Query(elastic.NewRangeQuery("height").Gte(start).Lt(end)).
+		Sort("height", true).
+		Size(int(end - start)).
+		Do(context.Background())
+	if err != nil || results == nil {
+		raven.CaptureError(err, nil)
+		return nil, err
+	}
+
+	blocks := make([]*explorer.Block, 0)
+	for _, hit := range results.Hits.Hits {
+		var block *explorer.Block
+		if err = json.Unmarshal(hit.Source, &block); err != nil {
+			raven.CaptureError(err, nil)
+			return nil, err
+		}
+		blocks = append(blocks, block)
+	}
+
+	return blocks, nil
+}
+
 func (r *Repository) GetTransactionsWithCfundPayment() error {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("vout.scriptPubKey.type.keyword", explorer.VoutCfundContribution))

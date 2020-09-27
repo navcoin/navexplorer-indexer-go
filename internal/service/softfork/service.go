@@ -2,10 +2,12 @@ package softfork
 
 import (
 	"context"
+	"fmt"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 var SoftForks explorer.SoftForks
@@ -28,14 +30,17 @@ func (i *Service) InitSoftForks() {
 		log.WithError(err).Fatal("Failed to get blockchaininfo")
 	}
 
-	//SoftForks, err = i.repo.GetSoftForks()
-	//if err != nil {
-	//	log.WithError(err).Fatal("Failed to get softforks from repo")
-	//}
-
 	for name, bip9fork := range info.Bip9SoftForks {
-		//if SoftForks.GetSoftFork(name) == nil {
-		softFork := &explorer.SoftFork{Name: name, SignalBit: bip9fork.Bit, State: explorer.SoftForkDefined, ActivationHeight: 0, LockedInHeight: 0}
+		softFork := &explorer.SoftFork{
+			Name:             name,
+			SignalBit:        bip9fork.Bit,
+			State:            explorer.SoftForkDefined,
+			StartTime:        time.Unix(int64(bip9fork.StartTime), 0),
+			Timeout:          time.Unix(int64(bip9fork.Timeout), 0),
+			ActivationHeight: 0,
+			LockedInHeight:   0,
+		}
+		log.Info(fmt.Sprintf("%+v\n", softFork))
 		_, err := i.elastic.Client.
 			Index().
 			Index(elastic_cache.SoftForkIndex.Get()).
@@ -47,7 +52,6 @@ func (i *Service) InitSoftForks() {
 		}
 
 		SoftForks = append(SoftForks, softFork)
-		//}
 	}
 }
 

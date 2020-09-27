@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gosimple/slug"
 	"log"
+	"time"
 )
 
 type SoftForks []*SoftFork
@@ -11,6 +12,8 @@ type SoftForks []*SoftFork
 type SoftFork struct {
 	Name             string         `json:"name"`
 	SignalBit        uint           `json:"signalBit"`
+	StartTime        time.Time      `json:"startTime"`
+	Timeout          time.Time      `json:"timeout"`
 	State            SoftForkState  `json:"state"`
 	LockedInHeight   uint64         `json:"lockedinheight,omitempty"`
 	ActivationHeight uint64         `json:"activationheight,omitempty"`

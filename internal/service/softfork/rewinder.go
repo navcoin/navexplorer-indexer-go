@@ -33,6 +33,8 @@ func (r *Rewinder) Rewind(height uint64) error {
 			Name:      s.Name,
 			SignalBit: s.SignalBit,
 			State:     explorer.SoftForkDefined,
+			StartTime: s.StartTime,
+			Timeout:   s.Timeout,
 		}
 	}
 
@@ -48,12 +50,14 @@ func (r *Rewinder) Rewind(height uint64) error {
 		}
 
 		signals := r.signalRepo.GetSignals(start, end)
+		log.WithFields(log.Fields{"start": start, "end": end}).Info("Loading signals")
+
 		for _, s := range signals {
 			for _, sf := range s.SoftForks {
 				softFork := SoftForks.GetSoftFork(sf)
 				if softFork.IsOpen() {
 					softFork.SignalHeight = end
-					softFork.State = explorer.SoftForkStarted
+					softFork.State = explorer.SoftForkDefined
 					blockCycle := GetSoftForkBlockCycle(r.blocksInCycle, s.Height)
 
 					var cycle *explorer.SoftForkCycle

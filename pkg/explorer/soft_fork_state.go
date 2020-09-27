@@ -8,4 +8,5 @@ var (
 	SoftForkLockedIn SoftForkState = "locked_in"
 	SoftForkActive   SoftForkState = "active"
 	SoftForkFailed   SoftForkState = "failed"
+	SoftForkExpired  SoftForkState = "expired"
 )

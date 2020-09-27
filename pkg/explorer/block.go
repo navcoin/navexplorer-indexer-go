@@ -61,7 +61,7 @@ func (b *BlockCycle) IsEnd() bool {
 }
 
 func GetQuorum(size uint, quorum int) int {
-	return int((float64(quorum) / 100) * float64(size))
+	return int((float64(quorum) / 100.0) * float64(size))
 }
 
 type Cfund struct {
