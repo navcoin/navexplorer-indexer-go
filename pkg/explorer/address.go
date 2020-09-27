@@ -17,7 +17,13 @@ type Address struct {
 	CreatedTime  time.Time `json:"created_time"`
 	CreatedBlock uint64    `json:"created_block"`
 
-	Position uint64 `json:"position,omitempty"`
+	Position Position `json:"position,omitempty"`
+}
+
+type Position struct {
+	Spending uint64 `json:"spending"`
+	Staking  uint64 `json:"staking"`
+	Voting   uint64 `json:"voting"`
 }
 
 func (a *Address) Slug() string {
