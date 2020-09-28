@@ -56,7 +56,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 				softFork := SoftForks.GetSoftFork(sf)
 				if softFork.IsOpen() {
 					softFork.SignalHeight = end
-					softFork.State = explorer.SoftForkDefined
+					softFork.State = explorer.SoftForkStarted
 					blockCycle := GetSoftForkBlockCycle(r.blocksInCycle, s.Height)
 
 					var cycle *explorer.SoftForkCycle
