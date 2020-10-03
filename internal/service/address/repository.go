@@ -139,10 +139,6 @@ func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHisto
 		log.WithError(err).Fatal("Failed to find address")
 	}
 
-	if results.TotalHits() != 1 {
-		return nil, nil
-	}
-
 	var history *explorer.AddressHistory
 	hit := results.Hits.Hits[0]
 	err = json.Unmarshal(hit.Source, &history)

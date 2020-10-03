@@ -40,6 +40,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 		}
 
 		if latestHistory == nil {
+			log.Error("Failed to find latest history for ", address.Hash)
 			address.Height = 0
 			address.Spending = 0
 			address.Staking = 0
