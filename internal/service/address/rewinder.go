@@ -2,7 +2,9 @@ package address
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,7 +26,6 @@ func (r *Rewinder) Rewind(height uint64) error {
 		return err
 	}
 
-	log.Infof("Rewinding %d addresses", len(addresses))
 	err = r.elastic.DeleteHeightGT(height, elastic_cache.AddressHistoryIndex.Get())
 	if err != nil {
 		log.Error("Failed to delete address history greater than ", height)
@@ -32,32 +33,43 @@ func (r *Rewinder) Rewind(height uint64) error {
 	}
 
 	for _, address := range addresses {
-		log.Infof("Rewinding address: %s", address.Hash)
-
-		latestHistory, err := r.repo.GetLatestHistoryByHash(address.Hash)
-		if err != nil {
-			log.Fatal(err.Error())
+		if err = r.ResetAddress(address); err != nil {
+			return err
 		}
-
-		if latestHistory == nil {
-			log.Error("Failed to find latest history for ", address.Hash)
-			address.Height = 0
-			address.Spending = 0
-			address.Staking = 0
-			address.Voting = 0
-		} else {
-			address.Height = latestHistory.Height
-			address.Spending = latestHistory.Balance.Spending
-			address.Staking = latestHistory.Balance.Staking
-			address.Voting = latestHistory.Balance.Voting
-		}
-
-		_, err = r.elastic.Client.Index().
-			Index(elastic_cache.AddressIndex.Get()).
-			BodyJson(address).
-			Id(address.Slug()).
-			Do(context.Background())
 	}
+
+	return nil
+}
+
+func (r *Rewinder) ResetAddress(address *explorer.Address) error {
+	log.Infof("Resetting address: %s", address.Hash)
+
+	latestHistory, err := r.repo.GetLatestHistoryByHash(address.Hash)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	b, _ := json.Marshal(latestHistory)
+	log.Info(string(b))
+
+	if latestHistory == nil {
+		log.Error("Failed to find latest history for ", address.Hash)
+		address.Height = 0
+		address.Spending = 0
+		address.Staking = 0
+		address.Voting = 0
+	} else {
+		address.Height = latestHistory.Height
+		address.Spending = latestHistory.Balance.Spending
+		address.Staking = latestHistory.Balance.Staking
+		address.Voting = latestHistory.Balance.Voting
+	}
+
+	_, err = r.elastic.Client.Index().
+		Index(elastic_cache.AddressIndex.Get()).
+		BodyJson(address).
+		Id(address.Slug()).
+		Do(context.Background())
 
 	return nil
 }
