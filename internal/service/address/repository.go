@@ -16,6 +16,10 @@ type Repository struct {
 	Client *elastic.Client
 }
 
+var (
+	ErrLatestHistoryNotFound = errors.New("Latest history not found")
+)
+
 func NewRepo(Client *elastic.Client) *Repository {
 	return &Repository{Client}
 }
@@ -135,8 +139,10 @@ func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHisto
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
-	if err != nil || results == nil {
-		log.WithError(err).Fatal("Failed to find address")
+	if err != nil || results.TotalHits() == 0 {
+		log.WithError(err).Error("Failed to find address")
+		err = ErrLatestHistoryNotFound
+		return nil, err
 	}
 
 	var history *explorer.AddressHistory

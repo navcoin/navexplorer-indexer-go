@@ -45,8 +45,8 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 	log.Infof("Resetting address: %s", address.Hash)
 
 	latestHistory, err := r.repo.GetLatestHistoryByHash(address.Hash)
-	if err != nil {
-		log.Fatal(err.Error())
+	if err != nil && err != ErrLatestHistoryNotFound {
+		return err
 	}
 
 	b, _ := json.Marshal(latestHistory)
