@@ -18,14 +18,14 @@ func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTr
 		TxId:    history.TxId,
 		Hash:    history.Address,
 		Changes: explorer.AddressChanges{
-			Spending: history.Changes.Balance,
-			Staking:  history.Changes.Stakable,
-			Voting:   history.Changes.VotingWeight,
+			Spendable:    history.Changes.Balance,
+			Stakable:     history.Changes.Stakable,
+			VotingWeight: history.Changes.VotingWeight,
 		},
 		Balance: explorer.AddressBalance{
-			Spending: history.Result.Balance,
-			Staking:  history.Result.Stakable,
-			Voting:   history.Result.VotingWeight,
+			Spendable:    history.Result.Balance,
+			Stakable:     history.Result.Stakable,
+			VotingWeight: history.Result.VotingWeight,
 		},
 	}
 

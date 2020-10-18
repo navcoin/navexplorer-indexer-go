@@ -14,9 +14,9 @@
         }
       },
       "height": {"type": "long"},
-      "spending": {"type": "long"},
-      "staking": {"type": "long"},
-      "voting": {"type": "long"},
+      "spendable": {"type": "long"},
+      "stakabout": {"type": "long"},
+      "voting_weight": {"type": "long"},
       "created_time": {
         "type": "date"
       },

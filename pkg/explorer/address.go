@@ -10,9 +10,9 @@ type Address struct {
 	Hash   string `json:"hash"`
 	Height uint64 `json:"height"`
 
-	Spending int64 `json:"spending"`
-	Staking  int64 `json:"staking"`
-	Voting   int64 `json:"voting"`
+	Spendable    int64 `json:"spendable"`
+	Stakable     int64 `json:"stakable"`
+	VotingWeight int64 `json:"voting_weight"`
 
 	CreatedTime  time.Time `json:"created_time"`
 	CreatedBlock uint64    `json:"created_block"`

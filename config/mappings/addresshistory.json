@@ -31,17 +31,17 @@
       "changes": {
         "type": "nested",
         "properties": {
-          "spending": {"type": "long"},
-          "staking": {"type": "long"},
-          "voting": {"type": "long"}
+          "spendable": {"type": "long"},
+          "stakable": {"type": "long"},
+          "voting_weight": {"type": "long"}
         }
       },
       "balance": {
         "type": "nested",
         "properties": {
-          "spending": {"type": "long"},
-          "staking": {"type": "long"},
-          "voting": {"type": "long"}
+          "spendable": {"type": "long"},
+          "stakable": {"type": "long"},
+          "voting_weight": {"type": "long"}
         }
       },
       "is_stake": {

@@ -55,14 +55,14 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 	if latestHistory == nil {
 		log.Error("Failed to find latest history for ", address.Hash)
 		address.Height = 0
-		address.Spending = 0
-		address.Staking = 0
-		address.Voting = 0
+		address.Spendable = 0
+		address.Stakable = 0
+		address.VotingWeight = 0
 	} else {
 		address.Height = latestHistory.Height
-		address.Spending = latestHistory.Balance.Spending
-		address.Staking = latestHistory.Balance.Staking
-		address.Voting = latestHistory.Balance.Voting
+		address.Spendable = latestHistory.Balance.Spendable
+		address.Stakable = latestHistory.Balance.Stakable
+		address.VotingWeight = latestHistory.Balance.VotingWeight
 	}
 
 	_, err = r.elastic.Client.Index().

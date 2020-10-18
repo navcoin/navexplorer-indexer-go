@@ -58,9 +58,9 @@ func (i *Indexer) updateAddress(history *explorer.AddressHistory, block *explore
 	}
 
 	address.Height = history.Height
-	address.Spending = history.Balance.Spending
-	address.Staking = history.Balance.Staking
-	address.Voting = history.Balance.Voting
+	address.Spendable = history.Balance.Spendable
+	address.Stakable = history.Balance.Stakable
+	address.VotingWeight = history.Balance.VotingWeight
 
 	Addresses[address.Hash] = address
 

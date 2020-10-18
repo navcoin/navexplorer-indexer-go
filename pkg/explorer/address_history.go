@@ -21,26 +21,26 @@ type AddressHistory struct {
 }
 
 type AddressChanges struct {
-	Spending       int64 `json:"spending"`
-	Staking        int64 `json:"staking"`
-	Voting         int64 `json:"voting"`
+	Spendable      int64 `json:"spendable"`
+	Stakable       int64 `json:"stakable"`
+	VotingWeight   int64 `json:"voting_weight"`
 	Proposal       bool  `json:"proposal,omitempty"`
 	PaymentRequest bool  `json:"payment_request,omitempty"`
 	Consultation   bool  `json:"consultation,omitempty"`
 }
 
 type AddressBalance struct {
-	Spending int64 `json:"spending"`
-	Staking  int64 `json:"staking"`
-	Voting   int64 `json:"voting"`
+	Spendable    int64 `json:"spendable"`
+	Stakable     int64 `json:"stakable"`
+	VotingWeight int64 `json:"voting_weight"`
 }
 
 type BalanceType string
 
 var (
-	Spending BalanceType = "spending"
-	Staking  BalanceType = "staking"
-	Voting   BalanceType = "voting"
+	Spendable    BalanceType = "spendable"
+	Stakable     BalanceType = "stakable"
+	VotingWeight BalanceType = "voting_weight"
 )
 
 func (a *AddressHistory) Slug() string {
@@ -48,9 +48,9 @@ func (a *AddressHistory) Slug() string {
 }
 
 func (a *AddressHistory) IsSpend() bool {
-	return a.Changes.Spending < 0
+	return a.Changes.Spendable < 0
 }
 
 func (a *AddressHistory) IsReceive() bool {
-	return a.Changes.Spending > 0
+	return a.Changes.Spendable > 0
 }
