@@ -33,13 +33,15 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 }
 
 func (i *Indexer) generateAddressHistory(block *explorer.Block, txs []*explorer.BlockTransaction) []*explorer.AddressHistory {
+	addressHistory := make([]*explorer.AddressHistory, 0)
+
 	addresses := getAddressesForTxs(txs)
 	history, err := i.navcoin.GetAddressHistory(&block.Height, &block.Height, addresses...)
 	if err != nil {
-		log.WithError(err).Fatalf("Could not get address history for height: %d", block.Height)
+		log.WithError(err).Errorf("Could not get address history for height: %d", block.Height)
+		return addressHistory
 	}
 
-	addressHistory := make([]*explorer.AddressHistory, 0)
 	for _, h := range history {
 		addressHistory = append(addressHistory, CreateAddressHistory(h, getTxsById(h.TxId, txs), block))
 	}

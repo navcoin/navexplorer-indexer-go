@@ -105,7 +105,7 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		start := time.Now()
 		i.addressIndexer.Index(txs, b)
 		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Indexed addresses at height %d", height)
+		log.WithField("time", elapsed).Debugf("Indexed addresses at height %d", height)
 	}()
 
 	go func() {
@@ -113,7 +113,7 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		start := time.Now()
 		i.softForkIndexer.Index(b)
 		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Indexed softforks at height %d", height)
+		log.WithField("time", elapsed).Debugf("Indexed softforks at height %d", height)
 	}()
 
 	go func() {
@@ -121,14 +121,14 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		start := time.Now()
 		i.daoIndexer.Index(b, txs, header)
 		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Indexed dao       at height %d", height)
+		log.WithField("time", elapsed).Debugf("Indexed dao       at height %d", height)
 	}()
 
 	wg.Wait()
 
 	elapsed := time.Since(start)
-	log.WithField("time", elapsed).Infof("Indexed block     at height %d", height)
-	log.Info("")
+	log.WithField("time", elapsed).Debugf("Indexed block     at height %d", height)
+	log.Debugf("")
 
 	LastBlockIndexed = height
 

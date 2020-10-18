@@ -9,7 +9,6 @@ import (
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"strconv"
-	"time"
 )
 
 type Indexer struct {
@@ -25,8 +24,6 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphan
 }
 
 func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []*explorer.BlockTransaction, *navcoind.BlockHeader, error) {
-	start := time.Now()
-
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
 		log.Error("Failed to get block at height ", height)
@@ -64,8 +61,6 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 	LastBlockIndexed = block
 
 	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
-	elapsed := time.Since(start)
-	log.WithField("time", elapsed).Infof("Indexed block     at height %d", height)
 
 	var txs = make([]*explorer.BlockTransaction, 0)
 	for idx, txHash := range block.Tx {
