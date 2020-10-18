@@ -175,9 +175,9 @@ func (i *Index) Persist() int {
 	bulk := i.Client.Bulk()
 	for _, r := range i.GetPendingRequests() {
 		if r.Type == IndexRequest {
-			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Doc(r.Entity))
+			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
 		} else if r.Type == UpdateRequest {
-			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Doc(r.Entity))
+			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
 		}
 		r.Persisted = true
 		i.cache.Set(r.Entity.Slug(), r, cache.DefaultExpiration)
