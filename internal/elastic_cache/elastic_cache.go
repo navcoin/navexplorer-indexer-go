@@ -192,7 +192,6 @@ func (i *Index) Persist() int {
 }
 
 func (i *Index) persist(bulk *elastic.BulkService) {
-	actions := bulk.NumberOfActions()
 	response, err := bulk.Do(context.Background())
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to persist requests")
@@ -203,12 +202,10 @@ func (i *Index) persist(bulk *elastic.BulkService) {
 			logrus.WithFields(logrus.Fields{"error": failed.Error}).Error("Failed to persist to ES")
 			for {
 				switch {
-
 				}
 			}
 		}
 	}
-	logrus.Infof("Persisted %d actions", actions)
 }
 
 func (i *Index) DeleteHeightGT(height uint64, indices ...string) error {
