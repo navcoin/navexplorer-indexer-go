@@ -2,7 +2,6 @@ package address
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/NavExplorer/navexplorer-indexer-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
@@ -48,9 +47,6 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 	if err != nil && err != ErrLatestHistoryNotFound {
 		return err
 	}
-
-	b, _ := json.Marshal(latestHistory)
-	log.Info(string(b))
 
 	if latestHistory == nil {
 		log.Error("Failed to find latest history for ", address.Hash)
