@@ -28,6 +28,8 @@ type RawBlock struct {
 }
 
 type Block struct {
+	id string
+
 	RawBlock
 
 	TxCount     uint   `json:"tx_count"`
@@ -42,6 +44,14 @@ type Block struct {
 
 	// Transient
 	Best bool `json:"best,omitempty"`
+}
+
+func (b *Block) Id() string {
+	return b.id
+}
+
+func (b *Block) SetId(id string) {
+	b.id = id
 }
 
 func (b *Block) Slug() string {

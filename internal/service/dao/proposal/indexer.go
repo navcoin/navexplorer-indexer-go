@@ -28,15 +28,15 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 		if navP, err := i.navcoin.GetProposal(tx.Hash); err == nil {
 			proposal := CreateProposal(navP, tx.Height)
 
-			_, err := i.elastic.Client.Index().
+			result, err := i.elastic.Client.Index().
 				Index(elastic_cache.ProposalIndex.Get()).
-				Id(proposal.Slug()).
 				BodyJson(proposal).
 				Do(context.Background())
 			if err != nil {
 				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to save new proposal")
 			}
+			proposal.SetId(result.Id)
 			Proposals = append(Proposals, proposal)
 		}
 	}

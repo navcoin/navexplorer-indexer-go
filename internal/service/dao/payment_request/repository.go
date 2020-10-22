@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +30,6 @@ func (r *Repository) GetPossibleVotingRequests(height uint64) ([]*explorer.Payme
 		Sort("updatedOnBlock", false).
 		Do(context.Background())
 	if err != nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
@@ -41,6 +39,7 @@ func (r *Repository) GetPossibleVotingRequests(height uint64) ([]*explorer.Payme
 			if err := json.Unmarshal(hit.Source, &paymentRequest); err != nil {
 				log.WithError(err).Fatal("Failed to unmarshall payment request")
 			}
+			paymentRequest.SetId(hit.Id)
 			paymentRequests = append(paymentRequests, paymentRequest)
 		}
 	}

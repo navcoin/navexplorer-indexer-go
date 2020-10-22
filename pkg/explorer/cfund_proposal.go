@@ -6,6 +6,8 @@ import (
 )
 
 type Proposal struct {
+	id string
+
 	Version             uint32  `json:"version"`
 	Hash                string  `json:"hash"`
 	BlockHash           string  `json:"blockHash"`
@@ -27,6 +29,14 @@ type Proposal struct {
 	VotesAbs    uint `json:"votesAbs"`
 	VotesNo     uint `json:"votesNo"`
 	VotingCycle uint `json:"votingCycle"`
+}
+
+func (p *Proposal) Id() string {
+	return p.id
+}
+
+func (p *Proposal) SetId(id string) {
+	p.id = id
 }
 
 func (p *Proposal) Slug() string {

@@ -31,7 +31,7 @@ func (r *Rewinder) Rewind(consultations []*explorer.Consultation) error {
 
 	for _, c := range consultations {
 		for _, p := range parameters {
-			if c.Min == p.Id {
+			if c.Min == p.Uid {
 				value, _ := strconv.Atoi(c.GetPassedAnswer().Answer)
 				log.WithFields(log.Fields{"old": p.Value, "new": value, "desc": p.Description}).Info("Update consensus parameter")
 				p.Value = value
@@ -40,11 +40,11 @@ func (r *Rewinder) Rewind(consultations []*explorer.Consultation) error {
 		}
 	}
 
-	for _, p := range parameters {
-		_, err = r.elastic.Client.Index().
+	for idx := range parameters {
+		_, err := r.elastic.Client.Index().
 			Index(elastic_cache.ConsensusIndex.Get()).
-			Id(p.Slug()).
-			BodyJson(p).
+			Id(parameters[idx].Id()).
+			BodyJson(parameters[idx]).
 			Do(context.Background())
 		if err != nil {
 			log.WithError(err).Fatal("Failed to get consensus parameters from repo")

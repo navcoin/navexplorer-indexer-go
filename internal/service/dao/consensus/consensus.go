@@ -47,7 +47,7 @@ var (
 
 func (p *consensusParameters) Get(parameter Parameter) *explorer.ConsensusParameter {
 	for _, c := range Parameters {
-		if parameter == Parameter(c.Id) {
+		if parameter == Parameter(c.Uid) {
 			return c
 		}
 	}
@@ -59,7 +59,7 @@ func (p *consensusParameters) Get(parameter Parameter) *explorer.ConsensusParame
 
 func (p *consensusParameters) GetById(id int) *explorer.ConsensusParameter {
 	for _, c := range Parameters {
-		if id == c.Id {
+		if id == c.Uid {
 			return c
 		}
 	}

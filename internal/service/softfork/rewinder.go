@@ -2,6 +2,7 @@ package softfork
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork/signal"
@@ -36,6 +37,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 			StartTime: s.StartTime,
 			Timeout:   s.Timeout,
 		}
+		SoftForks[idx].SetId(s.Id())
 	}
 
 	start := uint64(1)
@@ -92,9 +94,11 @@ func (r *Rewinder) Rewind(height uint64) error {
 
 	bulk := r.elastic.Client.Bulk()
 	for _, sf := range SoftForks {
+		sfJson, _ := json.Marshal(sf)
+		log.WithField("softfork", string(sfJson)).Info("Updating softFork ", sf.Name)
 		bulk.Add(elastic.NewBulkUpdateRequest().
 			Index(elastic_cache.SoftForkIndex.Get()).
-			Id(sf.Slug()).
+			Id(sf.Id()).
 			Doc(sf))
 	}
 

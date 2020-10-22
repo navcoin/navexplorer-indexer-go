@@ -51,8 +51,6 @@ func NewIndexer(
 }
 
 func (i *Indexer) BulkIndex() {
-	log.Debug("Subscribe to 0MQ")
-
 	if err := i.Index(IndexOption.BatchIndex); err != nil {
 		if err.Error() == "-8: Block height out of range" {
 			i.elastic.Persist()
@@ -103,9 +101,9 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 	go func() {
 		defer wg.Done()
 		start := time.Now()
-		i.addressIndexer.Index(txs, b)
+		i.addressIndexer.Index(b, txs)
 		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Debugf("Indexed addresses at height %d", height)
+		log.WithField("time", elapsed).Infof("Indexed addresses at height %d", height)
 	}()
 
 	go func() {
@@ -113,7 +111,7 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		start := time.Now()
 		i.softForkIndexer.Index(b)
 		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Debugf("Indexed softforks at height %d", height)
+		log.WithField("time", elapsed).Infof("Index softforks: %d", height)
 	}()
 
 	go func() {
@@ -121,13 +119,13 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		start := time.Now()
 		i.daoIndexer.Index(b, txs, header)
 		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Debugf("Indexed dao       at height %d", height)
+		log.WithField("time", elapsed).Infof("Index dao:       %d", height)
 	}()
 
 	wg.Wait()
 
 	elapsed := time.Since(start)
-	log.WithField("time", elapsed).Debugf("Indexed block     at height %d", height)
+	log.WithField("time", elapsed).Infof("Index block:     %d", height)
 	log.Debugf("")
 
 	LastBlockIndexed = height

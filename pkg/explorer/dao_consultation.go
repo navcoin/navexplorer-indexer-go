@@ -1,10 +1,10 @@
 package explorer
 
-import (
-	"github.com/gosimple/slug"
-)
+import "github.com/gosimple/slug"
 
 type Consultation struct {
+	id string
+
 	Version                  uint32         `json:"version"`
 	Hash                     string         `json:"hash"`
 	BlockHash                string         `json:"blockHash"`
@@ -28,6 +28,14 @@ type Consultation struct {
 	AnswerIsARange     bool `json:"answerIsARange"`
 	MoreAnswers        bool `json:"moreAnswers"`
 	ConsensusParameter bool `json:"consensusParameter"`
+}
+
+func (c *Consultation) Id() string {
+	return c.id
+}
+
+func (c *Consultation) SetId(id string) {
+	c.id = id
 }
 
 func (c *Consultation) Slug() string {

@@ -7,6 +7,8 @@ import (
 )
 
 type Address struct {
+	id string
+
 	Hash   string `json:"hash"`
 	Height uint64 `json:"height"`
 
@@ -22,9 +24,17 @@ type Address struct {
 }
 
 type RichList struct {
-	Spending uint64 `json:"spending"`
-	Staking  uint64 `json:"staking"`
-	Voting   uint64 `json:"voting"`
+	Spendable    uint64 `json:"spendable"`
+	Stakable     uint64 `json:"stakable"`
+	VotingWeight uint64 `json:"voting_weight"`
+}
+
+func (a *Address) Id() string {
+	return a.id
+}
+
+func (a *Address) SetId(id string) {
+	a.id = id
 }
 
 func (a *Address) Slug() string {

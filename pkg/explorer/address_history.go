@@ -7,6 +7,8 @@ import (
 )
 
 type AddressHistory struct {
+	id string
+
 	Height  uint64         `json:"height"`
 	TxIndex uint           `json:"txindex"`
 	Time    time.Time      `json:"time"`
@@ -42,6 +44,14 @@ var (
 	Stakable     BalanceType = "stakable"
 	VotingWeight BalanceType = "voting_weight"
 )
+
+func (a *AddressHistory) Id() string {
+	return a.id
+}
+
+func (a *AddressHistory) SetId(id string) {
+	a.id = id
+}
 
 func (a *AddressHistory) Slug() string {
 	return slug.Make(fmt.Sprintf("addresshistory-%s-%s", a.Hash, a.TxId))

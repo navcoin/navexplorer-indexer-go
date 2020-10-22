@@ -5,10 +5,9 @@ import (
 	"github.com/gosimple/slug"
 )
 
-type RawPaymentRequest struct {
-}
-
 type PaymentRequest struct {
+	id string
+
 	Version             uint32  `json:"version"`
 	Hash                string  `json:"hash"`
 	BlockHash           string  `json:"blockHash"`
@@ -26,6 +25,14 @@ type PaymentRequest struct {
 	VotesAbs    uint `json:"votesAbs"`
 	VotesNo     uint `json:"votesNo"`
 	VotingCycle uint `json:"votingCycle"`
+}
+
+func (p *PaymentRequest) Id() string {
+	return p.id
+}
+
+func (p *PaymentRequest) SetId(id string) {
+	p.id = id
 }
 
 func (p *PaymentRequest) Slug() string {

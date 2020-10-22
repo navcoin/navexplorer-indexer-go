@@ -27,6 +27,8 @@ type RawBlockTransaction struct {
 }
 
 type BlockTransaction struct {
+	id string
+
 	RawBlockTransaction
 	Index uint  `json:"index"`
 	Vin   Vins  `json:"vin"`
@@ -36,6 +38,14 @@ type BlockTransaction struct {
 	Stake uint64               `json:"stake"`
 	Spend uint64               `json:"spend"`
 	Fees  uint64               `json:"fees"`
+}
+
+func (b *BlockTransaction) Id() string {
+	return b.id
+}
+
+func (b *BlockTransaction) SetId(id string) {
+	b.id = id
 }
 
 func (tx *BlockTransaction) Slug() string {

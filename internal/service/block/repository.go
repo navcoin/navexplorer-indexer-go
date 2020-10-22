@@ -21,24 +21,25 @@ func NewRepo(elastic *elastic_cache.Index) *Repository {
 }
 
 func (r *Repository) GetBestBlock() (*explorer.Block, error) {
-	results, err := r.elastic.Client.
+	result, err := r.elastic.Client.
 		Search(elastic_cache.BlockIndex.Get()).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
-	if err != nil || results == nil {
+	if err != nil || result == nil {
 		return nil, err
 	}
 
-	if len(results.Hits.Hits) == 0 {
+	if len(result.Hits.Hits) == 0 {
 		return nil, ErrBlockNotFound
 	}
 
 	var block *explorer.Block
-	if err = json.Unmarshal(results.Hits.Hits[0].Source, &block); err != nil {
+	hit := result.Hits.Hits[0]
+	if err = json.Unmarshal(hit.Source, &block); err != nil {
 		return nil, err
 	}
-
+	block.SetId(hit.Id)
 	return block, nil
 }
 
@@ -58,47 +59,44 @@ func (r *Repository) GetBlockByHash(hash string) (*explorer.Block, error) {
 		Size(1).
 		Do(context.Background())
 	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
 	if len(results.Hits.Hits) == 0 {
-		raven.CaptureError(err, nil)
 		return nil, elastic_cache.ErrRecordNotFound
 	}
 
 	var block *explorer.Block
 	hit := results.Hits.Hits[0]
 	if err = json.Unmarshal(hit.Source, &block); err != nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
+	block.SetId(hit.Id)
 
 	return block, nil
 }
 
 func (r *Repository) GetTransactionsByBlock(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
-	results, err := r.elastic.Client.
+	result, err := r.elastic.Client.
 		Search(elastic_cache.BlockTransactionIndex.Get()).
 		Query(elastic.NewMatchQuery("height", block.Height)).
 		Do(context.Background())
-	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
+	if err != nil || result == nil {
 		return nil, err
 	}
 
-	if len(results.Hits.Hits) == 0 {
-		raven.CaptureError(err, nil)
+	if len(result.Hits.Hits) == 0 {
 		return nil, elastic_cache.ErrRecordNotFound
 	}
 
 	var txs []*explorer.BlockTransaction
-	for _, hit := range results.Hits.Hits {
+	for _, hit := range result.Hits.Hits {
 		var tx *explorer.BlockTransaction
 		if err = json.Unmarshal(hit.Source, &tx); err != nil {
 			raven.CaptureError(err, nil)
 			return nil, err
 		}
+		tx.SetId(hit.Id)
 		txs = append(txs, tx)
 	}
 
@@ -114,14 +112,13 @@ func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransacti
 	getTransactionByHash := func(hash string) (*elastic.SearchResult, error) {
 		return r.elastic.Client.
 			Search(elastic_cache.BlockTransactionIndex.Get()).
-			Query(elastic.NewMatchQuery("hash", hash)).
+			Query(elastic.NewTermQuery("hash.keyword", hash)).
 			Size(1).
 			Do(context.Background())
 	}
 
 	results, err := getTransactionByHash(hash)
 	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
@@ -130,7 +127,6 @@ func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransacti
 		time.Sleep(5 * time.Second)
 		results, err = getTransactionByHash(hash)
 		if err != nil || results == nil {
-			raven.CaptureError(err, nil)
 			return nil, err
 		}
 
@@ -142,9 +138,9 @@ func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransacti
 	var tx *explorer.BlockTransaction
 	hit := results.Hits.Hits[0]
 	if err = json.Unmarshal(hit.Source, &tx); err != nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
+	tx.SetId(hit.Id)
 
 	return tx, nil
 }
@@ -156,21 +152,19 @@ func (r *Repository) GetBlockByHeight(height uint64) (*explorer.Block, error) {
 		Size(1).
 		Do(context.Background())
 	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
 	if len(results.Hits.Hits) == 0 {
-		raven.CaptureError(err, nil)
 		return nil, elastic_cache.ErrRecordNotFound
 	}
 
 	var block *explorer.Block
 	hit := results.Hits.Hits[0]
 	if err = json.Unmarshal(hit.Source, &block); err != nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
+	block.SetId(hit.Id)
 
 	return block, nil
 }
@@ -183,7 +177,6 @@ func (r *Repository) GetBlocksBetweenHeight(start uint64, end uint64) ([]*explor
 		Size(int(end - start)).
 		Do(context.Background())
 	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
@@ -191,9 +184,9 @@ func (r *Repository) GetBlocksBetweenHeight(start uint64, end uint64) ([]*explor
 	for _, hit := range results.Hits.Hits {
 		var block *explorer.Block
 		if err = json.Unmarshal(hit.Source, &block); err != nil {
-			raven.CaptureError(err, nil)
 			return nil, err
 		}
+		block.SetId(hit.Id)
 		blocks = append(blocks, block)
 	}
 
@@ -201,15 +194,11 @@ func (r *Repository) GetBlocksBetweenHeight(start uint64, end uint64) ([]*explor
 }
 
 func (r *Repository) GetTransactionsWithCfundPayment() error {
-	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("vout.scriptPubKey.type.keyword", explorer.VoutCfundContribution))
-
 	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
-		Query(query).
+		Query(elastic.NewMatchQuery("vout.scriptPubKey.type.keyword", explorer.VoutCfundContribution)).
 		Do(context.Background())
 
 	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
 		return err
 	}
 
@@ -241,6 +230,7 @@ func (r *Repository) GetAllTransactionsThatIncludeAddress(hash string) ([]*explo
 				raven.CaptureError(err, nil)
 				return nil, err
 			}
+			tx.SetId(hit.Id)
 			txs = append(txs, tx)
 		}
 	}

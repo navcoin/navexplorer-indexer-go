@@ -10,7 +10,7 @@ func CreateAddress(hash string, height uint64, time time.Time) *explorer.Address
 	return &explorer.Address{Hash: hash, CreatedBlock: height, CreatedTime: time}
 }
 
-func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTransaction, block *explorer.Block) *explorer.AddressHistory {
+func CreateAddressHistory(history *navcoind.AddressHistory, tx *explorer.BlockTransaction) *explorer.AddressHistory {
 	h := &explorer.AddressHistory{
 		Height:  history.Block,
 		TxIndex: history.TxIndex,

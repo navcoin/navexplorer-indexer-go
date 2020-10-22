@@ -29,28 +29,34 @@ func (i *Service) InitSoftForks() {
 		log.WithError(err).Fatal("Failed to get blockchaininfo")
 	}
 
+	SoftForks, err = i.repo.GetSoftForks()
+	if err != nil && err != elastic_cache.ErrResultsNotFound {
+		log.WithError(err).Fatal("Failed to get soft forks")
+		return
+	}
+
 	for name, bip9fork := range info.Bip9SoftForks {
-		softFork := &explorer.SoftFork{
-			Name:             name,
-			SignalBit:        bip9fork.Bit,
-			State:            explorer.SoftForkDefined,
-			StartTime:        time.Unix(int64(bip9fork.StartTime), 0),
-			Timeout:          time.Unix(int64(bip9fork.Timeout), 0),
-			ActivationHeight: 0,
-			LockedInHeight:   0,
-		}
+		if !SoftForks.HasSoftFork(name) {
+			softFork := &explorer.SoftFork{
+				Name:             name,
+				SignalBit:        bip9fork.Bit,
+				State:            explorer.SoftForkDefined,
+				StartTime:        time.Unix(int64(bip9fork.StartTime), 0),
+				Timeout:          time.Unix(int64(bip9fork.Timeout), 0),
+				ActivationHeight: 0,
+				LockedInHeight:   0,
+			}
 
-		_, err := i.elastic.Client.
-			Index().
-			Index(elastic_cache.SoftForkIndex.Get()).
-			Id(softFork.Slug()).
-			BodyJson(softFork).
-			Do(context.Background())
-		if err != nil {
-			log.WithError(err).Fatal("Failed to save new softfork")
+			result, err := i.elastic.Client.Index().
+				Index(elastic_cache.SoftForkIndex.Get()).
+				BodyJson(softFork).
+				Do(context.Background())
+			if err != nil {
+				log.WithError(err).Fatal("Failed to save new softfork")
+			}
+			softFork.SetId(result.Id)
+			SoftForks = append(SoftForks, softFork)
 		}
-
-		SoftForks = append(SoftForks, softFork)
 	}
 }
 

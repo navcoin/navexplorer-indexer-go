@@ -24,7 +24,7 @@ func (p *ConsensusParameters) Add(c *ConsensusParameter) {
 
 func (p *ConsensusParameters) Get(id int) *ConsensusParameter {
 	for _, p := range p.parameters {
-		if p.Id == id {
+		if p.Uid == id {
 			return p
 		}
 	}
@@ -37,11 +37,21 @@ func (p *ConsensusParameters) All() []*ConsensusParameter {
 }
 
 type ConsensusParameter struct {
-	Id             int                    `json:"id"`
+	id string
+
+	Uid            int                    `json:"id"`
 	Description    string                 `json:"desc"`
 	Type           ConsensusParameterType `json:"type"`
 	Value          int                    `json:"value"`
 	UpdatedOnBlock uint64                 `json:"updatedOnBlock"`
+}
+
+func (cp *ConsensusParameter) Id() string {
+	return cp.id
+}
+
+func (cp *ConsensusParameter) SetId(id string) {
+	cp.id = id
 }
 
 func (cp *ConsensusParameter) Slug() string {

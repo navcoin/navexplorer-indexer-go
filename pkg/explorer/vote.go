@@ -6,10 +6,20 @@ import (
 )
 
 type DaoVotes struct {
+	id string
+
 	Cycle   uint   `json:"cycle"`
 	Height  uint64 `json:"height"`
 	Address string `json:"address"`
 	Votes   []Vote `json:"votes"`
+}
+
+func (v *DaoVotes) Id() string {
+	return v.id
+}
+
+func (v *DaoVotes) SetId(id string) {
+	v.id = id
 }
 
 func (v *DaoVotes) Slug() string {

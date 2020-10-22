@@ -63,9 +63,9 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 
 	_, err = r.elastic.Client.Index().
 		Index(elastic_cache.AddressIndex.Get()).
+		Id(address.Id()).
 		BodyJson(address).
-		Id(address.Slug()).
 		Do(context.Background())
 
-	return nil
+	return err
 }

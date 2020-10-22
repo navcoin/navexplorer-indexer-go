@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 )
 
@@ -23,7 +22,6 @@ func (r *Repository) GetConsensusParameters() ([]*explorer.ConsensusParameter, e
 		Size(10000).
 		Do(context.Background())
 	if err != nil || results == nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
@@ -37,6 +35,7 @@ func (r *Repository) GetConsensusParameters() ([]*explorer.ConsensusParameter, e
 		if err = json.Unmarshal(hit.Source, &consensusParameter); err != nil {
 			return nil, err
 		}
+		consensusParameter.SetId(hit.Id)
 		consensusParameters = append(consensusParameters, consensusParameter)
 	}
 

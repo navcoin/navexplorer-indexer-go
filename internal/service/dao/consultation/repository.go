@@ -31,7 +31,6 @@ func (r *Repository) GetOpenConsultations(height uint64) ([]*explorer.Consultati
 		Sort("updatedOnBlock", false).
 		Do(context.Background())
 	if err != nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
@@ -41,6 +40,7 @@ func (r *Repository) GetOpenConsultations(height uint64) ([]*explorer.Consultati
 			if err := json.Unmarshal(hit.Source, &consultation); err != nil {
 				log.WithError(err).Fatal("Failed to unmarshall consultation")
 			}
+			consultation.SetId(hit.Id)
 			consultations = append(consultations, consultation)
 		}
 	}
@@ -72,6 +72,7 @@ func (r *Repository) GetPassedConsultations(maxHeight uint64) ([]*explorer.Consu
 				log.WithError(err).Fatal("Failed to unmarshall consultation")
 			}
 			if consultation.HasPassedAnswer() {
+				consultation.SetId(hit.Id)
 				consultations = append(consultations, consultation)
 			}
 		}

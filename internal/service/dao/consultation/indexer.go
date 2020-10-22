@@ -31,16 +31,15 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 		if navC, err := i.navcoin.GetConsultation(tx.Hash); err == nil {
 			consultation := CreateConsultation(navC, tx)
 
-			index := elastic_cache.DaoConsultationIndex.Get()
-			_, err := i.elastic.Client.Index().
-				Index(index).
-				Id(consultation.Slug()).
+			result, err := i.elastic.Client.Index().
+				Index(elastic_cache.DaoConsultationIndex.Get()).
 				BodyJson(consultation).
 				Do(context.Background())
 			if err != nil {
 				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to save new consultation")
 			}
+			consultation.SetId(result.Id)
 
 			Consultations.Add(consultation)
 		} else {

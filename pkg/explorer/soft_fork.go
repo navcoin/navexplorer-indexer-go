@@ -10,6 +10,8 @@ import (
 type SoftForks []*SoftFork
 
 type SoftFork struct {
+	id string
+
 	Name             string         `json:"name"`
 	SignalBit        uint           `json:"signalBit"`
 	StartTime        time.Time      `json:"startTime"`
@@ -19,6 +21,14 @@ type SoftFork struct {
 	ActivationHeight uint64         `json:"activationheight,omitempty"`
 	SignalHeight     uint64         `json:"signalheight,omitempty"`
 	Cycles           SoftForkCycles `json:"cycles,omitempty"`
+}
+
+func (s *SoftFork) Id() string {
+	return s.id
+}
+
+func (s *SoftFork) SetId(id string) {
+	s.id = id
 }
 
 func (s *SoftFork) Slug() string {
@@ -74,11 +84,5 @@ func (s SoftForks) GetSoftFork(name string) *SoftFork {
 }
 
 func (s SoftForks) HasSoftFork(name string) bool {
-	for i, _ := range s {
-		if s[i].Name == name {
-			return true
-		}
-	}
-
-	return false
+	return s.GetSoftFork(name) != nil
 }

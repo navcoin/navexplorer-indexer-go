@@ -31,7 +31,7 @@ func (i *Indexer) Index() error {
 
 	for _, initialParameter := range initialParameters {
 		for _, consensusParameter := range consensusParameters {
-			if initialParameter.Id == consensusParameter.Id {
+			if initialParameter.Uid == consensusParameter.Uid {
 				i.elastic.AddUpdateRequest(elastic_cache.ConsensusIndex.Get(), initialParameter)
 				c = append(c, consensusParameter)
 			}
@@ -45,15 +45,17 @@ func (i *Indexer) Index() error {
 
 func (i *Indexer) Update(block *explorer.Block) {
 	for _, p := range Parameters {
-		if p.UpdatedOnBlock == block.Height {
-			_, err := i.elastic.Client.Index().
-				Index(elastic_cache.ConsensusIndex.Get()).
-				Id(p.Slug()).
-				BodyJson(p).
-				Do(context.Background())
-			if err != nil {
-				log.WithError(err).Fatal("Failed to persist consensus change")
-			}
+		if p.UpdatedOnBlock != block.Height {
+			continue
+		}
+
+		_, err := i.elastic.Client.Index().
+			Index(elastic_cache.ConsensusIndex.Get()).
+			Id(p.Id()).
+			BodyJson(p).
+			Do(context.Background())
+		if err != nil {
+			log.WithError(err).Fatal("Failed to persist consensus change")
 		}
 	}
 }

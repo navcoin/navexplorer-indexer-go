@@ -18,7 +18,7 @@ func NewRepo(client *elastic.Client) *Repository {
 	return &Repository{client}
 }
 
-func (r *Repository) GetSoftForks() ([]*explorer.SoftFork, error) {
+func (r *Repository) GetSoftForks() (explorer.SoftForks, error) {
 	var softForks []*explorer.SoftFork
 
 	results, err := r.Client.Search(elastic_cache.SoftForkIndex.Get()).
@@ -36,6 +36,7 @@ func (r *Repository) GetSoftForks() ([]*explorer.SoftFork, error) {
 		if err := json.Unmarshal(hit.Source, &softFork); err != nil {
 			log.WithError(err).Fatal("Failed to unmarshall soft fork")
 		}
+		softFork.SetId(hit.Id)
 		softForks = append(softForks, softFork)
 	}
 
@@ -56,10 +57,12 @@ func (r *Repository) GetSoftFork(name string) (*explorer.SoftFork, error) {
 		return nil, errors.New("Invalid result found")
 	}
 
-	err = json.Unmarshal(results.Hits.Hits[0].Source, &softfork)
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(hit.Source, &softfork)
 	if err != nil {
 		return nil, err
 	}
+	softfork.SetId(hit.Id)
 
 	return softfork, nil
 }

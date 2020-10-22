@@ -109,7 +109,12 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 		"index": index,
 		"type":  reqType,
 		"slug":  entity.Slug(),
+		"id":    entity.Id(),
 	}).Debugf("AddRequest")
+
+	if reqType == UpdateRequest && entity.Id() == "" {
+		reqType = IndexRequest
+	}
 
 	request := Request{
 		Index:     index,
@@ -120,12 +125,16 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 
 	cached, found := i.cache.Get(entity.Slug())
 	if found == true {
-		logrus.WithField("persisted", cached.(Request).Persisted).Debugf("Found in cache %s: %s", cached.(Request).Index, cached.(Request).Entity.Slug())
-		if cached.(Request).Persisted == false && reqType == UpdateRequest {
+		logrus.WithFields(logrus.Fields{
+			"persisted": cached.(Request).Persisted,
+			"slug":      cached.(Request).Entity.Slug(),
+			"id":        cached.(Request).Entity.Id(),
+		}).Debug("Found in cache ", cached.(Request).Index)
+
+		if cached.(Request).Persisted == false && cached.(Request).Entity.Id() == "" && reqType == UpdateRequest {
 			logrus.Debugf("Switch update to index as not previously persisted %s", entity.Slug())
 			request.Type = IndexRequest
 		}
-		request.Persisted = false
 	}
 	i.cache.Set(entity.Slug(), request, cache.DefaultExpiration)
 }
@@ -168,6 +177,14 @@ func (i *Index) BatchPersist(height uint64) bool {
 
 	logrus.Infof("Persisting data at height   %d", height)
 	i.Persist()
+	if config.Get().Reindex == true && height == config.Get().BulkIndexSize {
+		logrus.Error("Stopping reindex at height:", height)
+		for {
+			switch {
+			}
+		}
+	}
+
 	return true
 }
 
@@ -175,9 +192,9 @@ func (i *Index) Persist() int {
 	bulk := i.Client.Bulk()
 	for _, r := range i.GetPendingRequests() {
 		if r.Type == IndexRequest {
-			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
+			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Doc(r.Entity))
 		} else if r.Type == UpdateRequest {
-			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
+			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Entity.Id()).Doc(r.Entity))
 		}
 		r.Persisted = true
 		i.cache.Set(r.Entity.Slug(), r, cache.DefaultExpiration)
@@ -192,6 +209,7 @@ func (i *Index) Persist() int {
 }
 
 func (i *Index) persist(bulk *elastic.BulkService) {
+	actions := bulk.NumberOfActions()
 	response, err := bulk.Do(context.Background())
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to persist requests")
@@ -206,6 +224,7 @@ func (i *Index) persist(bulk *elastic.BulkService) {
 			}
 		}
 	}
+	logrus.Infof("Persisted %d actions", actions)
 }
 
 func (i *Index) DeleteHeightGT(height uint64, indices ...string) error {

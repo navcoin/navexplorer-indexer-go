@@ -36,15 +36,15 @@ func (s *Service) InitConsensusParameters() {
 
 	initialParams, _ := s.InitialState()
 	for _, initialParam := range initialParams {
-		initialParam.UpdatedOnBlock = 0
-		_, err := s.elastic.Client.Index().
+		result, err := s.elastic.Client.Index().
 			Index(elastic_cache.ConsensusIndex.Get()).
-			Id(initialParam.Slug()).
 			BodyJson(initialParam).
 			Do(context.Background())
 		if err != nil {
 			log.WithError(err).Fatal("Failed to save new softfork")
 		}
+		initialParam.SetId(result.Id)
+		initialParam.UpdatedOnBlock = 0
 
 		log.Info("Saving new consensus parameter: ", initialParam.Description)
 	}

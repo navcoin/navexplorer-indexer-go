@@ -17,12 +17,12 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *
 	return &Indexer{navcoin, elastic, repo}
 }
 
-func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block) {
+func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction) {
 	if len(txs) == 0 {
 		return
 	}
 
-	for _, addressHistory := range i.generateAddressHistory(block, txs) {
+	for _, addressHistory := range i.generateAddressHistory(&block.Height, &block.Height, txs) {
 		i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 
 		err := i.updateAddress(addressHistory, block)
@@ -32,18 +32,18 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction, block *explorer.Block)
 	}
 }
 
-func (i *Indexer) generateAddressHistory(block *explorer.Block, txs []*explorer.BlockTransaction) []*explorer.AddressHistory {
+func (i *Indexer) generateAddressHistory(start, end *uint64, txs []*explorer.BlockTransaction) []*explorer.AddressHistory {
 	addressHistory := make([]*explorer.AddressHistory, 0)
 
 	addresses := getAddressesForTxs(txs)
-	history, err := i.navcoin.GetAddressHistory(&block.Height, &block.Height, addresses...)
+	history, err := i.navcoin.GetAddressHistory(start, end, addresses...)
 	if err != nil {
-		log.WithError(err).Errorf("Could not get address history for height: %d", block.Height)
+		log.WithError(err).Errorf("Could not get address history for height: %d-%d", start, end)
 		return addressHistory
 	}
 
 	for _, h := range history {
-		addressHistory = append(addressHistory, CreateAddressHistory(h, getTxsById(h.TxId, txs), block))
+		addressHistory = append(addressHistory, CreateAddressHistory(h, getTxById(h.TxId, txs)))
 	}
 
 	return addressHistory
@@ -81,12 +81,12 @@ func getAddressesForTxs(txs []*explorer.BlockTransaction) []string {
 	return addresses
 }
 
-func getTxsById(txid string, txs []*explorer.BlockTransaction) *explorer.BlockTransaction {
+func getTxById(id string, txs []*explorer.BlockTransaction) *explorer.BlockTransaction {
 	for _, tx := range txs {
-		if tx.Txid == txid {
+		if tx.Txid == id {
 			return tx
 		}
 	}
-	log.Fatal("Could not match tx")
+	log.Fatal("Could not match tx: ", id)
 	return nil
 }

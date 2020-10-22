@@ -28,15 +28,15 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 			paymentRequest := CreatePaymentRequest(navP, tx.Height)
 
 			index := elastic_cache.PaymentRequestIndex.Get()
-			_, err := i.elastic.Client.Index().
+			result, err := i.elastic.Client.Index().
 				Index(index).
-				Id(paymentRequest.Slug()).
 				BodyJson(paymentRequest).
 				Do(context.Background())
 			if err != nil {
 				raven.CaptureError(err, nil)
 				log.WithError(err).Fatal("Failed to save new payment request")
 			}
+			paymentRequest.SetId(result.Id)
 			PaymentRequests = append(PaymentRequests, paymentRequest)
 		}
 	}
