@@ -40,15 +40,19 @@ func (r *Rewinder) Rewind(consultations []*explorer.Consultation) error {
 		}
 	}
 
+	err = r.repo.DeleteAll()
+	if err != nil {
+		log.WithError(err).Fatal("Failed to clear old parameters")
+	}
 	for idx := range parameters {
-		_, err := r.elastic.Client.Index().
+		result, err := r.elastic.Client.Index().
 			Index(elastic_cache.ConsensusIndex.Get()).
-			Id(parameters[idx].Id()).
 			BodyJson(parameters[idx]).
 			Do(context.Background())
 		if err != nil {
-			log.WithError(err).Fatal("Failed to get consensus parameters from repo")
+			log.WithError(err).Fatal("Failed to save consensus parameters from repo")
 		}
+		parameters[idx].SetId(result.Id)
 	}
 
 	Parameters = parameters
