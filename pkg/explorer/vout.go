@@ -5,7 +5,15 @@ type RawVout struct {
 	ValueSat     uint64       `json:"valuesat"`
 	N            int          `json:"n"`
 	ScriptPubKey ScriptPubKey `json:"scriptPubKey"`
+	SpendingKey  string       `json:"spendingKey,omitempty"`
+	OutputKey    string       `json:"outputKey,omitempty"`
+	EphemeralKey string       `json:"ephemeralKey,omitempty"`
+	RangeProof   bool         `json:"rangeProof,omitempty"`
+	SpentTxId    string       `json:"spentTxId,omitempty"`
+	SpentIndex   int          `json:"spentIndex,omitempty"`
+	SpentHeight  int          `json:"spentHeight,omitempty"`
 }
+
 type Vout struct {
 	RawVout
 	RedeemedIn *RedeemedIn `json:"redeemedIn,omitempty"`
