@@ -15,12 +15,14 @@ type RawBlockTransaction struct {
 	Version         uint32    `json:"version"`
 	LockTime        uint32    `json:"locktime"`
 	Strdzeel        string    `json:"strdzeel"`
+	VchTxSig        string    `json:"vchTxSig,omitempty"`
+	VchBalanceSig   string    `json:"vchBalanceSig,omitempty"`
 	AnonDestination string    `json:"anon-destination"`
-	BlockHash       string    `json:"blockhash, omitempty"`
+	BlockHash       string    `json:"blockhash,omitempty"`
 	Height          uint64    `json:"height"`
-	Confirmations   uint64    `json:"confirmations, omitempty"`
-	Time            time.Time `json:"time, omitempty"`
-	BlockTime       time.Time `json:"blocktime, omitempty"`
+	Confirmations   uint64    `json:"confirmations,omitempty"`
+	Time            time.Time `json:"time,omitempty"`
+	BlockTime       time.Time `json:"blocktime,omitempty"`
 
 	Vin  RawVins  `json:"vin"`
 	Vout RawVouts `json:"vout"`
