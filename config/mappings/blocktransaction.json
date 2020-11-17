@@ -146,6 +146,9 @@
                 }
               }
             }
+          },
+          "private": {
+            "type": "boolean"
           }
         }
       },
@@ -271,8 +274,14 @@
               },
               "height": {
                 "type": "long"
+              },
+              "index": {
+                "type": "integer"
               }
             }
+          },
+          "private": {
+            "type": "boolean"
           }
         }
       },

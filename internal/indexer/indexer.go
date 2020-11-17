@@ -89,9 +89,6 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 	start := time.Now()
 	b, txs, header, err := i.blockIndexer.Index(height, option)
 	if err != nil {
-		if err.Error() != "-8: Block height out of range" {
-			raven.CaptureError(err, nil)
-		}
 		return err
 	}
 
@@ -101,7 +98,9 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 	go func() {
 		defer wg.Done()
 		start := time.Now()
+
 		i.addressIndexer.Index(b, txs)
+
 		elapsed := time.Since(start)
 		log.WithField("time", elapsed).Infof("Indexed addresses at height %d", height)
 	}()

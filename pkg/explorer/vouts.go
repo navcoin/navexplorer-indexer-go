@@ -13,6 +13,13 @@ func (vouts *Vouts) Count() int {
 	return count
 }
 
+func (vouts *Vouts) GetOutput(index int) *Vout {
+	if vouts.Count() > index {
+		return &(*vouts)[index]
+	}
+	return nil
+}
+
 func (vouts *Vouts) WithAddress(hash string) []Vout {
 	filtered := make([]Vout, 0)
 
@@ -114,4 +121,17 @@ func (vouts *Vouts) FilterWithAddresses() Vouts {
 		}
 	}
 	return filtered
+}
+
+func (vouts *Vouts) OutputAtIndexIsOfType(index int, voutType VoutType) bool {
+	return vouts.Count() > index && (*vouts)[index].ScriptPubKey.Type == voutType
+}
+
+func (vouts *Vouts) PrivateFees() uint64 {
+	for _, o := range *vouts {
+		if o.ScriptPubKey.Asm == "OP_RETURN" && o.ScriptPubKey.Type == VoutNulldata {
+			return o.ValueSat
+		}
+	}
+	return 0
 }

@@ -50,10 +50,9 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 	block.Cfund = &explorer.Cfund{Available: available, Locked: locked}
 
 	if option == IndexOption.SingleIndex {
-		log.Info("Indexing in single block mode")
 		orphan, err := i.orphanService.IsOrphanBlock(block, LastBlockIndexed)
 		if orphan == true || err != nil {
-			log.WithFields(log.Fields{"block": block, "orphan": orphan}).WithError(err).Info("Orphan Block Found")
+			log.WithFields(log.Fields{"block": block.Hash}).WithError(err).Info("Orphan Block Found")
 			LastBlockIndexed = nil
 			return nil, nil, nil, ErrOrphanBlockFound
 		}
@@ -72,7 +71,9 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		}
 		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx))
 		applyType(tx)
+		applyPrivateStatus(tx)
 		applyStaking(tx, block)
+		applyFees(tx, block)
 		applySpend(tx, block)
 		applyCFundPayout(tx, block)
 
@@ -110,9 +111,16 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
 		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
 
+		if tx.Vin[vdx].Private == true {
+			prevTx.Vout[*tx.Vin[vdx].Vout].SpentHeight = tx.Height
+			prevTx.Vout[*tx.Vin[vdx].Vout].SpentIndex = *tx.Vin[vdx].Vout
+			prevTx.Vout[*tx.Vin[vdx].Vout].SpentTxId = tx.Txid
+		}
+
 		prevTx.Vout[*tx.Vin[vdx].Vout].RedeemedIn = &explorer.RedeemedIn{
 			Hash:   tx.Txid,
 			Height: tx.Height,
+			Index:  *tx.Vin[vdx].Vout,
 		}
 
 		i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), prevTx)

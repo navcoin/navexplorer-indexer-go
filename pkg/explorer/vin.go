@@ -14,6 +14,7 @@ type Vin struct {
 	ValueSat       uint64         `json:"valuesat,omitempty"`
 	Addresses      []string       `json:"addresses,omitempty"`
 	PreviousOutput PreviousOutput `json:"previousOutput,omitempty"`
+	Private        bool           `json:"private"`
 }
 
 type PreviousOutput struct {
@@ -41,4 +42,8 @@ func (i *Vin) IsColdStakingAddress(address string) bool {
 
 func (i *Vin) IsColdSpendingAddress(address string) bool {
 	return len(i.Addresses) == 2 && i.Addresses[0] == address
+}
+
+func (i *Vin) IsPrivate() bool {
+	return i.PreviousOutput.Type == VoutNonstandard && len(i.Addresses) == 0
 }

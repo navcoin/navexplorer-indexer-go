@@ -11,16 +11,18 @@ type RawVout struct {
 	RangeProof   bool         `json:"rangeProof,omitempty"`
 	SpentTxId    string       `json:"spentTxId,omitempty"`
 	SpentIndex   int          `json:"spentIndex,omitempty"`
-	SpentHeight  int          `json:"spentHeight,omitempty"`
+	SpentHeight  uint64       `json:"spentHeight,omitempty"`
 }
 
 type Vout struct {
 	RawVout
 	RedeemedIn *RedeemedIn `json:"redeemedIn,omitempty"`
+	Private    bool        `json:"private"`
 }
 
 type RedeemedIn struct {
 	Hash   string `json:"hash,omitempty"`
+	Index  int    `json:"index,omitempty"`
 	Height uint64 `json:"height,omitempty"`
 }
 

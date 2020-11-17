@@ -36,10 +36,11 @@ type BlockTransaction struct {
 	Vin   Vins  `json:"vin"`
 	Vout  Vouts `json:"vout"`
 
-	Type  BlockTransactionType `json:"type"`
-	Stake uint64               `json:"stake"`
-	Spend uint64               `json:"spend"`
-	Fees  uint64               `json:"fees"`
+	Type    BlockTransactionType `json:"type"`
+	Stake   uint64               `json:"stake"`
+	Spend   uint64               `json:"spend"`
+	Fees    uint64               `json:"fees"`
+	Private bool                 `json:"private"`
 }
 
 func (b *BlockTransaction) Id() string {
