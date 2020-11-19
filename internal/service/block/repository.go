@@ -106,33 +106,13 @@ func (r *Repository) GetTransactionsByBlock(block *explorer.Block) ([]*explorer.
 func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransaction, error) {
 	request := r.elastic.GetRequest(explorer.CreateBlockTxSlug(hash))
 	if request != nil {
+		log.WithField("hash", hash).Debug("GetTransactionByHash: Found in elastic requests")
 		return request.Entity.(*explorer.BlockTransaction), nil
 	}
 
-	getTransactionByHash := func(hash string) (*elastic.SearchResult, error) {
-		return r.elastic.Client.
-			Search(elastic_cache.BlockTransactionIndex.Get()).
-			Query(elastic.NewTermQuery("hash.keyword", hash)).
-			Size(1).
-			Do(context.Background())
-	}
-
-	results, err := getTransactionByHash(hash)
+	results, err := r.getTransactionByHash(hash, 3)
 	if err != nil || results == nil {
 		return nil, err
-	}
-
-	if len(results.Hits.Hits) == 0 {
-		log.Infof("Failed to find record, retrying in 5 seconds")
-		time.Sleep(5 * time.Second)
-		results, err = getTransactionByHash(hash)
-		if err != nil || results == nil {
-			return nil, err
-		}
-
-		if len(results.Hits.Hits) == 0 {
-			return nil, elastic_cache.ErrRecordNotFound
-		}
 	}
 
 	var tx *explorer.BlockTransaction
@@ -143,6 +123,25 @@ func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransacti
 	tx.SetId(hit.Id)
 
 	return tx, nil
+}
+
+func (r *Repository) getTransactionByHash(hash string, retries int) (*elastic.SearchResult, error) {
+	results, err := r.elastic.Client.
+		Search(elastic_cache.BlockTransactionIndex.Get()).
+		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Size(1).
+		Do(context.Background())
+	if err != nil || results == nil {
+		return nil, err
+	}
+
+	if len(results.Hits.Hits) == 0 && retries > 1 {
+		log.Infof("Retrying: getTransactionByHash(%s, %d)", hash, retries)
+		time.Sleep(1 * time.Second)
+		return r.getTransactionByHash(hash, retries-1)
+	}
+
+	return results, err
 }
 
 func (r *Repository) GetBlockByHeight(height uint64) (*explorer.Block, error) {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/event"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer/IndexOption"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/queue"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao"
@@ -18,7 +18,7 @@ import (
 
 type Indexer struct {
 	elastic         *elastic_cache.Index
-	publisher       *event.Publisher
+	publisher       *queue.Publisher
 	blockIndexer    *block.Indexer
 	addressIndexer  *address.Indexer
 	softForkIndexer *softfork.Indexer
@@ -32,7 +32,7 @@ var (
 
 func NewIndexer(
 	elastic *elastic_cache.Index,
-	publisher *event.Publisher,
+	publisher *queue.Publisher,
 	blockIndexer *block.Indexer,
 	addressIndexer *address.Indexer,
 	softForkIndexer *softfork.Indexer,
@@ -97,10 +97,11 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 
 	go func() {
 		defer wg.Done()
+		if option == IndexOption.BatchIndex {
+			return
+		}
 		start := time.Now()
-
 		i.addressIndexer.Index(b, txs)
-
 		elapsed := time.Since(start)
 		log.WithField("time", elapsed).Infof("Indexed addresses at height %d", height)
 	}()
@@ -125,7 +126,6 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 
 	elapsed := time.Since(start)
 	log.WithField("time", elapsed).Infof("Index block:     %d", height)
-	log.Debugf("")
 
 	LastBlockIndexed = height
 

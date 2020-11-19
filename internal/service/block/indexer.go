@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer/IndexOption"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
+	"github.com/asaskevich/EventBus"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -14,13 +15,26 @@ import (
 type Indexer struct {
 	navcoin       *navcoind.Navcoind
 	elastic       *elastic_cache.Index
+	event         EventBus.Bus
 	orphanService *OrphanService
 	repository    *Repository
 	service       *Service
 }
 
-func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphanService *OrphanService, repository *Repository, service *Service) *Indexer {
-	return &Indexer{navcoin, elastic, orphanService, repository, service}
+func NewIndexer(
+	navcoin *navcoind.Navcoind,
+	elastic *elastic_cache.Index,
+	event EventBus.Bus,
+	orphanService *OrphanService,
+	repository *Repository,
+	service *Service,
+) *Indexer {
+	i := &Indexer{navcoin, elastic, event, orphanService, repository, service}
+	if err := event.Subscribe("block.indexed", i.OnIndexed); err != nil {
+		log.WithError(err).Fatal("Failed to subscribe to block.indexed event")
+	}
+
+	return i
 }
 
 func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []*explorer.BlockTransaction, *navcoind.BlockHeader, error) {
@@ -59,8 +73,6 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 	}
 	LastBlockIndexed = block
 
-	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
-
 	var txs = make([]*explorer.BlockTransaction, 0)
 	for idx, txHash := range block.Tx {
 		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
@@ -89,6 +101,10 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 
 	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
 
+	if option == IndexOption.BatchIndex {
+		i.event.Publish("block.indexed", block, txs, header)
+	}
+
 	return block, txs, header, err
 }
 
@@ -111,11 +127,9 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
 		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
 
-		if tx.Vin[vdx].Private == true {
-			prevTx.Vout[*tx.Vin[vdx].Vout].SpentHeight = tx.Height
-			prevTx.Vout[*tx.Vin[vdx].Vout].SpentIndex = *tx.Vin[vdx].Vout
-			prevTx.Vout[*tx.Vin[vdx].Vout].SpentTxId = tx.Txid
-		}
+		prevTx.Vout[*tx.Vin[vdx].Vout].SpentHeight = tx.Height
+		prevTx.Vout[*tx.Vin[vdx].Vout].SpentIndex = *tx.Vin[vdx].Vout
+		prevTx.Vout[*tx.Vin[vdx].Vout].SpentTxId = tx.Txid
 
 		prevTx.Vout[*tx.Vin[vdx].Vout].RedeemedIn = &explorer.RedeemedIn{
 			Hash:   tx.Txid,

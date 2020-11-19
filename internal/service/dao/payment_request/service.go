@@ -2,7 +2,6 @@ package payment_request
 
 import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,12 +19,7 @@ func (s *Service) LoadVotingPaymentRequests(block *explorer.Block) {
 		excludeOlderThan = 0
 	}
 
-	paymentRequests, err := s.repo.GetPossibleVotingRequests(excludeOlderThan)
-	if err != nil {
-		raven.CaptureError(err, nil)
-		log.WithError(err).Error("Failed to load pending proposals")
-	}
-
+	paymentRequests, _ := s.repo.GetPossibleVotingRequests(excludeOlderThan)
 	log.Infof("Load Voting Payment Requests (%d)", len(paymentRequests))
 
 	PaymentRequests = paymentRequests

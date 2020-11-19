@@ -3,11 +3,14 @@ package block
 import (
 	"fmt"
 	"github.com/NavExplorer/navcoind-go"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
 func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize uint) *explorer.Block {
+	logrus.Debugf("Create Block %s", block.Hash)
 	return &explorer.Block{
 		RawBlock: explorer.RawBlock{
 			Hash:              block.Hash,
@@ -190,7 +193,7 @@ func applyStaking(tx *explorer.BlockTransaction, block *explorer.Block) {
 	}
 
 	if tx.IsAnyStaking() {
-		if tx.Height >= 2761920 {
+		if softfork.SoftForks.StaticRewards().IsActive() {
 			tx.Stake = 200000000 // hard coded to 2 as static rewards arrived after block_indexer 2761920
 			block.Stake += tx.Stake
 		} else {

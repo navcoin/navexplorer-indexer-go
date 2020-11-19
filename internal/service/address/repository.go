@@ -77,7 +77,7 @@ func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, e
 	return r.findManyAddress(result)
 }
 
-func (r *Repository) GetOrCreateAddress(hash string, block *explorer.Block) (*explorer.Address, error) {
+func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) {
 	result, err := r.Client.
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
@@ -87,7 +87,8 @@ func (r *Repository) GetOrCreateAddress(hash string, block *explorer.Block) (*ex
 	}
 
 	if result.TotalHits() == 0 {
-		address := CreateAddress(hash, block.Height, block.MedianTime)
+		address := CreateAddress(hash)
+		log.Debug("Persisted new address ", hash)
 		result, err := r.Client.Index().
 			Index(elastic_cache.AddressIndex.Get()).
 			BodyJson(address).
@@ -131,7 +132,7 @@ func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHisto
 
 func (r *Repository) findOneAddress(result *elastic.SearchResult) (*explorer.Address, error) {
 	if result == nil || len(result.Hits.Hits) != 1 {
-		return nil, errors.New("Invalid result")
+		return nil, errors.New("AddressRepository: findOneAddress - Invalid result")
 	}
 
 	var address *explorer.Address
@@ -146,7 +147,7 @@ func (r *Repository) findOneAddress(result *elastic.SearchResult) (*explorer.Add
 
 func (r *Repository) findManyAddress(result *elastic.SearchResult) ([]*explorer.Address, error) {
 	if result == nil {
-		return nil, errors.New("Invalid result")
+		return nil, errors.New("AddressRepository: findManyAddress - Invalid result")
 	}
 
 	addresses := make([]*explorer.Address, 0)

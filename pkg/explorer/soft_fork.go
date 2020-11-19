@@ -86,3 +86,13 @@ func (s SoftForks) GetSoftFork(name string) *SoftFork {
 func (s SoftForks) HasSoftFork(name string) bool {
 	return s.GetSoftFork(name) != nil
 }
+
+func (s SoftForks) StaticRewards() *SoftFork {
+	for i, _ := range s {
+		if s[i].Name == "static" {
+			return s[i]
+		}
+	}
+
+	return nil
+}

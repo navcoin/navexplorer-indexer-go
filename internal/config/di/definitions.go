@@ -4,8 +4,8 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/event"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/queue"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao"
@@ -17,6 +17,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork/signal"
 	"github.com/NavExplorer/subscriber"
+	"github.com/asaskevich/EventBus"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,13 +36,19 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "elastic",
-		Build: func() (*elastic_cache.Index, error) {
-			elastic, err := elastic_cache.New()
+		Build: func(event EventBus.Bus) (*elastic_cache.Index, error) {
+			elastic, err := elastic_cache.New(event)
 			if err != nil {
 				log.WithError(err).Fatal("Failed toStart ES")
 			}
 
 			return elastic, nil
+		},
+	},
+	{
+		Name: "event",
+		Build: func() (EventBus.Bus, error) {
+			return EventBus.New(), nil
 		},
 	},
 	{
@@ -72,7 +79,7 @@ var Definitions = []dingo.Def{
 		Name: "indexer",
 		Build: func(
 			elastic *elastic_cache.Index,
-			publisher *event.Publisher,
+			publisher *queue.Publisher,
 			blockIndexer *block.Indexer,
 			addressIndexer *address.Indexer,
 			softForkIndexer *softfork.Indexer,
@@ -102,8 +109,15 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "block.indexer",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, orphanedService *block.OrphanService, repository *block.Repository, service *block.Service) (*block.Indexer, error) {
-			return block.NewIndexer(navcoin, elastic, orphanedService, repository, service), nil
+		Build: func(
+			navcoin *navcoind.Navcoind,
+			elastic *elastic_cache.Index,
+			event EventBus.Bus,
+			orphanedService *block.OrphanService,
+			repository *block.Repository,
+			service *block.Service,
+		) (*block.Indexer, error) {
+			return block.NewIndexer(navcoin, elastic, event, orphanedService, repository, service), nil
 		},
 	},
 	{
@@ -258,9 +272,9 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
-		Name: "event.publisher",
-		Build: func() (*event.Publisher, error) {
-			return event.NewPublisher(
+		Name: "queue.publisher",
+		Build: func() (*queue.Publisher, error) {
+			return queue.NewPublisher(
 				config.Get().Network,
 				config.Get().Index,
 				config.Get().RabbitMq.User,

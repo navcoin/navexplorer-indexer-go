@@ -38,6 +38,10 @@ func Execute() {
 		container.GetDaoConsultationService().LoadOpenConsultations(b)
 	}
 
+	if err := container.GetEvent().Subscribe("batch.persist.start", container.GetAddressIndexer().BulkIndex); err != nil {
+		log.WithError(err).Fatal("Failed to subscribe to block.indexed event")
+	}
+
 	container.GetIndexer().BulkIndex()
 
 	err := container.GetSubscriber().Subscribe(container.GetIndexer().SingleIndex)
