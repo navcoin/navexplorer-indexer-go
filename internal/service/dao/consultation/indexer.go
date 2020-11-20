@@ -1,7 +1,6 @@
 package consultation
 
 import (
-	"context"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
@@ -30,17 +29,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 
 		if navC, err := i.navcoin.GetConsultation(tx.Hash); err == nil {
 			consultation := CreateConsultation(navC, tx)
-
-			result, err := i.elastic.Client.Index().
-				Index(elastic_cache.DaoConsultationIndex.Get()).
-				BodyJson(consultation).
-				Do(context.Background())
-			if err != nil {
-				raven.CaptureError(err, nil)
-				log.WithError(err).Fatal("Failed to save new consultation")
-			}
-			consultation.SetId(result.Id)
-
+			i.elastic.Save(elastic_cache.DaoConsultationIndex, consultation)
 			Consultations.Add(consultation)
 		} else {
 			log.WithField("hash", tx.Hash).WithError(err).Error("Failed to find consultation")
@@ -90,7 +79,7 @@ func (i *Indexer) updateConsensusParameter(c *explorer.Consultation, b *explorer
 
 	parameter := consensus.Parameters.GetById(c.Min)
 	if parameter == nil {
-		log.WithField("consultation", c).Fatal("Consensus parameter not found")
+		log.WithField("consultation", c).Fatal("updateConsensusParameter: Consensus parameter not found")
 		return
 	}
 

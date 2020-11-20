@@ -1,7 +1,6 @@
 package address
 
 import (
-	"context"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
@@ -61,11 +60,7 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 		address.VotingWeight = latestHistory.Balance.VotingWeight
 	}
 
-	_, err = r.elastic.Client.Index().
-		Index(elastic_cache.AddressIndex.Get()).
-		Id(address.Id()).
-		BodyJson(address).
-		Do(context.Background())
+	r.elastic.Save(elastic_cache.AddressIndex, address)
 
 	return err
 }

@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var STATIC_REWARD uint64 = 200000000
+
 func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize uint) *explorer.Block {
 	logrus.Debugf("Create Block %s", block.Hash)
 	return &explorer.Block{
@@ -194,12 +196,13 @@ func applyStaking(tx *explorer.BlockTransaction, block *explorer.Block) {
 
 	if tx.IsAnyStaking() {
 		if softfork.SoftForks.StaticRewards().IsActive() {
-			tx.Stake = 200000000 // hard coded to 2 as static rewards arrived after block_indexer 2761920
-			block.Stake += tx.Stake
+			tx.Stake = STATIC_REWARD
+			block.Stake = STATIC_REWARD
 		} else {
 			tx.Stake = tx.Vout.GetSpendableAmount() - tx.Vin.GetAmount()
-			block.Stake += tx.Stake
+			block.Stake = tx.Vout.GetSpendableAmount() - tx.Vin.GetAmount()
 		}
+
 	} else if tx.IsCoinbase() {
 		for _, o := range tx.Vout {
 			if o.ScriptPubKey.Type == explorer.VoutPubkey {
@@ -213,12 +216,6 @@ func applyStaking(tx *explorer.BlockTransaction, block *explorer.Block) {
 	vinsWithAddresses := tx.Vin.FilterWithAddresses()
 
 	if tx.IsColdStaking() {
-		for _, vout := range tx.Vout {
-			if vout.ScriptPubKey.Type == explorer.VoutColdStaking {
-				block.StakedBy = vout.ScriptPubKey.Addresses[0]
-				break
-			}
-		}
 		block.StakedBy = voutsWithAddresses[0].ScriptPubKey.Addresses[0]
 	} else if len(vinsWithAddresses) != 0 {
 		block.StakedBy = vinsWithAddresses[0].Addresses[0]
@@ -232,8 +229,8 @@ func applySpend(tx *explorer.BlockTransaction, block *explorer.Block) {
 		return
 	}
 
-	tx.Spend = tx.Vout.GetAmount() - tx.Fees
-	block.Spend += tx.Spend
+	block.Spend += tx.Vin.GetAmount()
+	tx.Spend = tx.Vin.GetAmount()
 }
 
 func applyFees(tx *explorer.BlockTransaction, block *explorer.Block) {

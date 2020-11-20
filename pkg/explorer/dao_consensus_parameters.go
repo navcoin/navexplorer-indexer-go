@@ -55,5 +55,5 @@ func (cp *ConsensusParameter) SetId(id string) {
 }
 
 func (cp *ConsensusParameter) Slug() string {
-	return slug.Make(fmt.Sprintf("consensus-%d", cp.Id))
+	return slug.Make(fmt.Sprintf("consensus-%d", cp.Uid))
 }

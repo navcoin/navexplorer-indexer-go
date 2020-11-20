@@ -54,7 +54,7 @@ var Definitions = []dingo.Def{
 	{
 		Name: "address.repo",
 		Build: func(elastic *elastic_cache.Index) (*address.Repository, error) {
-			return address.NewRepo(elastic.Client), nil
+			return address.NewRepo(elastic), nil
 		},
 	},
 	{

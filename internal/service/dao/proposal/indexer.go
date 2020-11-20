@@ -1,7 +1,6 @@
 package proposal
 
 import (
-	"context"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -27,16 +26,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 
 		if navP, err := i.navcoin.GetProposal(tx.Hash); err == nil {
 			proposal := CreateProposal(navP, tx.Height)
-
-			result, err := i.elastic.Client.Index().
-				Index(elastic_cache.ProposalIndex.Get()).
-				BodyJson(proposal).
-				Do(context.Background())
-			if err != nil {
-				raven.CaptureError(err, nil)
-				log.WithError(err).Fatal("Failed to save new proposal")
-			}
-			proposal.SetId(result.Id)
+			i.elastic.Save(elastic_cache.ProposalIndex, proposal)
 			Proposals = append(Proposals, proposal)
 		}
 	}

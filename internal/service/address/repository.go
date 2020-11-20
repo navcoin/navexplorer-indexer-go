@@ -12,19 +12,19 @@ import (
 )
 
 type Repository struct {
-	Client *elastic.Client
+	elastic *elastic_cache.Index
 }
 
 var (
 	ErrLatestHistoryNotFound = errors.New("Latest history not found")
 )
 
-func NewRepo(Client *elastic.Client) *Repository {
-	return &Repository{Client}
+func NewRepo(elastic *elastic_cache.Index) *Repository {
+	return &Repository{elastic}
 }
 
 func (r *Repository) GetBestHeight() (uint64, error) {
-	result, err := r.Client.Search(elastic_cache.AddressIndex.Get()).
+	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
@@ -41,7 +41,7 @@ func (r *Repository) GetBestHeight() (uint64, error) {
 }
 
 func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
-	result, err := r.Client.Search(elastic_cache.AddressIndex.Get()).
+	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -53,7 +53,7 @@ func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
 }
 
 func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) {
-	result, err := r.Client.Search(elastic_cache.AddressIndex.Get()).
+	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewMatchQuery("hash", strings.Join(hashes, " "))).
 		Size(len(hashes)).
 		Do(context.Background())
@@ -65,7 +65,7 @@ func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) 
 }
 
 func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, error) {
-	result, err := r.Client.
+	result, err := r.elastic.Client.
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewRangeQuery("height").Gt(height)).
 		Size(50000).
@@ -78,7 +78,7 @@ func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, e
 }
 
 func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) {
-	result, err := r.Client.
+	result, err := r.elastic.Client.
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Do(context.Background())
@@ -89,15 +89,7 @@ func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) 
 	if result.TotalHits() == 0 {
 		address := CreateAddress(hash)
 		log.Debug("Persisted new address ", hash)
-		result, err := r.Client.Index().
-			Index(elastic_cache.AddressIndex.Get()).
-			BodyJson(address).
-			Do(context.Background())
-		if err != nil {
-			return nil, err
-		}
-		address.SetId(result.Id)
-
+		r.elastic.Save(elastic_cache.AddressIndex, address)
 		return address, nil
 	}
 
@@ -108,7 +100,7 @@ func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHisto
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
-	results, err := r.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
 		Query(query).
 		Sort("height", false).
 		Size(1).

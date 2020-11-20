@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"context"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -49,13 +48,6 @@ func (i *Indexer) Update(block *explorer.Block) {
 			continue
 		}
 
-		_, err := i.elastic.Client.Index().
-			Index(elastic_cache.ConsensusIndex.Get()).
-			Id(p.Id()).
-			BodyJson(p).
-			Do(context.Background())
-		if err != nil {
-			log.WithError(err).Fatal("Failed to persist consensus change")
-		}
+		i.elastic.Save(elastic_cache.ConsensusIndex, p)
 	}
 }

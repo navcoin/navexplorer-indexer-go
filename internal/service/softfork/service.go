@@ -1,7 +1,6 @@
 package softfork
 
 import (
-	"context"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -47,14 +46,8 @@ func (i *Service) InitSoftForks() {
 				LockedInHeight:   0,
 			}
 
-			result, err := i.elastic.Client.Index().
-				Index(elastic_cache.SoftForkIndex.Get()).
-				BodyJson(softFork).
-				Do(context.Background())
-			if err != nil {
-				log.WithError(err).Fatal("Failed to save new softfork")
-			}
-			softFork.SetId(result.Id)
+			i.elastic.Save(elastic_cache.SoftForkIndex, softFork)
+
 			SoftForks = append(SoftForks, softFork)
 		}
 	}

@@ -99,12 +99,12 @@ func (i *Index) InstallMappings() {
 }
 
 func (i *Index) AddIndexRequest(index string, entity explorer.Entity) {
-	logrus.WithFields(logrus.Fields{"id": entity.Id(), "slug": entity.Slug()}).Debug("AddIndexRequest")
+	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("AddIndexRequest")
 	i.AddRequest(index, entity, IndexRequest)
 }
 
 func (i *Index) AddUpdateRequest(index string, entity explorer.Entity) {
-	logrus.WithFields(logrus.Fields{"id": entity.Id(), "slug": entity.Slug()}).Debug("AddUpdateRequest")
+	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("AddUpdateRequest")
 	i.AddRequest(index, entity, UpdateRequest)
 }
 
@@ -113,15 +113,17 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 		"index": index,
 		"type":  reqType,
 		"slug":  entity.Slug(),
-		"id":    entity.Id(),
 	}).Debugf("AddRequest")
 
-	i.cache.Delete(entity.Slug())
-
-	if reqType == UpdateRequest && entity.Id() == "" {
+	if cached, found := i.cache.Get(entity.Slug()); found == true && cached.(Request).Type == IndexRequest {
 		logrus.Debugf("Switch update to index as not previously persisted %s", entity.Slug())
 		reqType = IndexRequest
 	}
+	//i.cache.Delete(entity.Slug())
+	//if reqType == UpdateRequest && entity.Slug() == "" {
+	//	logrus.Debugf("Switch update to index as not previously persisted %s", entity.Slug())
+	//	reqType = IndexRequest
+	//}
 
 	i.cache.Set(entity.Slug(), Request{index, entity, reqType}, cache.DefaultExpiration)
 }
@@ -145,6 +147,23 @@ func (i *Index) GetRequest(id string) *Request {
 	}
 }
 
+func (i *Index) Save(index Indices, entity explorer.Entity) {
+	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("Save")
+
+	_, err := i.Client.Index().
+		Index(index.Get()).
+		Id(entity.Slug()).
+		BodyJson(entity).
+		Do(context.Background())
+
+	if err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"index": index.Get(),
+			"slug":  entity.Slug(),
+		}).Fatal("Failed to save entity")
+	}
+}
+
 func (i *Index) BatchPersist(height uint64) bool {
 	if height%i.bulkIndexSize != 0 {
 		return false
@@ -163,16 +182,15 @@ func (i *Index) Persist() int {
 	bulk := i.Client.Bulk()
 	for _, r := range i.GetRequests() {
 		if r.Type == IndexRequest {
-			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Doc(r.Entity))
+			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
 		} else if r.Type == UpdateRequest {
-			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Entity.Id()).Doc(r.Entity))
+			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
 		}
 	}
 
 	actions := bulk.NumberOfActions()
 	if actions != 0 {
 		i.persist(bulk)
-
 	}
 
 	return actions
@@ -190,6 +208,7 @@ func (i *Index) persist(bulk *elastic.BulkService) {
 			logrus.WithFields(logrus.Fields{
 				"error": failed.Error,
 				"index": failed.Index,
+				"id":    failed.Id,
 			}).Error("Failed to persist to ES")
 			for {
 				switch {

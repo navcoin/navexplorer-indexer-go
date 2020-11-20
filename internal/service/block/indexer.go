@@ -85,14 +85,19 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		applyType(tx)
 		applyPrivateStatus(tx)
 		applyStaking(tx, block)
-		applyFees(tx, block)
 		applySpend(tx, block)
 		applyCFundPayout(tx, block)
+		applyFees(tx, block)
 
 		i.indexPreviousTxData(tx)
 		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
 
 		txs = append(txs, tx)
+	}
+	for _, tx := range txs {
+		if tx.IsAnyStaking() {
+			tx.Fees = block.Fees
+		}
 	}
 
 	if option == IndexOption.SingleIndex {

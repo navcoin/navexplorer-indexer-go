@@ -1,7 +1,6 @@
 package payment_request
 
 import (
-	"context"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -26,17 +25,7 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 
 		if navP, err := i.navcoin.GetPaymentRequest(tx.Hash); err == nil {
 			paymentRequest := CreatePaymentRequest(navP, tx.Height)
-
-			index := elastic_cache.PaymentRequestIndex.Get()
-			result, err := i.elastic.Client.Index().
-				Index(index).
-				BodyJson(paymentRequest).
-				Do(context.Background())
-			if err != nil {
-				raven.CaptureError(err, nil)
-				log.WithError(err).Fatal("Failed to save new payment request")
-			}
-			paymentRequest.SetId(result.Id)
+			i.elastic.Save(elastic_cache.PaymentRequestIndex, paymentRequest)
 			PaymentRequests = append(PaymentRequests, paymentRequest)
 		}
 	}
