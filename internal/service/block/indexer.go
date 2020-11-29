@@ -121,7 +121,6 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 
 		prevTx, err := i.repository.GetTransactionByHash(*tx.Vin[vdx].Txid)
 		if err != nil {
-			raven.CaptureError(err, nil)
 			log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
 		}
 

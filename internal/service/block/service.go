@@ -14,7 +14,8 @@ func NewService(repo *Repository) *Service {
 }
 
 var (
-	ErrBlockNotFound = errors.New("Block not found")
+	ErrBlockNotFound            = errors.New("Block not found")
+	ErrBlockTransactionNotFound = errors.New("Transaction not found")
 )
 
 func (s *Service) GetLastBlockIndexed() *explorer.Block {

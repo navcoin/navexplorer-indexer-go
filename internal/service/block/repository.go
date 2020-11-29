@@ -135,10 +135,14 @@ func (r *Repository) getTransactionByHash(hash string, retries int) (*elastic.Se
 		return nil, err
 	}
 
-	if len(results.Hits.Hits) == 0 && retries > 1 {
-		log.Infof("Retrying: getTransactionByHash(%s, %d)", hash, retries)
-		time.Sleep(1 * time.Second)
-		return r.getTransactionByHash(hash, retries-1)
+	if len(results.Hits.Hits) == 0 {
+		if retries > 0 {
+			log.Infof("Retrying: getTransactionByHash(%s, %d)", hash, retries)
+			time.Sleep(1 * time.Second)
+			return r.getTransactionByHash(hash, retries-1)
+		} else {
+			return nil, ErrBlockTransactionNotFound
+		}
 	}
 
 	return results, err

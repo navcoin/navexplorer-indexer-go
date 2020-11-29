@@ -180,12 +180,16 @@ func applyPrivateStatus(tx *explorer.BlockTransaction) {
 
 	var idx int
 	for idx = range tx.Vin {
-		tx.Vin[idx].Private = tx.Vin[idx].PreviousOutput.Type == explorer.VoutNonstandard && len(tx.Vin[idx].Addresses) == 0
-		tx.Private = true
+		if tx.Vin[idx].PreviousOutput.Type == explorer.VoutNonstandard && len(tx.Vin[idx].Addresses) == 0 {
+			tx.Vin[idx].Private = true
+			tx.Private = true
+		}
 	}
 	for idx = range tx.Vout {
-		tx.Vout[idx].Private = tx.Vout[idx].RangeProof
-		tx.Private = true
+		if tx.Vout[idx].RangeProof == true {
+			tx.Vout[idx].Private = true
+			tx.Private = true
+		}
 	}
 }
 
@@ -240,8 +244,10 @@ func applyFees(tx *explorer.BlockTransaction, block *explorer.Block) {
 
 	if tx.Private == true {
 		tx.Fees = tx.Vout.PrivateFees()
+		logrus.Infof("Fees for PRIVATE|%s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	} else {
 		tx.Fees = tx.Vin.GetAmount() - tx.Vout.GetAmount()
+		logrus.Infof("Fees for %s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	}
 	block.Fees += tx.Fees
 }

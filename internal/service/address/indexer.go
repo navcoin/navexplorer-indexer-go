@@ -37,7 +37,11 @@ func (i *Indexer) BulkIndex(height uint64) {
 	}
 
 	elapsed := time.Since(start)
-	log.WithField("time", elapsed).Infof("Index address:  %d", height)
+	log.WithFields(log.Fields{
+		"time":  elapsed,
+		"count": len(addressHistorys),
+	}).Infof("Index address:   %d", height)
+
 	block.BlockData.Reset()
 }
 

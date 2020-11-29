@@ -48,7 +48,6 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 	}
 
 	if latestHistory == nil {
-		log.Error("Failed to find latest history for ", address.Hash)
 		address.Height = 0
 		address.Spendable = 0
 		address.Stakable = 0

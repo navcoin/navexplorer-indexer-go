@@ -209,11 +209,7 @@ func (i *Index) persist(bulk *elastic.BulkService) {
 				"error": failed.Error,
 				"index": failed.Index,
 				"id":    failed.Id,
-			}).Error("Failed to persist to ES")
-			for {
-				switch {
-				}
-			}
+			}).Fatal("Failed to persist to ES")
 		}
 	}
 	logrus.Debugf("Persisted %d actions", actions)
@@ -227,7 +223,6 @@ func (i *Index) DeleteHeightGT(height uint64, indices ...string) error {
 		Query(elastic.NewRangeQuery("height").Gt(height)).
 		Do(context.Background())
 	if err != nil {
-		raven.CaptureError(err, nil)
 		logrus.WithError(err).Fatalf("Could not rewind to %d", height)
 		return err
 	}

@@ -105,10 +105,14 @@ func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHisto
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
-	if err != nil || results.TotalHits() == 0 {
+	if err != nil {
 		log.WithError(err).Error("Failed to find address")
 		err = ErrLatestHistoryNotFound
 		return nil, err
+	}
+
+	if results.TotalHits() == 0 {
+		return nil, nil
 	}
 
 	var history *explorer.AddressHistory
