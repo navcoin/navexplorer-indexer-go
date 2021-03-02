@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"context"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -25,7 +26,7 @@ func (r *Rewinder) Rewind(consultations []*explorer.Consultation) error {
 	//parameters, err := r.repo.GetConsensusParameters()
 	parameters, err := r.service.InitialState()
 	if err != nil {
-		log.WithError(err).Fatal("Rewind: Failed to get consensus parameters from repo")
+		log.WithError(err).Fatal("Failed to get consensus parameters from repo")
 	}
 
 	for _, c := range consultations {
@@ -39,8 +40,19 @@ func (r *Rewinder) Rewind(consultations []*explorer.Consultation) error {
 		}
 	}
 
+	err = r.repo.DeleteAll()
+	if err != nil {
+		log.WithError(err).Fatal("Failed to clear old parameters")
+	}
 	for idx := range parameters {
-		r.elastic.Save(elastic_cache.ConsensusIndex, parameters[idx])
+		result, err := r.elastic.Client.Index().
+			Index(elastic_cache.ConsensusIndex.Get()).
+			BodyJson(parameters[idx]).
+			Do(context.Background())
+		if err != nil {
+			log.WithError(err).Fatal("Failed to save consensus parameters from repo")
+		}
+		parameters[idx].SetId(result.Id)
 	}
 
 	Parameters = parameters

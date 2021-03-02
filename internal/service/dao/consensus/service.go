@@ -5,7 +5,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,7 +57,6 @@ func (s *Service) InitialState() ([]*explorer.ConsensusParameter, error) {
 
 	err := json.Unmarshal(byteParams, &parameters)
 	if err != nil {
-		raven.CaptureError(err, nil)
 		log.WithError(err).Fatalf("Failed to load consensus parameters from JSON")
 		return nil, err
 	}

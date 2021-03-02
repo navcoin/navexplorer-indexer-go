@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	log "github.com/sirupsen/logrus"
 )
 
 type Repository struct {
@@ -40,4 +41,14 @@ func (r *Repository) GetConsensusParameters() ([]*explorer.ConsensusParameter, e
 	}
 
 	return consensusParameters, nil
+}
+
+func (r *Repository) DeleteAll() error {
+	log.Info("Deleting all consensus records")
+	_, err := elastic.NewDeleteByQueryService(r.Client).
+		Index(elastic_cache.ConsensusIndex.Get()).
+		Query(elastic.NewMatchAllQuery()).
+		Do(context.Background())
+
+	return err
 }
