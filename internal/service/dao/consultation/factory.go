@@ -74,41 +74,49 @@ func createAnswer(a *navcoind.Answer) *explorer.Answer {
 func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bool {
 	updated := false
 	if navC.Support != c.Support {
+		log.WithFields(log.Fields{"from": c.Support, "to": navC.Support}).Debug("Support changed")
 		c.Support = navC.Support
 		updated = true
 	}
 
 	if navC.VotingCyclesFromCreation != c.VotingCyclesFromCreation {
+		log.WithFields(log.Fields{"from": c.VotingCyclesFromCreation, "to": navC.VotingCyclesFromCreation}).Debug("VotingCyclesFromCreation changed")
 		c.VotingCyclesFromCreation = navC.VotingCyclesFromCreation
 		updated = true
 	}
 
 	if navC.VotingCycleForState.Current != c.VotingCycleForState {
+		log.WithFields(log.Fields{"from": c.VotingCycleForState, "to": navC.VotingCycleForState}).Debug("VotingCycleForState changed")
 		c.VotingCycleForState = navC.VotingCycleForState.Current
 		updated = true
 	}
 
 	if updateAnswers(navC, c) {
+		log.Debug("Answers changed")
 		updated = true
 	}
 
 	if navC.State != c.State {
+		log.WithFields(log.Fields{"from": c.State, "to": navC.State}).Debug("State changed")
 		c.State = navC.State
 		c.Status = explorer.GetConsultationStatusByState(uint(c.State)).Status
 		updated = true
 	}
 
 	if c.FoundSupport != c.HasAnswerWithSupport() {
+		log.WithFields(log.Fields{"from": c.FoundSupport, "to": c.HasAnswerWithSupport()}).Debug("FoundSupport changed")
 		c.FoundSupport = c.HasAnswerWithSupport()
 		updated = true
 	}
 
 	if navC.StateChangedOnBlock != c.StateChangedOnBlock {
+		log.WithFields(log.Fields{"from": c.StateChangedOnBlock, "to": navC.StateChangedOnBlock}).Debug("StateChangedOnBlock changed")
 		c.StateChangedOnBlock = navC.StateChangedOnBlock
 		updated = true
 	}
 
 	if reflect.DeepEqual(navC.MapState, c.MapState) {
+		log.Debug("MapState changed")
 		c.MapState = navC.MapState
 		updated = true
 	}
