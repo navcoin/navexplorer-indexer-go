@@ -111,19 +111,19 @@ func (tx *BlockTransaction) IsSpend() bool {
 }
 
 func (tx *BlockTransaction) IsAnyStaking() bool {
-	return tx.Type == TxColdStaking || tx.Type == TxColdStakingV2 || tx.Type == TxStaking || tx.Type == TxPoolStaking
+	return tx.Vout.OutputAtIndexIsOfType(0, VoutNonstandard) && tx.Vout.GetOutput(0).ScriptPubKey.Hex == ""
 }
 
 func (tx *BlockTransaction) IsStaking() bool {
-	return tx.Type == TxStaking
+	return tx.IsAnyStaking() && tx.Type == TxStaking
 }
 
 func (tx *BlockTransaction) IsColdStaking() bool {
-	return tx.Type == TxColdStaking || tx.Type == TxColdStakingV2
+	return tx.IsAnyStaking() && (tx.Type == TxColdStaking || tx.Type == TxColdStakingV2)
 }
 
 func (tx *BlockTransaction) IsPoolStaking() bool {
-	return tx.Type == TxPoolStaking
+	return tx.IsAnyStaking() && tx.Type == TxPoolStaking
 }
 
 func (tx *BlockTransaction) HasColdInput(address string) bool {
