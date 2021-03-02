@@ -131,9 +131,13 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
 		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
 		tx.Vin[vdx].Wrapped = previousOutput.IsWrapped()
-		tx.Wrapped = previousOutput.IsWrapped()
+		if tx.Wrapped == false {
+			tx.Wrapped = previousOutput.IsWrapped()
+		}
 		tx.Vin[vdx].Private = previousOutput.IsPrivate()
-		tx.Private = previousOutput.IsPrivate()
+		if tx.Private == false {
+			tx.Private = previousOutput.IsPrivate()
+		}
 
 		prevTx.Vout[*tx.Vin[vdx].Vout].SpentHeight = tx.Height
 		prevTx.Vout[*tx.Vin[vdx].Vout].SpentIndex = *tx.Vin[vdx].Vout
