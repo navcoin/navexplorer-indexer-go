@@ -144,13 +144,13 @@
                     "ignore_above": 256
                   }
                 }
-              },
-              "wrapped": {
-                "type": "boolean"
               }
             }
           },
           "private": {
+            "type": "boolean"
+          },
+          "wrapped": {
             "type": "boolean"
           }
         }
@@ -284,6 +284,9 @@
             }
           },
           "private": {
+            "type": "boolean"
+          },
+          "wrapped": {
             "type": "boolean"
           }
         }

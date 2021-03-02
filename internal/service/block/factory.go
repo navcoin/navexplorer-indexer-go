@@ -178,20 +178,10 @@ func applyWrappedAndPrivateStatus(tx *explorer.BlockTransaction) {
 		return
 	}
 
-	var idx int
-	for idx = range tx.Vin {
-		if tx.Vin[idx].PreviousOutput.Wrapped == true {
-			tx.Vin[idx].Wrapped = true
-			tx.Wrapped = true
-		} else if tx.Vin[idx].PreviousOutput.Type == explorer.VoutNonstandard && len(tx.Vin[idx].Addresses) == 0 {
-			tx.Vin[idx].Private = true
-			tx.Private = true
-		}
-	}
-	for idx = range tx.Vout {
+	for idx := range tx.Vout {
 		if tx.Vout[idx].IsWrapped() {
-			tx.Wrapped = true
 			tx.Vout[idx].Wrapped = true
+			tx.Wrapped = true
 		} else {
 			if idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata" {
 				tx.Private = true

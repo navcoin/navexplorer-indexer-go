@@ -19,9 +19,8 @@ type Vin struct {
 }
 
 type PreviousOutput struct {
-	Height  uint64   `json:"height"`
-	Type    VoutType `json:"type"`
-	Wrapped bool     `json:"wrapped"`
+	Height uint64   `json:"height"`
+	Type   VoutType `json:"type"`
 }
 
 func (i *Vin) HasAddress(address string) bool {

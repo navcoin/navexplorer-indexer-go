@@ -77,3 +77,7 @@ func (o *Vout) IsWrapped() bool {
 
 	return matched
 }
+
+func (o *Vout) IsPrivate() bool {
+	return !o.IsWrapped() && o.ScriptPubKey.Type == VoutNonstandard && len(o.ScriptPubKey.Addresses) == 0
+}
