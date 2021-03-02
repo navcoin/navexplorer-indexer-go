@@ -49,6 +49,11 @@ func (i *Service) InitSoftForks() {
 			i.elastic.Save(elastic_cache.SoftForkIndex, softFork)
 
 			SoftForks = append(SoftForks, softFork)
+		} else {
+			if bip9fork.Bit != SoftForks.GetSoftFork(name).SignalBit {
+				SoftForks.GetSoftFork(name).SignalBit = bip9fork.Bit
+				i.elastic.Save(elastic_cache.SoftForkIndex, SoftForks.GetSoftFork(name))
+			}
 		}
 	}
 }
