@@ -157,14 +157,14 @@ func createVout(vouts []navcoind.Vout) []explorer.Vout {
 func applyType(tx *explorer.BlockTransaction) {
 	if tx.IsCoinbase() {
 		tx.Type = explorer.TxCoinbase
-	} else if isStakingTx(tx) {
-		tx.Type = explorer.TxStaking
+	} else if !isStakingTx(tx) {
+		tx.Type = explorer.TxSpend
 	} else if tx.Vout.OutputAtIndexIsOfType(1, explorer.VoutColdStaking) {
 		tx.Type = explorer.TxColdStaking
 	} else if tx.Vout.OutputAtIndexIsOfType(1, explorer.VoutColdStakingV2) {
 		tx.Type = explorer.TxColdStakingV2
 	} else {
-		tx.Type = explorer.TxSpend
+		tx.Type = explorer.TxStaking
 	}
 }
 
@@ -186,7 +186,10 @@ func applyPrivateStatus(tx *explorer.BlockTransaction) {
 		}
 	}
 	for idx = range tx.Vout {
-		if tx.Vout[idx].RangeProof == true {
+		if idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata" {
+			tx.Private = true
+		}
+		if tx.Vout[idx].RangeProof == true || (idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata") {
 			tx.Vout[idx].Private = true
 			tx.Private = true
 		}
