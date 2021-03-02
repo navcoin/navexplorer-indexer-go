@@ -173,25 +173,33 @@ func isStakingTx(tx *explorer.BlockTransaction) bool {
 		tx.Vout.GetOutput(0).ScriptPubKey.Hex == ""
 }
 
-func applyPrivateStatus(tx *explorer.BlockTransaction) {
+func applyWrappedAndPrivateStatus(tx *explorer.BlockTransaction) {
 	if tx.IsCoinbase() {
 		return
 	}
 
 	var idx int
 	for idx = range tx.Vin {
-		if tx.Vin[idx].PreviousOutput.Type == explorer.VoutNonstandard && len(tx.Vin[idx].Addresses) == 0 {
+		if tx.Vin[idx].PreviousOutput.Wrapped == true {
+			tx.Vin[idx].Wrapped = true
+			tx.Wrapped = true
+		} else if tx.Vin[idx].PreviousOutput.Type == explorer.VoutNonstandard && len(tx.Vin[idx].Addresses) == 0 {
 			tx.Vin[idx].Private = true
 			tx.Private = true
 		}
 	}
 	for idx = range tx.Vout {
-		if idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata" {
-			tx.Private = true
-		}
-		if tx.Vout[idx].RangeProof == true || (idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata") {
-			tx.Vout[idx].Private = true
-			tx.Private = true
+		if tx.Vout[idx].IsWrapped() {
+			tx.Wrapped = true
+			tx.Vout[idx].Wrapped = true
+		} else {
+			if idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata" {
+				tx.Private = true
+			}
+			if tx.Vout[idx].RangeProof == true || (idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata") {
+				tx.Vout[idx].Private = true
+				tx.Private = true
+			}
 		}
 	}
 }

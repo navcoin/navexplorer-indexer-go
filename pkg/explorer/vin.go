@@ -15,11 +15,13 @@ type Vin struct {
 	Addresses      []string       `json:"addresses,omitempty"`
 	PreviousOutput PreviousOutput `json:"previousOutput,omitempty"`
 	Private        bool           `json:"private"`
+	Wrapped        bool           `json:"wrapped"`
 }
 
 type PreviousOutput struct {
-	Height uint64   `json:"height"`
-	Type   VoutType `json:"type"`
+	Height  uint64   `json:"height"`
+	Type    VoutType `json:"type"`
+	Wrapped bool     `json:"wrapped"`
 }
 
 func (i *Vin) HasAddress(address string) bool {

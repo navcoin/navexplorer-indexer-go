@@ -83,7 +83,7 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		}
 		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx))
 		applyType(tx)
-		applyPrivateStatus(tx)
+		applyWrappedAndPrivateStatus(tx)
 		applyStaking(tx, block)
 		applySpend(tx, block)
 		applyCFundPayout(tx, block)
@@ -130,6 +130,7 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		tx.Vin[vdx].Addresses = previousOutput.ScriptPubKey.Addresses
 		tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
 		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
+		tx.Vin[vdx].PreviousOutput.Wrapped = previousOutput.IsWrapped()
 
 		prevTx.Vout[*tx.Vin[vdx].Vout].SpentHeight = tx.Height
 		prevTx.Vout[*tx.Vin[vdx].Vout].SpentIndex = *tx.Vin[vdx].Vout

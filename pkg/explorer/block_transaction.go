@@ -41,6 +41,7 @@ type BlockTransaction struct {
 	Spend   uint64               `json:"spend"`
 	Fees    uint64               `json:"fees"`
 	Private bool                 `json:"private"`
+	Wrapped bool                 `json:"wrapped"`
 }
 
 func (b *BlockTransaction) Id() string {

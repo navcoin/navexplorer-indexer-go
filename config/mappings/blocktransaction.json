@@ -144,6 +144,9 @@
                     "ignore_above": 256
                   }
                 }
+              },
+              "wrapped": {
+                "type": "boolean"
               }
             }
           },
