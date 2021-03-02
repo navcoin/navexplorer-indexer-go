@@ -17,7 +17,7 @@ func NewService(repo *Repository) *Service {
 }
 
 func (s *Service) LoadOpenConsultations(block *explorer.Block) {
-	log.Debug("Load Open Consultations")
+	log.Info("Load Open Consultations")
 
 	excludeOlderThan := block.Height - (uint64(block.BlockCycle.Size * 2))
 	if excludeOlderThan < 0 {
@@ -28,6 +28,10 @@ func (s *Service) LoadOpenConsultations(block *explorer.Block) {
 	if err != nil {
 		raven.CaptureError(err, nil)
 		log.WithError(err).Error("Failed to load consultations")
+	}
+
+	for _, c := range consultations {
+		log.WithField("hash", c.Hash).Info("Loaded consultation")
 	}
 
 	Consultations = consultations
