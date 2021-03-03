@@ -5,14 +5,16 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+	"regexp"
+	"strings"
 	"time"
 )
 
 var STATIC_REWARD uint64 = 200000000
 
 func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize uint) *explorer.Block {
-	logrus.Debugf("Create Block %s", block.Hash)
+	log.Debugf("Create Block %s", block.Hash)
 	return &explorer.Block{
 		RawBlock: explorer.RawBlock{
 			Hash:              block.Hash,
@@ -69,7 +71,7 @@ func createBlockCycle(size uint, previousBlock *explorer.Block) *explorer.BlockC
 	return bc
 }
 
-func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint) *explorer.BlockTransaction {
+func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint, block *explorer.Block) *explorer.BlockTransaction {
 	tx := &explorer.BlockTransaction{
 		RawBlockTransaction: explorer.RawBlockTransaction{
 			Hex:             rawTx.Hex,
@@ -91,6 +93,14 @@ func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint) *explorer
 		Vin:   createVin(rawTx.Vin),
 		Vout:  createVout(rawTx.Vout),
 	}
+
+	applyType(tx)
+	applyWrappedStatus(tx)
+	applyPrivateStatus(tx)
+	applyStaking(tx, block)
+	applySpend(tx, block)
+	applyCFundPayout(tx, block)
+	applyFees(tx, block)
 
 	return tx
 }
@@ -173,23 +183,45 @@ func isStakingTx(tx *explorer.BlockTransaction) bool {
 		tx.Vout.GetOutput(0).ScriptPubKey.Hex == ""
 }
 
-func applyWrappedAndPrivateStatus(tx *explorer.BlockTransaction) {
+func applyWrappedStatus(tx *explorer.BlockTransaction) {
 	if tx.IsCoinbase() {
 		return
 	}
 
 	for idx := range tx.Vout {
-		if tx.Vout[idx].IsWrapped() {
+		if outputIsWrapped(tx.Vout[idx]) {
 			tx.Vout[idx].Wrapped = true
 			tx.Wrapped = true
-		} else {
-			if idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata" {
-				tx.Private = true
-			}
-			if tx.Vout[idx].RangeProof == true || (idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata") {
-				tx.Vout[idx].Private = true
-				tx.Private = true
-			}
+			splitAsm := strings.Split(tx.Vout[idx].ScriptPubKey.Asm, " ")
+			tx.Vout[idx].WrappedAddresses = []string{splitAsm[9], splitAsm[10]}
+		}
+	}
+}
+
+func outputIsWrapped(o explorer.Vout) bool {
+	wrappedPattern := "OP_COINSTAKE OP_IF OP_DUP OP_HASH160 [0-9a-f]+ OP_EQUALVERIFY OP_CHECKSIG OP_ELSE [0-9] [0-9a-f]+ [0-9a-f]+ [0-9] OP_CHECKMULTISIG OP_ENDIF"
+
+	matched, err := regexp.MatchString(wrappedPattern, o.ScriptPubKey.Asm)
+	if err != nil {
+		log.Errorf("IsWrapped: Failed to match %s", o.ScriptPubKey.Asm)
+		return false
+	}
+
+	return matched
+}
+
+func applyPrivateStatus(tx *explorer.BlockTransaction) {
+	if tx.IsCoinbase() || tx.Wrapped {
+		return
+	}
+
+	for idx := range tx.Vout {
+		if idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata" {
+			tx.Private = true
+		}
+		if tx.Vout[idx].RangeProof == true || (idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata") {
+			tx.Vout[idx].Private = true
+			tx.Private = true
 		}
 	}
 }
@@ -245,10 +277,10 @@ func applyFees(tx *explorer.BlockTransaction, block *explorer.Block) {
 
 	if tx.Private == true {
 		tx.Fees = tx.Vout.PrivateFees()
-		logrus.Infof("Fees for PRIVATE|%s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
+		log.Infof("Fees for PRIVATE|%s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	} else {
 		tx.Fees = tx.Vin.GetAmount() - tx.Vout.GetAmount()
-		logrus.Infof("Fees for %s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
+		log.Infof("Fees for %s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	}
 	block.Fees += tx.Fees
 }

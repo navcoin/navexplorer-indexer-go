@@ -1,12 +1,5 @@
 package explorer
 
-import (
-	log "github.com/sirupsen/logrus"
-	"regexp"
-)
-
-var wrappedPattern = "OP_COINSTAKE OP_IF OP_DUP OP_HASH160 [0-9a-f]+ OP_EQUALVERIFY OP_CHECKSIG OP_ELSE [0-9] [0-9a-f]+ [0-9a-f]+ [0-9] OP_CHECKMULTISIG OP_ENDIF"
-
 type RawVout struct {
 	Value        float64      `json:"value"`
 	ValueSat     uint64       `json:"valuesat"`
@@ -23,9 +16,10 @@ type RawVout struct {
 
 type Vout struct {
 	RawVout
-	RedeemedIn *RedeemedIn `json:"redeemedIn,omitempty"`
-	Private    bool        `json:"private"`
-	Wrapped    bool        `json:"wrapped"`
+	RedeemedIn       *RedeemedIn `json:"redeemedIn,omitempty"`
+	Private          bool        `json:"private"`
+	Wrapped          bool        `json:"wrapped"`
+	WrappedAddresses []string    `json:"wrappedAddresses,omitempty"`
 }
 
 type RedeemedIn struct {
@@ -66,18 +60,4 @@ func (o *Vout) IsColdSpendingAddress(address string) bool {
 
 func (o *Vout) IsColdVotingAddress(address string) bool {
 	return len(o.ScriptPubKey.Addresses) == 3 && o.ScriptPubKey.Addresses[2] == address
-}
-
-func (o *Vout) IsWrapped() bool {
-	matched, err := regexp.MatchString(wrappedPattern, o.ScriptPubKey.Asm)
-	if err != nil {
-		log.Errorf("IsWrapped: Failed to match %s", o.ScriptPubKey.Asm)
-		return false
-	}
-
-	return matched
-}
-
-func (o *Vout) IsPrivate() bool {
-	return !o.IsWrapped() && o.ScriptPubKey.Type == VoutNonstandard && len(o.ScriptPubKey.Addresses) == 0
 }

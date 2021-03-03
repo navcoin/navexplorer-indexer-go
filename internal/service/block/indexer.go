@@ -77,19 +77,12 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 	for idx, txHash := range block.Tx {
 		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.WithFields(log.Fields{"hash": block.Hash, "txHash": txHash, "height": height}).WithError(err).Error("Failed to GetRawTransaction")
 			return nil, nil, nil, err
 		}
-		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx))
-		applyType(tx)
-		applyWrappedAndPrivateStatus(tx)
-		applyStaking(tx, block)
-		applySpend(tx, block)
-		applyCFundPayout(tx, block)
-		applyFees(tx, block)
 
+		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx), block)
 		i.indexPreviousTxData(tx)
+
 		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
 
 		txs = append(txs, tx)
@@ -130,13 +123,16 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		tx.Vin[vdx].Addresses = previousOutput.ScriptPubKey.Addresses
 		tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
 		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
-		tx.Vin[vdx].Wrapped = previousOutput.IsWrapped()
-		if tx.Wrapped == false {
-			tx.Wrapped = previousOutput.IsWrapped()
+
+		if previousOutput.Wrapped {
+			tx.Vin[vdx].Wrapped = true
+			tx.Vin[vdx].WrappedAddresses = previousOutput.WrappedAddresses
+			tx.Wrapped = true
 		}
-		tx.Vin[vdx].Private = previousOutput.IsPrivate()
-		if tx.Private == false {
-			tx.Private = previousOutput.IsPrivate()
+
+		if previousOutput.Private {
+			tx.Vin[vdx].Private = true
+			tx.Private = true
 		}
 
 		prevTx.Vout[*tx.Vin[vdx].Vout].SpentHeight = tx.Height

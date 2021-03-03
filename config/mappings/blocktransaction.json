@@ -152,6 +152,15 @@
           },
           "wrapped": {
             "type": "boolean"
+          },
+          "wrappedAddresses": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
           }
         }
       },
@@ -288,6 +297,15 @@
           },
           "wrapped": {
             "type": "boolean"
+          },
+          "wrappedAddresses": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
           }
         }
       },

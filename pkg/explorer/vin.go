@@ -10,12 +10,13 @@ type RawVin struct {
 
 type Vin struct {
 	RawVin
-	Value          float64        `json:"value,omitempty"`
-	ValueSat       uint64         `json:"valuesat,omitempty"`
-	Addresses      []string       `json:"addresses,omitempty"`
-	PreviousOutput PreviousOutput `json:"previousOutput,omitempty"`
-	Private        bool           `json:"private"`
-	Wrapped        bool           `json:"wrapped"`
+	Value            float64        `json:"value,omitempty"`
+	ValueSat         uint64         `json:"valuesat,omitempty"`
+	Addresses        []string       `json:"addresses,omitempty"`
+	PreviousOutput   PreviousOutput `json:"previousOutput,omitempty"`
+	Private          bool           `json:"private"`
+	Wrapped          bool           `json:"wrapped"`
+	WrappedAddresses []string       `json:"wrappedAddresses,omitempty"`
 }
 
 type PreviousOutput struct {
