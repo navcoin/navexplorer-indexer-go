@@ -16,6 +16,7 @@ type RawVout struct {
 
 type Vout struct {
 	RawVout
+	Redeemed         bool        `json:"redeemed"`
 	RedeemedIn       *RedeemedIn `json:"redeemedIn,omitempty"`
 	Private          bool        `json:"private"`
 	Wrapped          bool        `json:"wrapped"`

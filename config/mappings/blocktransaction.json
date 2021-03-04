@@ -292,6 +292,9 @@
               }
             }
           },
+          "redeemed": {
+            "type": "boolean"
+          },
           "private": {
             "type": "boolean"
           },

@@ -135,10 +135,7 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 			tx.Private = true
 		}
 
-		prevTx.Vout[*tx.Vin[vdx].Vout].SpentHeight = tx.Height
-		prevTx.Vout[*tx.Vin[vdx].Vout].SpentIndex = *tx.Vin[vdx].Vout
-		prevTx.Vout[*tx.Vin[vdx].Vout].SpentTxId = tx.Txid
-
+		prevTx.Vout[*tx.Vin[vdx].Vout].Redeemed = true
 		prevTx.Vout[*tx.Vin[vdx].Vout].RedeemedIn = &explorer.RedeemedIn{
 			Hash:   tx.Txid,
 			Height: tx.Height,

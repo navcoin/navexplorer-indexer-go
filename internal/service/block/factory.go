@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-var STATIC_REWARD uint64 = 200000000
+var (
+	STATIC_REWARD uint64 = 200000000
+	WRAPPED_ASM   string = "OP_COINSTAKE OP_IF OP_DUP OP_HASH160 [0-9a-f]+ OP_EQUALVERIFY OP_CHECKSIG OP_ELSE [0-9] [0-9a-f]+ [0-9a-f]+ [0-9] OP_CHECKMULTISIG OP_ENDIF"
+)
 
 func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize uint) *explorer.Block {
 	log.Debugf("Create Block %s", block.Hash)
@@ -96,7 +99,7 @@ func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint, block *ex
 
 	applyType(tx)
 	applyWrappedStatus(tx)
-	applyPrivateStatus(tx)
+	applyPrivateStatus(tx, block)
 	applyStaking(tx, block)
 	applySpend(tx, block)
 	applyCFundPayout(tx, block)
@@ -158,6 +161,7 @@ func createVout(vouts []navcoind.Vout) []explorer.Vout {
 				SpentIndex:   o.SpentIndex,
 				SpentHeight:  uint64(o.SpentHeight),
 			},
+			Redeemed: false,
 		})
 	}
 
@@ -199,9 +203,7 @@ func applyWrappedStatus(tx *explorer.BlockTransaction) {
 }
 
 func outputIsWrapped(o explorer.Vout) bool {
-	wrappedPattern := "OP_COINSTAKE OP_IF OP_DUP OP_HASH160 [0-9a-f]+ OP_EQUALVERIFY OP_CHECKSIG OP_ELSE [0-9] [0-9a-f]+ [0-9a-f]+ [0-9] OP_CHECKMULTISIG OP_ENDIF"
-
-	matched, err := regexp.MatchString(wrappedPattern, o.ScriptPubKey.Asm)
+	matched, err := regexp.MatchString(WRAPPED_ASM, o.ScriptPubKey.Asm)
 	if err != nil {
 		log.Errorf("IsWrapped: Failed to match %s", o.ScriptPubKey.Asm)
 		return false
@@ -210,7 +212,7 @@ func outputIsWrapped(o explorer.Vout) bool {
 	return matched
 }
 
-func applyPrivateStatus(tx *explorer.BlockTransaction) {
+func applyPrivateStatus(tx *explorer.BlockTransaction, block *explorer.Block) {
 	if tx.IsCoinbase() || tx.Wrapped {
 		return
 	}
@@ -218,8 +220,14 @@ func applyPrivateStatus(tx *explorer.BlockTransaction) {
 	for idx := range tx.Vout {
 		if idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata" {
 			tx.Private = true
+			tx.Vout[idx].ScriptPubKey.Addresses = []string{block.StakedBy}
+			tx.Vout[idx].RedeemedIn = &explorer.RedeemedIn{
+				Hash:   block.Tx[1],
+				Height: block.Height,
+				Index:  1,
+			}
 		}
-		if tx.Vout[idx].RangeProof == true || (idx == len(tx.Vout)-1 && tx.Vout[idx].ScriptPubKey.Asm == "OP_RETURN" && tx.Vout[idx].ScriptPubKey.Type == "nulldata") {
+		if tx.Vout[idx].RangeProof == true {
 			tx.Vout[idx].Private = true
 			tx.Private = true
 		}
