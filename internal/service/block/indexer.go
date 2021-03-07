@@ -64,14 +64,13 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 	block.Cfund = &explorer.Cfund{Available: available, Locked: locked}
 
 	if option == IndexOption.SingleIndex {
-		orphan, err := i.orphanService.IsOrphanBlock(block, LastBlockIndexed)
+		orphan, err := i.orphanService.IsOrphanBlock(block, i.service.GetLastBlockIndexed())
 		if orphan == true || err != nil {
 			log.WithFields(log.Fields{"block": block.Hash}).WithError(err).Info("Orphan Block Found")
-			LastBlockIndexed = nil
+			i.service.setLastBlockIndexed(nil)
 			return nil, nil, nil, ErrOrphanBlockFound
 		}
 	}
-	LastBlockIndexed = block
 
 	var txs = make([]*explorer.BlockTransaction, 0)
 	for idx, txHash := range block.Tx {
@@ -91,12 +90,65 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		if tx.IsAnyStaking() {
 			tx.Fees = block.Fees
 		}
+
+		var publicVin float64 = 0
+		var publicVinSat uint64 = 0
+		var publicVout float64 = 0
+		var publicVoutSat uint64 = 0
+		for _, vin := range tx.Vin {
+			if !vin.Private && !vin.Wrapped {
+				publicVin += vin.Value
+				publicVinSat += vin.ValueSat
+			}
+		}
+		for _, vout := range tx.Vout {
+			if !vout.Private && !vout.Wrapped {
+				publicVout += vout.Value
+				publicVoutSat += vout.ValueSat
+			}
+		}
+		block.Supply.Public += publicVout - publicVin
+		block.Supply.PublicSat += publicVoutSat - publicVinSat
+
+		if tx.Private {
+			var privateVin float64 = 0
+			var privateVinSat uint64 = 0
+			var privateVout float64 = 0
+			var privateVoutSat uint64 = 0
+			for _, vin := range tx.Vin {
+				privateVin += vin.Value
+				privateVinSat += vin.ValueSat
+			}
+			for _, vout := range tx.Vout {
+				privateVout += vout.Value
+				privateVoutSat += vout.ValueSat
+			}
+			block.Supply.Private += privateVin - privateVout
+			block.Supply.PrivateSat += privateVinSat - privateVoutSat
+		}
+
+		if tx.Wrapped {
+			for _, vin := range tx.Vin {
+				if vin.Wrapped {
+					block.Supply.Wrapped -= vin.Value
+					block.Supply.WrappedSat -= vin.ValueSat
+				}
+			}
+
+			for _, vout := range tx.Vout {
+				if vout.Wrapped {
+					block.Supply.Wrapped += vout.Value
+					block.Supply.WrappedSat += vout.ValueSat
+				}
+			}
+		}
 	}
 
 	if option == IndexOption.SingleIndex {
 		i.updateNextHashOfPreviousBlock(block)
 	}
 
+	i.service.setLastBlockIndexed(block)
 	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
 
 	if option == IndexOption.BatchIndex {
@@ -164,9 +216,6 @@ func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 }
 
 func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
-	if prevBlock, err := i.repository.GetBlockByHeight(block.Height - 1); err == nil {
-		log.Debugf("Update NextHash of PreviousBlock: %s", block.Hash)
-		prevBlock.Nextblockhash = block.Hash
-		i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), prevBlock)
-	}
+	i.service.GetLastBlockIndexed().Nextblockhash = block.Hash
+	i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), i.service.GetLastBlockIndexed())
 }

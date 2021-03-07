@@ -41,6 +41,7 @@ func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize
 		},
 		BlockCycle: createBlockCycle(cycleSize, previousBlock),
 		TxCount:    uint(len(block.Tx)),
+		Supply:     previousBlock.Supply,
 	}
 }
 

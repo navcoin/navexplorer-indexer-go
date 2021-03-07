@@ -42,8 +42,19 @@ type Block struct {
 	BlockCycle *BlockCycle `json:"block_cycle"`
 	Cfund      *Cfund      `json:"cfund"`
 
+	Supply Supply `json:"supply"`
+
 	// Transient
 	Best bool `json:"best,omitempty"`
+}
+
+type Supply struct {
+	Public     float64 `json:"public"`
+	PublicSat  uint64  `json:"publicsat"`
+	Private    float64 `json:"private"`
+	PrivateSat uint64  `json:"privatesat"`
+	Wrapped    float64 `json:"wrapped"`
+	WrappedSat uint64  `json:"wrappedsat"`
 }
 
 func (b *Block) Id() string {

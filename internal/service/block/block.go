@@ -6,8 +6,6 @@ import (
 	"sort"
 )
 
-var LastBlockIndexed *explorer.Block
-
 var BlockData = BlockDataObj{}
 
 func (b *BlockDataObj) Reset() {
