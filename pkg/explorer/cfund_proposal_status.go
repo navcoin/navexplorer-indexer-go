@@ -37,6 +37,10 @@ func GetProposalStatusByState(state uint) ProposalStatus {
 		}
 	}
 
+	if state == 16 {
+		return proposalStatus[3]
+	}
+
 	log.Fatal("ProposalStatus state does not exist", state)
 	panic(0)
 }
