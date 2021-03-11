@@ -157,6 +157,34 @@
       },
       "tx_count": {
         "type": "integer"
+      },
+      "supply_balance" : {
+        "type": "nested",
+        "properties" : {
+          "public" : {
+            "type" : "long"
+          },
+          "private" : {
+            "type" : "long"
+          },
+          "wrapped" : {
+            "type" : "long"
+          }
+        }
+      },
+      "supply_change" : {
+        "type": "nested",
+        "properties" : {
+          "public" : {
+            "type" : "long"
+          },
+          "private" : {
+            "type" : "long"
+          },
+          "wrapped" : {
+            "type" : "long"
+          }
+        }
       }
     }
   },

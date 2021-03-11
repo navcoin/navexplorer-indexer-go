@@ -41,11 +41,17 @@ func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize
 		},
 		BlockCycle: createBlockCycle(cycleSize, previousBlock),
 		TxCount:    uint(len(block.Tx)),
-		Supply: func(previousBlock *explorer.Block) explorer.Supply {
+		SupplyBalance: func(previousBlock *explorer.Block) explorer.SupplyBalance {
 			if previousBlock == nil {
-				return explorer.Supply{}
+				return explorer.SupplyBalance{}
 			}
-			return previousBlock.Supply
+			return previousBlock.SupplyBalance
+		}(previousBlock),
+		SupplyChange: func(previousBlock *explorer.Block) explorer.SupplyChange {
+			if previousBlock == nil {
+				return explorer.SupplyChange{}
+			}
+			return previousBlock.SupplyChange
 		}(previousBlock),
 	}
 }

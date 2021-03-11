@@ -72,77 +72,13 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		}
 	}
 
-	var txs = make([]*explorer.BlockTransaction, 0)
-	for idx, txHash := range block.Tx {
-		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx), block)
-		i.indexPreviousTxData(tx)
-
-		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
-
-		txs = append(txs, tx)
+	txs, err := i.createBlockTransactions(block)
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	for _, tx := range txs {
-		if tx.IsAnyStaking() {
-			tx.Fees = block.Fees
-		}
 
-		var publicVin float64 = 0
-		var publicVinSat uint64 = 0
-		var publicVout float64 = 0
-		var publicVoutSat uint64 = 0
-		for _, vin := range tx.Vin {
-			if !vin.Private && !vin.Wrapped {
-				publicVin += vin.Value
-				publicVinSat += vin.ValueSat
-			}
-		}
-		for _, vout := range tx.Vout {
-			if !vout.Private && !vout.Wrapped {
-				publicVout += vout.Value
-				publicVoutSat += vout.ValueSat
-			}
-		}
-		block.Supply.Public += publicVout - publicVin
-		block.Supply.PublicSat += publicVoutSat - publicVinSat
-
-		if tx.Private {
-			var privateVin float64 = 0
-			var privateVinSat uint64 = 0
-			var privateVout float64 = 0
-			var privateVoutSat uint64 = 0
-			for _, vin := range tx.Vin {
-				privateVin += vin.Value
-				privateVinSat += vin.ValueSat
-			}
-			for _, vout := range tx.Vout {
-				privateVout += vout.Value
-				privateVoutSat += vout.ValueSat
-			}
-			block.Supply.Private += privateVin - privateVout
-			block.Supply.PrivateSat += privateVinSat - privateVoutSat
-		}
-
-		if tx.Wrapped {
-			for _, vin := range tx.Vin {
-				if vin.Wrapped {
-					block.Supply.Wrapped -= vin.Value
-					block.Supply.WrappedSat -= vin.ValueSat
-				}
-			}
-
-			for _, vout := range tx.Vout {
-				if vout.Wrapped {
-					block.Supply.Wrapped += vout.Value
-					block.Supply.WrappedSat += vout.ValueSat
-				}
-			}
-		}
-	}
+	i.updateStakingFees(block, txs)
+	i.updateSupply(block, txs)
 
 	if option == IndexOption.SingleIndex {
 		i.updateNextHashOfPreviousBlock(block)
@@ -218,4 +154,83 @@ func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
 	i.service.GetLastBlockIndexed().Nextblockhash = block.Hash
 	i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), i.service.GetLastBlockIndexed())
+}
+
+func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
+
+	var txs = make([]*explorer.BlockTransaction, 0)
+	for idx, txHash := range block.Tx {
+		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
+		if err != nil {
+			return nil, err
+		}
+
+		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx), block)
+		i.indexPreviousTxData(tx)
+
+		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
+
+		txs = append(txs, tx)
+	}
+
+	return txs, nil
+}
+
+func (i *Indexer) updateStakingFees(block *explorer.Block, txs []*explorer.BlockTransaction) {
+	for _, tx := range txs {
+		if tx.IsAnyStaking() {
+			tx.Fees = block.Fees
+		}
+	}
+}
+
+func (i *Indexer) updateSupply(block *explorer.Block, txs []*explorer.BlockTransaction) {
+	log.Debugf("Updating Supply for block %d", block.Height)
+
+	for _, tx := range txs {
+		log.Debugf("Updating Supply for tx %s", tx.Hash)
+		for idx, vin := range tx.Vin {
+			log.Debugf("Updating Supply for vin %d", idx)
+			if !vin.Private && !vin.Wrapped {
+				block.SupplyBalance.Public -= vin.ValueSat
+				log.Debugf("Public decrease by %d", vin.ValueSat)
+			}
+			if tx.Private {
+				block.SupplyBalance.Private += vin.ValueSat
+				log.Debugf("Private increase by %d", vin.ValueSat)
+			}
+			if tx.Wrapped && vin.Wrapped {
+				block.SupplyBalance.Wrapped -= vin.ValueSat
+				log.Debugf("Wrapped decrease by %d", vin.ValueSat)
+			}
+		}
+		for idx, vout := range tx.Vout {
+			log.Debugf("Updating Supply for vout %d - %d", idx, vout.N)
+			if !vout.Private && !vout.Wrapped {
+				block.SupplyBalance.Public += vout.ValueSat
+				log.Debugf("Public increase by %d", vout.ValueSat)
+			}
+			if tx.Private {
+				block.SupplyBalance.Private -= vout.ValueSat
+				log.Debugf("Private decrease by %d", vout.ValueSat)
+				if vout.IsPrivateFee() {
+					block.SupplyBalance.Public -= vout.ValueSat
+				}
+			}
+			if tx.Wrapped && vout.Wrapped {
+				log.Debugf("Wrapped increase by %d", vout.ValueSat)
+				block.SupplyBalance.Wrapped += vout.ValueSat
+			}
+		}
+	}
+
+	if lastBlockIndexed := i.service.GetLastBlockIndexed(); lastBlockIndexed != nil {
+		block.SupplyChange.Public = int64(block.SupplyBalance.Public) - int64(lastBlockIndexed.SupplyBalance.Public)
+		block.SupplyChange.Private = int64(block.SupplyBalance.Private) - int64(lastBlockIndexed.SupplyBalance.Private)
+		block.SupplyChange.Wrapped = int64(block.SupplyBalance.Wrapped) - int64(lastBlockIndexed.SupplyBalance.Wrapped)
+	} else {
+		block.SupplyChange.Public = int64(block.SupplyBalance.Public)
+		block.SupplyChange.Private = int64(block.SupplyBalance.Private)
+		block.SupplyChange.Wrapped = int64(block.SupplyBalance.Wrapped)
+	}
 }

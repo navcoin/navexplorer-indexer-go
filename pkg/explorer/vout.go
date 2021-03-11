@@ -39,6 +39,10 @@ func (o *Vout) HasAddress(hash string) bool {
 	return false
 }
 
+func (o *Vout) IsPrivateFee() bool {
+	return o.ScriptPubKey.Type == VoutNulldata || o.ScriptPubKey.Asm == "OP_RETURN"
+}
+
 func (o *Vout) IsColdStaking() bool {
 	return o.ScriptPubKey.Type == VoutColdStaking || o.ScriptPubKey.Type == VoutColdStakingV2
 }
