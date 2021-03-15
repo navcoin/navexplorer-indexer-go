@@ -111,6 +111,21 @@
           }
         }
       },
+      "rangeAnswers": {
+        "properties" : {
+          "type":"nested",
+          "attributes":{
+            "key" : {
+              "index" : "not_analyzed",
+              "type" : "string"
+            },
+            "value" : {
+              "index":"not_analyzed",
+              "type" : "integer"
+            }
+          }
+        }
+      },
       "min": {
         "type": "long"
       },

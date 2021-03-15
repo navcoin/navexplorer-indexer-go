@@ -26,6 +26,12 @@ github.com/NavExplorer/navcoind-go v1.1.1-0.20201113144755-0e67e3f870bd h1:DfgE7
 github.com/NavExplorer/navcoind-go v1.1.1-0.20201113144755-0e67e3f870bd/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
 github.com/NavExplorer/navcoind-go v1.1.1 h1:QvAkz0ZEE0y7hhT7uLdS7zbfaZ1u7N5H7bVymvtZTKo=
 github.com/NavExplorer/navcoind-go v1.1.1/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
+github.com/NavExplorer/navcoind-go v1.1.2-0.20210315153724-228d3bf6a1f3 h1:T7bEBBfHyDotA24sg/ecH8tpPrPHdIYJchg+6ooDw8s=
+github.com/NavExplorer/navcoind-go v1.1.2-0.20210315153724-228d3bf6a1f3/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
+github.com/NavExplorer/navcoind-go v1.1.2-0.20210315163347-5642b600a039 h1:uCU4kQ/WIvDMbNqiXE2DKvMTYXQuQe4GdOu+VDUeQf0=
+github.com/NavExplorer/navcoind-go v1.1.2-0.20210315163347-5642b600a039/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
+github.com/NavExplorer/navcoind-go v1.1.2 h1:Ndd0JbNmjiGb5dNASsU9z/GS0nne37rERW/JwuxjwAM=
+github.com/NavExplorer/navcoind-go v1.1.2/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20201018212848-8f083a5780f7 h1:HVupROPLtk5tDcBEynTF9UAjrL+x4w9rg9G1BHWmdN0=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20201018212848-8f083a5780f7/go.mod h1:oK/hf93fbi8IZIMI7iA7wHpkI5y8pmvsqr/M+gQeL5U=
 github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=

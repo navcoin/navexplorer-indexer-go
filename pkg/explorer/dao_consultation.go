@@ -11,7 +11,8 @@ type Consultation struct {
 	Question                 string         `json:"question"`
 	Support                  int            `json:"support"`
 	Abstain                  int            `json:"abstain,omitempty"`
-	Answers                  []*Answer      `json:"answers"`
+	Answers                  []*Answer      `json:"answers,omitempty"`
+	RangeAnswers             map[string]int `json:"rangeAnswers,omitempty"`
 	Min                      int            `json:"min"`
 	Max                      int            `json:"max"`
 	VotingCyclesFromCreation int            `json:"votingCyclesFromCreation"`
