@@ -3,7 +3,7 @@ module github.com/NavExplorer/navexplorer-indexer-go/v2
 go 1.14
 
 require (
-	github.com/NavExplorer/navcoind-go v1.1.2
+	github.com/NavExplorer/navcoind-go v1.1.3
 	github.com/NavExplorer/subscriber v1.0.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/certifi/gocertifi v0.0.0-20200922220541-2c3bb06c6054 // indirect
