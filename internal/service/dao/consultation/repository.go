@@ -28,8 +28,8 @@ func (r *Repository) GetOpenConsultations(height uint64) ([]*explorer.Consultati
 	openStatuses[3] = explorer.ConsultationVotingStarted.Status
 
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermsQuery("status.keyword", openStatuses...))
-	query = query.Must(elastic.NewRangeQuery("updatedOnBlock").Gte(height))
+	query = query.Should(elastic.NewTermsQuery("status.keyword", openStatuses...))
+	query = query.Should(elastic.NewRangeQuery("updatedOnBlock").Gte(height))
 
 	results, err := r.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
 		Query(query).
