@@ -88,6 +88,9 @@
               }
             }
           },
+          "txheight": {
+            "type": "float"
+          },
           "vout": {
             "type": "integer"
           },

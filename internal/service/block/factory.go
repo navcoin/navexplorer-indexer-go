@@ -104,9 +104,10 @@ func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint, block *ex
 			Time:            time.Unix(rawTx.Time, 0),
 			BlockTime:       time.Unix(rawTx.BlockTime, 0),
 		},
-		Index: index,
-		Vin:   createVin(rawTx.Vin),
-		Vout:  createVout(rawTx.Vout),
+		TxHeight: float64(block.Height) + (float64(index+1) / 10000),
+		Index:    index,
+		Vin:      createVin(rawTx.Vin),
+		Vout:     createVout(rawTx.Vout),
 	}
 
 	applyType(tx)

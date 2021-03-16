@@ -32,9 +32,12 @@ type BlockTransaction struct {
 	id string
 
 	RawBlockTransaction
-	Index uint  `json:"index"`
-	Vin   Vins  `json:"vin"`
-	Vout  Vouts `json:"vout"`
+
+	Index    uint    `json:"index"`
+	TxHeight float64 `json:"txheight"`
+
+	Vin  Vins  `json:"vin"`
+	Vout Vouts `json:"vout"`
 
 	Type    BlockTransactionType `json:"type"`
 	Stake   uint64               `json:"stake"`
