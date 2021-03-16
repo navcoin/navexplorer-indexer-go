@@ -8,7 +8,6 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type Repository struct {
@@ -22,15 +21,14 @@ func NewRepo(client *elastic.Client) *Repository {
 func (r *Repository) GetOpenConsultations(height uint64) ([]*explorer.Consultation, error) {
 	var consultations []*explorer.Consultation
 
-	openStatuses := []string{
-		explorer.ConsultationPending.Status,
-		explorer.ConsultationFoundSupport.Status,
-		explorer.ConsultationReflection.Status,
-		explorer.ConsultationVotingStarted.Status,
-	}
+	openStatuses := make([]interface{}, 4)
+	openStatuses[0] = explorer.ConsultationPending.Status
+	openStatuses[1] = explorer.ConsultationFoundSupport.Status
+	openStatuses[2] = explorer.ConsultationReflection.Status
+	openStatuses[3] = explorer.ConsultationVotingStarted.Status
 
 	query := elastic.NewBoolQuery()
-	query = query.Should(elastic.NewMatchQuery("status", strings.Join(openStatuses, " ")))
+	query = query.Should(elastic.NewTermsQuery("status.keyword", openStatuses...))
 	query = query.Should(elastic.NewRangeQuery("updatedOnBlock").Gte(height))
 
 	results, err := r.Client.Search(elastic_cache.DaoConsultationIndex.Get()).

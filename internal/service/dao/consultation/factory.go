@@ -20,14 +20,11 @@ func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTr
 		Status:              explorer.GetConsultationStatusByState(uint(consultation.State)).Status,
 		FoundSupport:        false,
 		StateChangedOnBlock: consultation.StateChangedOnBlock,
-		Height:              tx.Height,
-		UpdatedOnBlock:      tx.Height,
-		ProposedBy:          tx.Vin.First().Addresses[0],
 	}
-
-	answers := createAnswers(consultation)
-	if len(answers) != 0 {
-		c.Answers = answers
+	if tx != nil {
+		c.Height = tx.Height
+		c.UpdatedOnBlock = tx.Height
+		c.ProposedBy = tx.Vin.First().Addresses[0]
 	}
 
 	if consultation.Version>>1&1 == 1 {
@@ -42,16 +39,21 @@ func CreateConsultation(consultation navcoind.Consultation, tx *explorer.BlockTr
 		c.ConsensusParameter = true
 	}
 
+	createAnswers(consultation, c)
+
 	return c
 }
 
-func createAnswers(c navcoind.Consultation) []*explorer.Answer {
-	answers := make([]*explorer.Answer, 0)
-	for _, a := range c.Answers {
-		answers = append(answers, createAnswer(a))
+func createAnswers(navC navcoind.Consultation, c *explorer.Consultation) {
+	if c.AnswerIsARange {
+		c.RangeAnswers = navC.RangeAnswers
+	} else {
+		answers := make([]*explorer.Answer, 0)
+		for _, a := range navC.Answers {
+			answers = append(answers, createAnswer(a))
+		}
+		c.Answers = answers
 	}
-
-	return answers
 }
 
 func createAnswer(a *navcoind.Answer) *explorer.Answer {
@@ -91,9 +93,10 @@ func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bo
 		updated = true
 	}
 
-	if updateAnswers(navC, c) {
-		log.Debug("Answers changed")
-		updated = true
+	if c.AnswerIsARange {
+		updated = updateRangeAnswers(navC, c)
+	} else {
+		updated = updateAnswers(navC, c)
 	}
 
 	if navC.State != c.State {
@@ -120,6 +123,19 @@ func UpdateConsultation(navC navcoind.Consultation, c *explorer.Consultation) bo
 		c.MapState = navC.MapState
 		updated = true
 	}
+
+	return updated
+}
+
+func updateRangeAnswers(navC navcoind.Consultation, c *explorer.Consultation) bool {
+	updated := false
+
+	c.RangeAnswers = make(map[string]int)
+	for k, v := range navC.RangeAnswers {
+		c.RangeAnswers[k] = v
+		updated = true
+	}
+	c.Answers = nil
 
 	return updated
 }
