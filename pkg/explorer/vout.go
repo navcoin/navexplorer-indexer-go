@@ -18,6 +18,7 @@ type Vout struct {
 	RawVout
 	Redeemed         bool        `json:"redeemed"`
 	RedeemedIn       *RedeemedIn `json:"redeemedIn,omitempty"`
+	MultiSig         *MultiSig   `json:"multisig,omitempty"`
 	Private          bool        `json:"private"`
 	Wrapped          bool        `json:"wrapped"`
 	WrappedAddresses []string    `json:"wrappedAddresses,omitempty"`
@@ -29,6 +30,13 @@ type RedeemedIn struct {
 	Height uint64 `json:"height,omitempty"`
 }
 
+type MultiSig struct {
+	Hash       string   `json:"hash,omitempty"`
+	Signatures []string `json:"signatures"`
+	Required   int      `json:"required"`
+	Total      int      `json:"total"`
+}
+
 func (o *Vout) HasAddress(hash string) bool {
 	for _, a := range o.ScriptPubKey.Addresses {
 		if a == hash {
@@ -37,6 +45,10 @@ func (o *Vout) HasAddress(hash string) bool {
 	}
 
 	return false
+}
+
+func (o *Vout) IsMultiSig() bool {
+	return o.MultiSig != nil
 }
 
 func (o *Vout) IsPrivateFee() bool {

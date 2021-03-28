@@ -7,12 +7,14 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
 
 var (
 	STATIC_REWARD uint64 = 200000000
+	MULTISIG_ASM  string = "^OP_COINSTAKE OP_IF OP_DUP OP_HASH160 (?P<hash>[0-9a-f]{40}) OP_EQUALVERIFY OP_CHECKSIG OP_ELSE (?P<signaturesRequired>[1-9]) (?P<signatures>(?:0[0-9a-f]{65} )*)(?P<signaturesTotal>[1-9]) OP_CHECKMULTISIG OP_ENDIF$"
 	WRAPPED_ASM   string = "OP_COINSTAKE OP_IF OP_DUP OP_HASH160 [0-9a-f]+ OP_EQUALVERIFY OP_CHECKSIG OP_ELSE [0-9] [0-9a-f]+ [0-9a-f]+ [0-9] OP_CHECKMULTISIG OP_ENDIF"
 )
 
@@ -111,6 +113,7 @@ func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint, block *ex
 	}
 
 	applyType(tx)
+	applyMultiSigColdStake(tx)
 	applyWrappedStatus(tx)
 	applyPrivateStatus(tx, block)
 	applyStaking(tx, block)
@@ -198,6 +201,49 @@ func applyType(tx *explorer.BlockTransaction) {
 func isStakingTx(tx *explorer.BlockTransaction) bool {
 	return tx.Vout.OutputAtIndexIsOfType(0, explorer.VoutNonstandard) &&
 		tx.Vout.GetOutput(0).ScriptPubKey.Hex == ""
+}
+
+func applyMultiSigColdStake(tx *explorer.BlockTransaction) {
+	for idx := range tx.Vout {
+		if matched, err := regexp.MatchString(MULTISIG_ASM, tx.Vout[idx].ScriptPubKey.Asm); err != nil || matched == false {
+			continue
+		}
+
+		multiSigParams := getRegExParams(MULTISIG_ASM, tx.Vout[idx].ScriptPubKey.Asm)
+
+		signaturesRequired, err := strconv.Atoi(multiSigParams["signaturesRequired"])
+		if err != nil {
+			continue
+		}
+
+		signaturesTotal, err := strconv.Atoi(multiSigParams["signaturesTotal"])
+		if err != nil {
+			continue
+		}
+
+		multiSig := &explorer.MultiSig{
+			Hash:       multiSigParams["hash"],
+			Signatures: strings.Split(strings.TrimSpace(multiSigParams["signatures"]), " "),
+			Required:   signaturesRequired,
+			Total:      signaturesTotal,
+		}
+
+		tx.Vout[idx].MultiSig = multiSig
+	}
+}
+
+func getRegExParams(regEx, url string) (paramsMap map[string]string) {
+
+	var compRegEx = regexp.MustCompile(regEx)
+	match := compRegEx.FindStringSubmatch(url)
+
+	paramsMap = make(map[string]string)
+	for i, name := range compRegEx.SubexpNames() {
+		if i > 0 && i <= len(match) {
+			paramsMap[name] = match[i]
+		}
+	}
+	return paramsMap
 }
 
 func applyWrappedStatus(tx *explorer.BlockTransaction) {
