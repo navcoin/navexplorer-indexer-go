@@ -255,8 +255,6 @@ func applyWrappedStatus(tx *explorer.BlockTransaction) {
 		if outputIsWrapped(tx.Vout[idx]) {
 			tx.Vout[idx].Wrapped = true
 			tx.Wrapped = true
-			splitAsm := strings.Split(tx.Vout[idx].ScriptPubKey.Asm, " ")
-			tx.Vout[idx].WrappedAddresses = []string{splitAsm[9], splitAsm[10]}
 		}
 	}
 }

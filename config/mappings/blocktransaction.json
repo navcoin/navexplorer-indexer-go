@@ -147,21 +147,41 @@
                     "ignore_above": 256
                   }
                 }
-              }
-            }
-          },
-          "private": {
-            "type": "boolean"
-          },
-          "wrapped": {
-            "type": "boolean"
-          },
-          "wrappedAddresses": {
-            "type": "text",
-            "fields": {
-              "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
+              },
+              "multisig": {
+                "type": "nested",
+                "properties": {
+                  "hash": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "signatures": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "required": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "private": {
+                "type": "boolean"
+              },
+              "wrapped": {
+                "type": "boolean"
               }
             }
           }
@@ -301,6 +321,9 @@
           "private": {
             "type": "boolean"
           },
+          "wrapped": {
+            "type": "boolean"
+          },
           "multisig": {
             "type": "nested",
             "properties": {
@@ -327,18 +350,6 @@
               },
               "total": {
                 "type": "integer"
-              }
-            }
-          },
-          "wrapped": {
-            "type": "boolean"
-          },
-          "wrappedAddresses": {
-            "type": "text",
-            "fields": {
-              "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
               }
             }
           }

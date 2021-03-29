@@ -109,17 +109,21 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		tx.Vin[vdx].Value = previousOutput.Value
 		tx.Vin[vdx].ValueSat = previousOutput.ValueSat
 		tx.Vin[vdx].Addresses = previousOutput.ScriptPubKey.Addresses
-		tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
+		if previousOutput.IsMultiSig() {
+			tx.Vin[vdx].PreviousOutput.Type = explorer.VoutMultiSig
+			tx.Vin[vdx].PreviousOutput.MultiSig = previousOutput.MultiSig
+		} else {
+			tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
+		}
 		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
 
 		if previousOutput.Wrapped {
-			tx.Vin[vdx].Wrapped = true
-			tx.Vin[vdx].WrappedAddresses = previousOutput.WrappedAddresses
+			tx.Vin[vdx].PreviousOutput.Wrapped = true
 			tx.Wrapped = true
 		}
 
 		if previousOutput.Private {
-			tx.Vin[vdx].Private = true
+			tx.Vin[vdx].PreviousOutput.Private = true
 			tx.Private = true
 		}
 
@@ -157,7 +161,6 @@ func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
 }
 
 func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
-
 	var txs = make([]*explorer.BlockTransaction, 0)
 	for idx, txHash := range block.Tx {
 		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
@@ -191,7 +194,7 @@ func (i *Indexer) updateSupply(block *explorer.Block, txs []*explorer.BlockTrans
 		log.Debugf("Updating Supply for tx %s", tx.Hash)
 		for idx, vin := range tx.Vin {
 			log.Debugf("Updating Supply for vin %d", idx)
-			if !vin.Private && !vin.Wrapped {
+			if !vin.PreviousOutput.Private && !vin.PreviousOutput.Wrapped {
 				block.SupplyBalance.Public -= vin.ValueSat
 				log.Debugf("Public decrease by %d", vin.ValueSat)
 			}
@@ -199,7 +202,7 @@ func (i *Indexer) updateSupply(block *explorer.Block, txs []*explorer.BlockTrans
 				block.SupplyBalance.Private += vin.ValueSat
 				log.Debugf("Private increase by %d", vin.ValueSat)
 			}
-			if tx.Wrapped && vin.Wrapped {
+			if tx.Wrapped && vin.PreviousOutput.Wrapped {
 				block.SupplyBalance.Wrapped -= vin.ValueSat
 				log.Debugf("Wrapped decrease by %d", vin.ValueSat)
 			}

@@ -10,18 +10,18 @@ type RawVin struct {
 
 type Vin struct {
 	RawVin
-	Value            float64        `json:"value,omitempty"`
-	ValueSat         uint64         `json:"valuesat,omitempty"`
-	Addresses        []string       `json:"addresses,omitempty"`
-	PreviousOutput   PreviousOutput `json:"previousOutput,omitempty"`
-	Private          bool           `json:"private"`
-	Wrapped          bool           `json:"wrapped"`
-	WrappedAddresses []string       `json:"wrappedAddresses,omitempty"`
+	Value          float64        `json:"value,omitempty"`
+	ValueSat       uint64         `json:"valuesat,omitempty"`
+	Addresses      []string       `json:"addresses,omitempty"`
+	PreviousOutput PreviousOutput `json:"previousOutput,omitempty"`
 }
 
 type PreviousOutput struct {
-	Height uint64   `json:"height"`
-	Type   VoutType `json:"type"`
+	Height   uint64    `json:"height"`
+	Type     VoutType  `json:"type"`
+	MultiSig *MultiSig `json:"multi_sig,omitempty"`
+	Private  bool      `json:"private"`
+	Wrapped  bool      `json:"wrapped"`
 }
 
 func (i *Vin) HasAddress(address string) bool {

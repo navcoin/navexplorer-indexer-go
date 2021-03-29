@@ -16,12 +16,11 @@ type RawVout struct {
 
 type Vout struct {
 	RawVout
-	Redeemed         bool        `json:"redeemed"`
-	RedeemedIn       *RedeemedIn `json:"redeemedIn,omitempty"`
-	MultiSig         *MultiSig   `json:"multisig,omitempty"`
-	Private          bool        `json:"private"`
-	Wrapped          bool        `json:"wrapped"`
-	WrappedAddresses []string    `json:"wrappedAddresses,omitempty"`
+	Redeemed   bool        `json:"redeemed"`
+	RedeemedIn *RedeemedIn `json:"redeemedIn,omitempty"`
+	MultiSig   *MultiSig   `json:"multisig,omitempty"`
+	Private    bool        `json:"private"`
+	Wrapped    bool        `json:"wrapped"`
 }
 
 type RedeemedIn struct {
