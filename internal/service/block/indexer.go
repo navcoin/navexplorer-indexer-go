@@ -95,6 +95,10 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 }
 
 func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
+	if tx.IsCoinbase() {
+		return
+	}
+
 	for vdx := range tx.Vin {
 		if tx.Vin[vdx].Vout == nil || tx.Vin[vdx].Txid == nil {
 			continue
@@ -188,41 +192,53 @@ func (i *Indexer) updateStakingFees(block *explorer.Block, txs []*explorer.Block
 }
 
 func (i *Indexer) updateSupply(block *explorer.Block, txs []*explorer.BlockTransaction) {
-	log.Debugf("Updating Supply for block %d", block.Height)
+	log.Infof("Updating Supply for block %d", block.Height)
 
-	for _, tx := range txs {
-		log.Debugf("Updating Supply for tx %s", tx.Hash)
-		for idx, vin := range tx.Vin {
-			log.Debugf("Updating Supply for vin %d", idx)
-			if !vin.PreviousOutput.Private && !vin.PreviousOutput.Wrapped {
-				block.SupplyBalance.Public -= vin.ValueSat
-				log.Debugf("Public decrease by %d", vin.ValueSat)
-			}
-			if tx.Private {
-				block.SupplyBalance.Private += vin.ValueSat
-				log.Debugf("Private increase by %d", vin.ValueSat)
-			}
-			if tx.Wrapped && vin.PreviousOutput.Wrapped {
-				block.SupplyBalance.Wrapped -= vin.ValueSat
-				log.Debugf("Wrapped decrease by %d", vin.ValueSat)
+	if block.Height == 1 {
+		for _, tx := range txs {
+			for _, vout := range tx.Vout {
+				block.SupplyBalance.Public += vout.ValueSat
 			}
 		}
-		for idx, vout := range tx.Vout {
-			log.Debugf("Updating Supply for vout %d - %d", idx, vout.N)
-			if !vout.Private && !vout.Wrapped {
-				block.SupplyBalance.Public += vout.ValueSat
-				log.Debugf("Public increase by %d", vout.ValueSat)
-			}
-			if tx.Private {
-				block.SupplyBalance.Private -= vout.ValueSat
-				log.Debugf("Private decrease by %d", vout.ValueSat)
-				if vout.IsPrivateFee() {
-					block.SupplyBalance.Public -= vout.ValueSat
+	} else {
+		for _, tx := range txs {
+			log.Debugf("Updating Supply for tx %s", tx.Hash)
+			for idx, vin := range tx.Vin {
+				if vin.IsCoinbase() {
+					continue
+				}
+
+				log.Debugf("Updating Supply for vin %d", idx)
+				if !vin.PreviousOutput.Private && !vin.PreviousOutput.Wrapped {
+					block.SupplyBalance.Public -= vin.ValueSat
+					log.Debugf("Public decrease by %d", vin.ValueSat)
+				}
+				if tx.Private {
+					block.SupplyBalance.Private += vin.ValueSat
+					log.Debugf("Private increase by %d", vin.ValueSat)
+				}
+				if tx.Wrapped && vin.PreviousOutput.Wrapped {
+					block.SupplyBalance.Wrapped -= vin.ValueSat
+					log.Debugf("Wrapped decrease by %d", vin.ValueSat)
 				}
 			}
-			if tx.Wrapped && vout.Wrapped {
-				log.Debugf("Wrapped increase by %d", vout.ValueSat)
-				block.SupplyBalance.Wrapped += vout.ValueSat
+			for idx, vout := range tx.Vout {
+				log.Debugf("Updating Supply for vout %d - %d", idx, vout.N)
+				if !vout.Private && !vout.Wrapped {
+					block.SupplyBalance.Public += vout.ValueSat
+					log.Debugf("Public increase by %d", vout.ValueSat)
+				}
+				if tx.Private {
+					block.SupplyBalance.Private -= vout.ValueSat
+					log.Debugf("Private decrease by %d", vout.ValueSat)
+					if vout.IsPrivateFee() {
+						block.SupplyBalance.Public -= vout.ValueSat
+					}
+				}
+				if tx.Wrapped && vout.Wrapped {
+					log.Debugf("Wrapped increase by %d", vout.ValueSat)
+					block.SupplyBalance.Wrapped += vout.ValueSat
+				}
 			}
 		}
 	}

@@ -10,10 +10,10 @@ type RawVin struct {
 
 type Vin struct {
 	RawVin
-	Value          float64         `json:"value,omitempty"`
-	ValueSat       uint64          `json:"valuesat,omitempty"`
-	Addresses      []string        `json:"addresses,omitempty"`
-	PreviousOutput *PreviousOutput `json:"previousOutput,omitempty"`
+	Value          float64        `json:"value,omitempty"`
+	ValueSat       uint64         `json:"valuesat,omitempty"`
+	Addresses      []string       `json:"addresses,omitempty"`
+	PreviousOutput PreviousOutput `json:"previousOutput,omitempty"`
 }
 
 type PreviousOutput struct {
