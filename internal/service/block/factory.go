@@ -132,6 +132,7 @@ func createVin(vins []navcoind.Vin) []explorer.Vin {
 				Coinbase: vins[idx].Coinbase,
 				Sequence: vins[idx].Sequence,
 			},
+			PreviousOutput: nil,
 		}
 		if vins[idx].Txid != "" {
 			input.Txid = &vins[idx].Txid
