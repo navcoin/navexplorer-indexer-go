@@ -47,12 +47,12 @@ type BlockTransaction struct {
 	Wrapped bool                 `json:"wrapped"`
 }
 
-func (b *BlockTransaction) Id() string {
-	return b.id
+func (tx *BlockTransaction) Id() string {
+	return tx.id
 }
 
-func (b *BlockTransaction) SetId(id string) {
-	b.id = id
+func (tx *BlockTransaction) SetId(id string) {
+	tx.id = id
 }
 
 func (tx *BlockTransaction) Slug() string {
@@ -104,6 +104,37 @@ func (tx *BlockTransaction) GetAllAddresses() []string {
 	}
 
 	return addresses
+}
+
+func (tx *BlockTransaction) GetAllMultiSigs() []*MultiSig {
+	multiSigs := make([]*MultiSig, 0)
+
+	exists := func(key string, multiSigs []*MultiSig) bool {
+		for i := range multiSigs {
+			if multiSigs[i].Key() == key {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, vin := range tx.Vin {
+		if vin.PreviousOutput != nil && vin.PreviousOutput.MultiSig != nil {
+			if !exists(vin.PreviousOutput.MultiSig.Key(), multiSigs) {
+				multiSigs = append(multiSigs, vin.PreviousOutput.MultiSig)
+			}
+		}
+	}
+
+	for _, vout := range tx.Vout {
+		if vout.MultiSig != nil {
+			if !exists(vout.MultiSig.Key(), multiSigs) {
+				multiSigs = append(multiSigs, vout.MultiSig)
+			}
+		}
+	}
+
+	return multiSigs
 }
 
 func (tx *BlockTransaction) IsCoinbase() bool {

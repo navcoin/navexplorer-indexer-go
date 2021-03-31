@@ -261,6 +261,7 @@ func applyWrappedStatus(tx *explorer.BlockTransaction) {
 }
 
 func outputIsWrapped(o explorer.Vout) bool {
+	return false
 	matched, err := regexp.MatchString(WRAPPED_ASM, o.ScriptPubKey.Asm)
 	if err != nil {
 		log.Errorf("IsWrapped: Failed to match %s", o.ScriptPubKey.Asm)
@@ -343,10 +344,10 @@ func applyFees(tx *explorer.BlockTransaction, block *explorer.Block) {
 
 	if tx.Private == true {
 		tx.Fees = tx.Vout.PrivateFees()
-		log.Infof("Fees for PRIVATE|%s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
+		log.Debugf("Fees for PRIVATE|%s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	} else {
 		tx.Fees = tx.Vin.GetAmount() - tx.Vout.GetAmount()
-		log.Infof("Fees for %s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
+		log.Debugf("Fees for %s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	}
 	block.Fees += tx.Fees
 }

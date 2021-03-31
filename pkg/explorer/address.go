@@ -19,6 +19,8 @@ type Address struct {
 	CreatedTime  time.Time `json:"created_time"`
 	CreatedBlock uint64    `json:"created_block"`
 
+	MultiSig *MultiSig `json:"multisig,omitempty"`
+
 	// Transient
 	RichList RichList `json:"rich_list,omitempty"`
 }

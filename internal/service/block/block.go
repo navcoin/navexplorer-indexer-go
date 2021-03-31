@@ -62,6 +62,9 @@ func (b *BlockDataObj) Txs() []*explorer.BlockTransaction {
 			txs = append(txs, tx)
 		}
 	}
+	sort.Slice(txs, func(i, j int) bool {
+		return txs[i].TxHeight < txs[j].TxHeight
+	})
 
 	return txs
 }

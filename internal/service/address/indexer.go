@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -22,24 +23,38 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *
 func (i *Indexer) BulkIndex(height uint64) {
 	start := time.Now()
 
-	addressHistorys := i.generateAddressHistory(
-		block.BlockData.First().Block.Height,
-		block.BlockData.Last().Block.Height,
-		block.BlockData.Addresses(),
-		block.BlockData.Txs())
-	for _, addressHistory := range addressHistorys {
-		i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-		err := i.updateAddress(addressHistory)
-		if err != nil {
-			log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
+	go func() {
+		defer wg.Done()
+		addressHistorys := i.generateAddressHistory(
+			block.BlockData.First().Block.Height,
+			block.BlockData.Last().Block.Height,
+			block.BlockData.Addresses(),
+			block.BlockData.Txs())
+		for _, addressHistory := range addressHistorys {
+			i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
+
+			err := i.updateAddress(addressHistory)
+			if err != nil {
+				log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
+			}
 		}
-	}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for _, tx := range block.BlockData.Txs() {
+			i.indexMultiSigs([]*explorer.BlockTransaction{tx})
+		}
+	}()
+
+	wg.Wait()
 
 	elapsed := time.Since(start)
 	log.WithFields(log.Fields{
-		"time":  elapsed,
-		"count": len(addressHistorys),
+		"time": elapsed,
 	}).Infof("Index address:   %d", height)
 
 	block.BlockData.Reset()
@@ -50,9 +65,27 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction)
 		return
 	}
 
-	addresses := getAddressesForTxs(txs)
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	for _, addressHistory := range i.generateAddressHistory(block.Height, block.Height, addresses, txs) {
+	go func() {
+		defer wg.Done()
+		log.Infof("Index Addresses %d", block.Height)
+		i.indexAddresses(block.Height, txs)
+	}()
+
+	go func() {
+		defer wg.Done()
+		log.Infof("Index Multisigs %d", block.Height)
+		i.indexMultiSigs(txs)
+	}()
+
+	wg.Wait()
+}
+
+func (i *Indexer) indexAddresses(height uint64, txs []*explorer.BlockTransaction) {
+	addresses := getAddressesForTxs(txs)
+	for _, addressHistory := range i.generateAddressHistory(height, height, addresses, txs) {
 		i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 
 		err := i.updateAddress(addressHistory)
@@ -60,6 +93,90 @@ func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction)
 			log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
 		}
 	}
+}
+
+func (i *Indexer) indexMultiSigs(txs []*explorer.BlockTransaction) {
+	multiSigs := getMultiSigsForTxs(txs)
+
+	for _, multiSig := range multiSigs {
+		address, err := i.getAddress(multiSig.Key())
+		if err != nil {
+			log.Fatalf("Failed to get or create address %s", multiSig.Key())
+			continue
+		}
+
+		if address.MultiSig == nil {
+			address.MultiSig = multiSig
+		}
+
+		for _, tx := range txs {
+			addressHistory := &explorer.AddressHistory{
+				Height:      tx.Height,
+				TxIndex:     tx.Index,
+				TxId:        tx.Txid,
+				Time:        tx.Time,
+				Hash:        multiSig.Key(),
+				CfundPayout: false,
+				StakePayout: false,
+				Changes: explorer.AddressChanges{
+					Spendable:    0,
+					Stakable:     0,
+					VotingWeight: 0,
+				},
+				Balance: explorer.AddressBalance{
+					Spendable:    address.Spendable,
+					Stakable:     address.Stakable,
+					VotingWeight: address.VotingWeight,
+				},
+				Stake: tx.IsAnyStaking(),
+			}
+			for _, vin := range tx.Vin {
+				if vin.PreviousOutput.MultiSig != nil && vin.PreviousOutput.MultiSig.Key() == multiSig.Key() {
+					addressHistory.Changes = explorer.AddressChanges{
+						Spendable:    addressHistory.Changes.Spendable - int64(vin.ValueSat),
+						Stakable:     addressHistory.Changes.Stakable - int64(vin.ValueSat),
+						VotingWeight: addressHistory.Changes.VotingWeight - int64(vin.ValueSat),
+					}
+					addressHistory.Balance = explorer.AddressBalance{
+						Spendable:    addressHistory.Balance.Spendable - int64(vin.ValueSat),
+						Stakable:     addressHistory.Balance.Stakable - int64(vin.ValueSat),
+						VotingWeight: addressHistory.Balance.VotingWeight - int64(vin.ValueSat),
+					}
+				}
+			}
+			for _, vout := range tx.Vout {
+				if vout.MultiSig != nil && vout.MultiSig.Key() == multiSig.Key() {
+					addressHistory.Changes = explorer.AddressChanges{
+						Spendable:    addressHistory.Changes.Spendable + int64(vout.ValueSat),
+						Stakable:     addressHistory.Changes.Stakable + int64(vout.ValueSat),
+						VotingWeight: addressHistory.Changes.VotingWeight + int64(vout.ValueSat),
+					}
+					addressHistory.Balance = explorer.AddressBalance{
+						Spendable:    addressHistory.Balance.Spendable + int64(vout.ValueSat),
+						Stakable:     addressHistory.Balance.Stakable + int64(vout.ValueSat),
+						VotingWeight: addressHistory.Balance.VotingWeight + int64(vout.ValueSat),
+					}
+				}
+			}
+			i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
+
+			err := i.updateAddress(addressHistory)
+			if err != nil {
+				log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
+			}
+		}
+	}
+}
+
+func getMultiSigsForTxs(txs []*explorer.BlockTransaction) []*explorer.MultiSig {
+	multiSigs := make([]*explorer.MultiSig, 0)
+	for _, tx := range txs {
+		for _, multiSig := range tx.GetAllMultiSigs() {
+			multiSigs = append(multiSigs, multiSig)
+		}
+	}
+
+	return multiSigs
 }
 
 func (i *Indexer) generateAddressHistory(start, end uint64, addresses []string, txs []*explorer.BlockTransaction) []*explorer.AddressHistory {
@@ -78,14 +195,19 @@ func (i *Indexer) generateAddressHistory(start, end uint64, addresses []string, 
 	return addressHistory
 }
 
+func (i *Indexer) getAddress(hash string) (*explorer.Address, error) {
+	address := Addresses.GetByHash(hash)
+	if address != nil {
+		return address, nil
+	}
+
+	return i.repo.GetOrCreateAddress(hash)
+}
+
 func (i *Indexer) updateAddress(history *explorer.AddressHistory) error {
-	address := Addresses.GetByHash(history.Hash)
-	if address == nil {
-		var err error
-		address, err = i.repo.GetOrCreateAddress(history.Hash)
-		if err != nil {
-			return err
-		}
+	address, err := i.getAddress(history.Hash)
+	if err != nil {
+		return err
 	}
 
 	address.Height = history.Height

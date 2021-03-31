@@ -108,6 +108,9 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		if err != nil {
 			log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
 		}
+		tx.Vin[vdx].PreviousOutput = &explorer.PreviousOutput{
+			Height: prevTx.Height,
+		}
 
 		previousOutput := prevTx.Vout[*tx.Vin[vdx].Vout]
 		tx.Vin[vdx].Value = previousOutput.Value
@@ -119,7 +122,6 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		} else {
 			tx.Vin[vdx].PreviousOutput.Type = previousOutput.ScriptPubKey.Type
 		}
-		tx.Vin[vdx].PreviousOutput.Height = prevTx.Height
 
 		if previousOutput.Wrapped {
 			tx.Vin[vdx].PreviousOutput.Wrapped = true
@@ -192,7 +194,7 @@ func (i *Indexer) updateStakingFees(block *explorer.Block, txs []*explorer.Block
 }
 
 func (i *Indexer) updateSupply(block *explorer.Block, txs []*explorer.BlockTransaction) {
-	log.Infof("Updating Supply for block %d", block.Height)
+	log.Debugf("Updating Supply for block %d", block.Height)
 
 	if block.Height == 1 {
 		for _, tx := range txs {

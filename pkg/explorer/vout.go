@@ -1,5 +1,10 @@
 package explorer
 
+import (
+	"fmt"
+	"strings"
+)
+
 type RawVout struct {
 	Value        float64      `json:"value"`
 	ValueSat     uint64       `json:"valuesat"`
@@ -18,7 +23,7 @@ type Vout struct {
 	RawVout
 	Redeemed   bool        `json:"redeemed"`
 	RedeemedIn *RedeemedIn `json:"redeemedIn,omitempty"`
-	MultiSig   *MultiSig   `json:"multisig,omitempty"`
+	MultiSig   *MultiSig   `json:"address_multisig,omitempty"`
 	Private    bool        `json:"private"`
 	Wrapped    bool        `json:"wrapped"`
 }
@@ -76,4 +81,8 @@ func (o *Vout) IsColdSpendingAddress(address string) bool {
 
 func (o *Vout) IsColdVotingAddress(address string) bool {
 	return len(o.ScriptPubKey.Addresses) == 3 && o.ScriptPubKey.Addresses[2] == address
+}
+
+func (m *MultiSig) Key() string {
+	return fmt.Sprintf("%s-%s", m.Hash, strings.Join(m.Signatures, "-"))
 }
