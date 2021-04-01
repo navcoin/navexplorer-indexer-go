@@ -19,7 +19,7 @@ type Vin struct {
 type PreviousOutput struct {
 	Height   uint64    `json:"height"`
 	Type     VoutType  `json:"type"`
-	MultiSig *MultiSig `json:"multi_sig,omitempty"`
+	MultiSig *MultiSig `json:"multisig,omitempty"`
 	Private  bool      `json:"private"`
 	Wrapped  bool      `json:"wrapped"`
 }

@@ -36,7 +36,7 @@ func (i *Indexer) BulkIndex(height uint64) {
 		for _, addressHistory := range addressHistorys {
 			i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 
-			err := i.updateAddress(addressHistory)
+			err := i.updateAddress(addressHistory, nil)
 			if err != nil {
 				log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
 			}
@@ -88,7 +88,7 @@ func (i *Indexer) indexAddresses(height uint64, txs []*explorer.BlockTransaction
 	for _, addressHistory := range i.generateAddressHistory(height, height, addresses, txs) {
 		i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 
-		err := i.updateAddress(addressHistory)
+		err := i.updateAddress(addressHistory, nil)
 		if err != nil {
 			log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
 		}
@@ -105,9 +105,7 @@ func (i *Indexer) indexMultiSigs(txs []*explorer.BlockTransaction) {
 			continue
 		}
 
-		if address.MultiSig == nil {
-			address.MultiSig = multiSig
-		}
+		address.MultiSig = multiSig
 
 		for _, tx := range txs {
 			addressHistory := &explorer.AddressHistory{
@@ -160,7 +158,7 @@ func (i *Indexer) indexMultiSigs(txs []*explorer.BlockTransaction) {
 			}
 			i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 
-			err := i.updateAddress(addressHistory)
+			err := i.updateAddress(addressHistory, address)
 			if err != nil {
 				log.WithError(err).Fatalf("Could not update address: %s", addressHistory.Hash)
 			}
@@ -204,10 +202,13 @@ func (i *Indexer) getAddress(hash string) (*explorer.Address, error) {
 	return i.repo.GetOrCreateAddress(hash)
 }
 
-func (i *Indexer) updateAddress(history *explorer.AddressHistory) error {
-	address, err := i.getAddress(history.Hash)
-	if err != nil {
-		return err
+func (i *Indexer) updateAddress(history *explorer.AddressHistory, address *explorer.Address) error {
+	if address == nil {
+		var err error
+		address, err = i.getAddress(history.Hash)
+		if err != nil {
+			return err
+		}
 	}
 
 	address.Height = history.Height
