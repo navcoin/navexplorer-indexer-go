@@ -7,7 +7,7 @@ var (
 	VoutPubkey                     VoutType = "pubkey"
 	VoutPubkeyhash                 VoutType = "pubkeyhash"
 	VoutScripthash                 VoutType = "scripthash"
-	VoutMultiSig                   VoutType = "address_multisig"
+	VoutMultiSig                   VoutType = "multisig"
 	VoutNulldata                   VoutType = "nulldata"
 	VoutCfundContribution          VoutType = "cfund_contribution"
 	VoutProposalYesVote            VoutType = "proposal_yes_vote"
@@ -33,7 +33,7 @@ var VoutTypes = map[string]VoutType{
 	"pubkey":                       VoutPubkey,
 	"pubkeyhash":                   VoutPubkeyhash,
 	"scripthash":                   VoutScripthash,
-	"address_multisig":             VoutMultiSig,
+	"multisig":                     VoutMultiSig,
 	"nulldata":                     VoutNulldata,
 	"cfund_contribution":           VoutCfundContribution,
 	"proposal_yes_vote":            VoutProposalYesVote,
