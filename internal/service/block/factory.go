@@ -14,8 +14,8 @@ import (
 
 var (
 	STATIC_REWARD uint64 = 200000000
-	MULTISIG_ASM  string = "^OP_COINSTAKE OP_IF OP_DUP OP_HASH160 (?P<hash>[0-9a-f]{40}) OP_EQUALVERIFY OP_CHECKSIG OP_ELSE (?P<signaturesRequired>[1-9]) (?P<signatures>(?:0[0-9a-f]{65} )*)(?P<signaturesTotal>[1-9]) OP_CHECKMULTISIG OP_ENDIF$"
-	WRAPPED_ASM   string = "OP_COINSTAKE OP_IF OP_DUP OP_HASH160 [0-9a-f]+ OP_EQUALVERIFY OP_CHECKSIG OP_ELSE [0-9] [0-9a-f]+ [0-9a-f]+ [0-9] OP_CHECKMULTISIG OP_ENDIF"
+	MULTISIG_ASM         = "^OP_COINSTAKE OP_IF OP_DUP OP_HASH160 (?P<hash>[0-9a-f]{40}) OP_EQUALVERIFY OP_CHECKSIG OP_ELSE (?P<signaturesRequired>[1-9]) (?P<signatures>(?:0[0-9a-f]{65} )*)(?P<signaturesTotal>[1-9]) OP_CHECKMULTISIG OP_ENDIF$"
+	WRAPPED_HEX          = "c66376a914a456b36048ce2e732ef729d044a1f744738df5fa88ac6753210277fa3f4f6d447c5914d8d69c259f94c76aa6eae829c5bd54e3cd6fc3f7e12f2f21033a0879f9ab601b4ee20ec9fed77ea1a48e9026b48e0d2a425d874b40ef13d02221034a51aa6aafbd6c6075ecaee0fbcf2c9ffbac05a49007a0f02c9d6680dccee6d42103ad915271a0b327f5379585c00c42a732530f246b60f9bb1c19af7db59363897e54ae68"
 )
 
 func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize uint) *explorer.Block {
@@ -261,14 +261,7 @@ func applyWrappedStatus(tx *explorer.BlockTransaction) {
 }
 
 func outputIsWrapped(o explorer.Vout) bool {
-	return false
-	matched, err := regexp.MatchString(WRAPPED_ASM, o.ScriptPubKey.Asm)
-	if err != nil {
-		log.Errorf("IsWrapped: Failed to match %s", o.ScriptPubKey.Asm)
-		return false
-	}
-
-	return matched
+	return o.IsMultiSig() && o.ScriptPubKey.Hex == WRAPPED_HEX
 }
 
 func applyPrivateStatus(tx *explorer.BlockTransaction, block *explorer.Block) {
