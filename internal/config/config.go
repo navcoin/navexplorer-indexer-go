@@ -20,7 +20,13 @@ type Config struct {
 	Debug              bool
 	Reindex            bool
 	ReindexSize        uint64
+	RewindToHeight     uint64
+	BulkIndex          bool
+	BulkTargetHeight   uint64
 	BulkIndexSize      uint64
+	VerifySupply       bool
+	VerifySupplyFrom   uint64
+	Subscribe          bool
 	SoftForkBlockCycle int
 	SoftForkQuorum     int
 	Navcoind           NavcoindConfig
@@ -87,7 +93,7 @@ func initLogger() {
 		filename := fmt.Sprintf("%s/indexer.log", Get().LogPath)
 		log.Infof("Logging to %s", filename)
 
-		log.SetFormatter(&log.JSONFormatter{})
+		//log.SetFormatter(&log.JSONFormatter{})
 		logger = &lumberjack.Logger{
 			Filename:   filename,
 			MaxSize:    500, // megabytes
@@ -119,7 +125,13 @@ func Get() *Config {
 		Debug:              getBool("DEBUG", false),
 		Reindex:            getBool("REINDEX", false),
 		ReindexSize:        getUint64("REINDEX_SIZE", 200),
+		RewindToHeight:     getUint64("REWIND_TO_HEIGHT", 0),
+		BulkIndex:          getBool("BULK_INDEX", false),
+		BulkTargetHeight:   getUint64("BULK_TARGET_HEIGHT", 0),
 		BulkIndexSize:      getUint64("BULK_INDEX_SIZE", 200),
+		VerifySupply:       getBool("VERIFY_SUPPLY", false),
+		VerifySupplyFrom:   getUint64("VERIFY_SUPPLY_FROM", 1),
+		Subscribe:          getBool("SUBSCRIBE", true),
 		Navcoind: NavcoindConfig{
 			Host:     getString("NAVCOIND_HOST", ""),
 			Port:     getInt("NAVCOIND_PORT", 8332),

@@ -59,7 +59,7 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 		address.VotingWeight = latestHistory.Balance.VotingWeight
 	}
 
-	r.elastic.Save(elastic_cache.AddressIndex, address)
+	r.elastic.Save(elastic_cache.AddressIndex.Get(), address)
 
 	return err
 }

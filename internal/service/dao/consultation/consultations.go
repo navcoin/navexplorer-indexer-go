@@ -6,17 +6,16 @@ import (
 
 var Consultations consultations
 
-type consultations []*explorer.Consultation
+type consultations map[string]explorer.Consultation
 
-func (p *consultations) Add(c *explorer.Consultation) {
-	Consultations = append(Consultations, c)
+func (p *consultations) Add(c explorer.Consultation) {
+	Consultations[c.Hash] = c
 }
 
 func (p *consultations) Delete(hash string) {
 	for i := range Consultations {
 		if Consultations[i].Hash == hash {
-			Consultations[i] = Consultations[len(Consultations)-1]
-			Consultations = Consultations[:len(Consultations)-1]
+			delete(Consultations, hash)
 			return
 		}
 	}

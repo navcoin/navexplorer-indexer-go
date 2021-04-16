@@ -7,8 +7,6 @@ import (
 )
 
 type Address struct {
-	id string
-
 	Hash   string `json:"hash"`
 	Height uint64 `json:"height"`
 
@@ -18,6 +16,7 @@ type Address struct {
 
 	CreatedTime  time.Time `json:"created_time"`
 	CreatedBlock uint64    `json:"created_block"`
+	Attempt      int       `json:"attempt"`
 
 	MultiSig *MultiSig `json:"multisig,omitempty"`
 
@@ -31,14 +30,6 @@ type RichList struct {
 	VotingWeight uint64 `json:"voting_weight"`
 }
 
-func (a *Address) Id() string {
-	return a.id
-}
-
-func (a *Address) SetId(id string) {
-	a.id = id
-}
-
-func (a *Address) Slug() string {
+func (a Address) Slug() string {
 	return slug.Make(fmt.Sprintf("address-%s", a.Hash))
 }

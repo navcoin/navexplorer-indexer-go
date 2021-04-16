@@ -10,7 +10,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork"
-	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -20,20 +19,18 @@ type Indexer struct {
 	elastic         *elastic_cache.Index
 	publisher       *queue.Publisher
 	blockIndexer    *block.Indexer
+	blockService    *block.Service
 	addressIndexer  *address.Indexer
 	softForkIndexer *softfork.Indexer
 	daoIndexer      *dao.Indexer
 	rewinder        *Rewinder
 }
 
-var (
-	LastBlockIndexed uint64 = 0
-)
-
 func NewIndexer(
 	elastic *elastic_cache.Index,
 	publisher *queue.Publisher,
 	blockIndexer *block.Indexer,
+	blockService *block.Service,
 	addressIndexer *address.Indexer,
 	softForkIndexer *softfork.Indexer,
 	daoIndexer *dao.Indexer,
@@ -43,6 +40,7 @@ func NewIndexer(
 		elastic,
 		publisher,
 		blockIndexer,
+		blockService,
 		addressIndexer,
 		softForkIndexer,
 		daoIndexer,
@@ -50,42 +48,49 @@ func NewIndexer(
 	}
 }
 
-func (i *Indexer) BulkIndex() {
-	if err := i.Index(IndexOption.BatchIndex); err != nil {
-		if err.Error() == "-8: Block height out of range" {
-			i.elastic.Persist()
-		} else {
+func (i *Indexer) BulkIndex(target uint64) {
+	log.Infof("Bulk index blocks to %d", target)
+	if err := i.Index(IndexOption.BatchIndex, target); err != nil {
+		if err.Error() != "-8: Block height out of range" {
 			log.WithError(err).Fatal("Failed to index blocks")
+			for {
+				switch {
+				}
+			}
 		}
 	}
+	i.elastic.Persist()
 }
 
 func (i *Indexer) SingleIndex() {
-	err := i.Index(IndexOption.SingleIndex)
-	if err != nil {
-		if err.Error() != "-8: Block height out of range" {
-			raven.CaptureErrorAndWait(err, nil)
-			log.WithError(err).Fatal("Failed to index subscribed block")
+	err := i.Index(IndexOption.SingleIndex, 0)
+	if err != nil && err.Error() != "-8: Block height out of range" {
+		log.WithError(err).Fatal("Failed to index subscribed block")
+	}
+
+	i.publisher.PublishToQueue("indexed.block", fmt.Sprintf("%d", i.blockService.GetLastBlockIndexed().Height))
+}
+
+func (i *Indexer) Index(option IndexOption.IndexOption, target uint64) error {
+	var height uint64 = 1
+	if lastBlockIndexed := i.blockService.GetLastBlockIndexed(); lastBlockIndexed != nil {
+		height = lastBlockIndexed.Height + 1
+		if target != 0 && height == target {
+			return nil
 		}
 	}
 
-	i.publisher.PublishToQueue("indexed.block", fmt.Sprintf("%d", LastBlockIndexed))
-}
-
-func (i *Indexer) Index(option IndexOption.IndexOption) error {
-	err := i.index(LastBlockIndexed+1, option)
-	if err == block.ErrOrphanBlockFound {
-		err = i.rewinder.RewindToHeight(LastBlockIndexed - config.Get().ReindexSize)
-	}
-
-	if err == nil {
-		return i.Index(option)
+	err := i.index(height, target, option)
+	if option == IndexOption.SingleIndex && err == block.ErrOrphanBlockFound {
+		if err = i.rewinder.RewindToHeight(i.blockService.GetLastBlockIndexed().Height - config.Get().ReindexSize); err == nil {
+			return i.Index(option, target)
+		}
 	}
 
 	return err
 }
 
-func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
+func (i *Indexer) index(height, target uint64, option IndexOption.IndexOption) error {
 	start := time.Now()
 	b, txs, header, err := i.blockIndexer.Index(height, option)
 	if err != nil {
@@ -97,13 +102,10 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 
 	go func() {
 		defer wg.Done()
-		if option == IndexOption.BatchIndex {
-			return
-		}
 		start := time.Now()
-		i.addressIndexer.Index(b, txs)
+		i.addressIndexer.Index(b, txs, option == IndexOption.SingleIndex)
 		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Indexed addresses at height %d", height)
+		log.WithField("time", elapsed).Infof("Index addresses: %d", height)
 	}()
 
 	go func() {
@@ -127,7 +129,7 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 	elapsed := time.Since(start)
 	log.WithField("time", elapsed).Infof("Index block:     %d", height)
 
-	LastBlockIndexed = height
+	i.blockService.SetLastBlockIndexed(b)
 
 	if option == IndexOption.BatchIndex {
 		i.elastic.BatchPersist(height)
@@ -135,5 +137,9 @@ func (i *Indexer) index(height uint64, option IndexOption.IndexOption) error {
 		i.elastic.Persist()
 	}
 
-	return i.index(height+1, option)
+	if target != 0 && height == target {
+		return nil
+	}
+
+	return i.index(height+1, target, option)
 }

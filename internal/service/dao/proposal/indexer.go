@@ -18,7 +18,7 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, indexS
 	return &Indexer{navcoin, elastic, indexSize}
 }
 
-func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
+func (i *Indexer) Index(txs []explorer.BlockTransaction) {
 	for _, tx := range txs {
 		if !tx.IsSpend() && tx.Version != 4 {
 			continue
@@ -26,13 +26,13 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 
 		if navP, err := i.navcoin.GetProposal(tx.Hash); err == nil {
 			proposal := CreateProposal(navP, tx.Height)
-			i.elastic.Save(elastic_cache.ProposalIndex, proposal)
+			i.elastic.Save(elastic_cache.ProposalIndex.Get(), proposal)
 			Proposals = append(Proposals, proposal)
 		}
 	}
 }
 
-func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block) {
+func (i *Indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 	for _, p := range Proposals {
 		if p == nil {
 			continue

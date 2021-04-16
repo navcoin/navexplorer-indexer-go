@@ -30,8 +30,6 @@ type RawBlockTransaction struct {
 }
 
 type BlockTransaction struct {
-	id string
-
 	RawBlockTransaction
 
 	Index    uint    `json:"index"`
@@ -48,15 +46,7 @@ type BlockTransaction struct {
 	Wrapped bool                 `json:"wrapped"`
 }
 
-func (tx *BlockTransaction) Id() string {
-	return tx.id
-}
-
-func (tx *BlockTransaction) SetId(id string) {
-	tx.id = id
-}
-
-func (tx *BlockTransaction) Slug() string {
+func (tx BlockTransaction) Slug() string {
 	return CreateBlockTxSlug(tx.Hash)
 }
 
@@ -107,38 +97,25 @@ func (tx *BlockTransaction) GetAllAddresses() []string {
 	return addresses
 }
 
-func (tx *BlockTransaction) GetAllMultiSigs() []*MultiSig {
-	multiSigs := make([]*MultiSig, 0)
-
-	exists := func(key string, multiSigs []*MultiSig) bool {
-		for i := range multiSigs {
-			if multiSigs[i].Key() == key {
-				return true
-			}
-		}
-		return false
-	}
+func (tx *BlockTransaction) GetAllMultiSigs() map[string]MultiSig {
+	multiSigs := map[string]MultiSig{}
 
 	for _, vin := range tx.Vin {
 		if vin.PreviousOutput != nil && vin.PreviousOutput.MultiSig != nil {
-			log.Debugf("MultiSig input found for tx %s:%d", tx.Hash, vin.Vout)
-			if !exists(vin.PreviousOutput.MultiSig.Key(), multiSigs) {
-				multiSigs = append(multiSigs, vin.PreviousOutput.MultiSig)
-			}
+			log.Infof("MultiSig input found for tx %s:%d", tx.Hash, vin.Vout)
+			multiSigs[vin.PreviousOutput.MultiSig.Key()] = *vin.PreviousOutput.MultiSig
 		}
 	}
 
 	for _, vout := range tx.Vout {
 		if vout.MultiSig != nil {
-			log.Debugf("MultiSig output found for tx %s:%d", tx.Hash, vout.N)
-			if !exists(vout.MultiSig.Key(), multiSigs) {
-				multiSigs = append(multiSigs, vout.MultiSig)
-			}
+			log.Infof("MultiSig output found for tx %s:%d", tx.Hash, vout.N)
+			multiSigs[vout.MultiSig.Key()] = *vout.MultiSig
 		}
 	}
 
 	if len(multiSigs) > 0 {
-		log.Debugf("Matched %d multisigs on tx %s", len(multiSigs), tx.Hash)
+		log.Infof("Matched %d multisigs on tx %s", len(multiSigs), tx.Hash)
 	}
 
 	return multiSigs

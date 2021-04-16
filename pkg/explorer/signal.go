@@ -6,22 +6,12 @@ import (
 )
 
 type Signal struct {
-	id string
-
 	Address   string   `json:"address"`
 	Height    uint64   `json:"height"`
 	SoftForks []string `json:"softforks"`
 }
 
-func (s *Signal) Id() string {
-	return s.id
-}
-
-func (s *Signal) SetId(id string) {
-	s.id = id
-}
-
-func (s *Signal) Slug() string {
+func (s Signal) Slug() string {
 	return slug.Make(fmt.Sprintf("signal-%s-%d", s.Address, s.Height))
 }
 

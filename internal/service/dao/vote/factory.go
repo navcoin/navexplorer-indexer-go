@@ -6,12 +6,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateVotes(block *explorer.Block, tx *explorer.BlockTransaction, header *navcoind.BlockHeader, votingAddress string) *explorer.DaoVotes {
+func CreateVotes(block *explorer.Block, tx explorer.BlockTransaction, header *navcoind.BlockHeader, votingAddress string) *explorer.DaoVotes {
 	if !tx.IsCoinbase() {
 		return nil
 	}
 
 	daoVote := &explorer.DaoVotes{Cycle: block.BlockCycle.Cycle, Height: tx.Height, Address: votingAddress}
+
+	if block.Nonce&1 == 1 {
+		vote := explorer.Vote{Type: explorer.ExcludeVote, Hash: block.StakedBy, Vote: 0}
+		log.Debugf("%d Excluding vote for %s - %d", block.Height, block.StakedBy, 0)
+		daoVote.Votes = append(daoVote.Votes, vote)
+	}
 
 	for _, v := range header.CfundVotes {
 		vote := explorer.Vote{Type: explorer.ProposalVote, Hash: v.Hash, Vote: v.Vote}

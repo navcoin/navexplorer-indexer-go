@@ -4,7 +4,6 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
 )
 
 type Indexer struct {
@@ -15,7 +14,7 @@ func NewIndexer(elastic *elastic_cache.Index) *Indexer {
 	return &Indexer{elastic}
 }
 
-func (i *Indexer) IndexVotes(txs []*explorer.BlockTransaction, block *explorer.Block, blockHeader *navcoind.BlockHeader) {
+func (i *Indexer) IndexVotes(txs []explorer.BlockTransaction, block *explorer.Block, blockHeader *navcoind.BlockHeader) {
 	var votingAddress string
 	for _, tx := range txs {
 		var err error
@@ -25,7 +24,6 @@ func (i *Indexer) IndexVotes(txs []*explorer.BlockTransaction, block *explorer.B
 		}
 	}
 	if votingAddress == "" {
-		log.WithField("height", block.Height).Error("Unable to identify the voting address")
 		return
 	}
 

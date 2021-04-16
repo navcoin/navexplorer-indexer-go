@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/queue"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/asaskevich/EventBus"
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	"github.com/patrickmn/go-cache"
@@ -21,7 +21,6 @@ import (
 type Index struct {
 	Client        *elastic.Client
 	cache         *cache.Cache
-	event         EventBus.Bus
 	bulkIndexSize uint64
 }
 
@@ -43,7 +42,7 @@ var (
 	ErrRecordNotFound  = errors.New("Record not found")
 )
 
-func New(event EventBus.Bus) (*Index, error) {
+func New(publisher *queue.Publisher) (*Index, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(strings.Join(config.Get().ElasticSearch.Hosts, ",")),
 		elastic.SetSniff(config.Get().ElasticSearch.Sniff),
@@ -68,7 +67,6 @@ func New(event EventBus.Bus) (*Index, error) {
 
 	return &Index{
 		Client:        client,
-		event:         event,
 		cache:         cache.New(5*time.Minute, 10*time.Minute),
 		bulkIndexSize: config.Get().BulkIndexSize,
 	}, err
@@ -108,6 +106,12 @@ func (i *Index) AddUpdateRequest(index string, entity explorer.Entity) {
 	i.AddRequest(index, entity, UpdateRequest)
 }
 
+func (i *Index) HasRequest(entity explorer.Entity) bool {
+	_, found := i.cache.Get(entity.Slug())
+
+	return found
+}
+
 func (i *Index) AddRequest(index string, entity explorer.Entity, reqType RequestType) {
 	logrus.WithFields(logrus.Fields{
 		"index": index,
@@ -119,11 +123,6 @@ func (i *Index) AddRequest(index string, entity explorer.Entity, reqType Request
 		logrus.Debugf("Switch update to index as not previously persisted %s", entity.Slug())
 		reqType = IndexRequest
 	}
-	//i.cache.Delete(entity.Slug())
-	//if reqType == UpdateRequest && entity.Slug() == "" {
-	//	logrus.Debugf("Switch update to index as not previously persisted %s", entity.Slug())
-	//	reqType = IndexRequest
-	//}
 
 	i.cache.Set(entity.Slug(), Request{index, entity, reqType}, cache.DefaultExpiration)
 }
@@ -147,18 +146,18 @@ func (i *Index) GetRequest(id string) *Request {
 	}
 }
 
-func (i *Index) Save(index Indices, entity explorer.Entity) {
+func (i *Index) Save(index string, entity explorer.Entity) {
 	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("Save")
 
 	_, err := i.Client.Index().
-		Index(index.Get()).
+		Index(index).
 		Id(entity.Slug()).
 		BodyJson(entity).
 		Do(context.Background())
 
 	if err != nil {
 		logrus.WithError(err).WithFields(logrus.Fields{
-			"index": index.Get(),
+			"index": index,
 			"slug":  entity.Slug(),
 		}).Fatal("Failed to save entity")
 	}
@@ -169,10 +168,9 @@ func (i *Index) BatchPersist(height uint64) bool {
 		return false
 	}
 
-	i.event.Publish("batch.persist.start", height)
-
-	logrus.Infof("Persisting data at height   %d", height)
+	start := time.Now()
 	i.Persist()
+	logrus.WithField("time", time.Since(start)).Infof("Persisting data: %d", height)
 	waitOnReindex(height)
 
 	return true
@@ -189,6 +187,7 @@ func (i *Index) Persist() int {
 	}
 
 	actions := bulk.NumberOfActions()
+	logrus.Infof("Persisting %d actions", actions)
 	if actions != 0 {
 		i.persist(bulk)
 	}
@@ -197,7 +196,6 @@ func (i *Index) Persist() int {
 }
 
 func (i *Index) persist(bulk *elastic.BulkService) {
-	actions := bulk.NumberOfActions()
 	response, err := bulk.Do(context.Background())
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to persist requests")
@@ -212,7 +210,6 @@ func (i *Index) persist(bulk *elastic.BulkService) {
 			}).Fatal("Failed to persist to ES")
 		}
 	}
-	logrus.Debugf("Persisted %d actions", actions)
 
 	logrus.Debug("Flushing ES cache")
 	i.cache.Flush()

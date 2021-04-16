@@ -3,15 +3,13 @@ package explorer
 import "github.com/gosimple/slug"
 
 type Consultation struct {
-	id string
-
 	Version                  uint32         `json:"version"`
 	Hash                     string         `json:"hash"`
 	BlockHash                string         `json:"blockHash"`
 	Question                 string         `json:"question"`
 	Support                  int            `json:"support"`
 	Abstain                  int            `json:"abstain,omitempty"`
-	Answers                  []*Answer      `json:"answers,omitempty"`
+	Answers                  []Answer       `json:"answers,omitempty"`
 	RangeAnswers             map[string]int `json:"rangeAnswers,omitempty"`
 	Min                      int            `json:"min"`
 	Max                      int            `json:"max"`
@@ -31,15 +29,7 @@ type Consultation struct {
 	ConsensusParameter bool `json:"consensusParameter"`
 }
 
-func (c *Consultation) Id() string {
-	return c.id
-}
-
-func (c *Consultation) SetId(id string) {
-	c.id = id
-}
-
-func (c *Consultation) Slug() string {
+func (c Consultation) Slug() string {
 	return slug.Make(c.Hash)
 }
 
@@ -76,7 +66,7 @@ func (c *Consultation) GetPassedAnswer() *Answer {
 	}
 	for _, a := range c.Answers {
 		if uint(a.State) == AnswerPassed.State {
-			return a
+			return &a
 		}
 	}
 

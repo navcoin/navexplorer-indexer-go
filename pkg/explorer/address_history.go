@@ -7,8 +7,6 @@ import (
 )
 
 type AddressHistory struct {
-	id string
-
 	Height  uint64         `json:"height"`
 	TxIndex uint           `json:"txindex"`
 	Time    time.Time      `json:"time"`
@@ -16,10 +14,13 @@ type AddressHistory struct {
 	Hash    string         `json:"hash"`
 	Changes AddressChanges `json:"changes"`
 	Balance AddressBalance `json:"balance"`
+	Reward  AddressReward  `json:"reward,omitempty"`
 
 	Stake       bool `json:"is_stake"`
 	CfundPayout bool `json:"is_cfund_payout"`
 	StakePayout bool `json:"is_stake_payout"`
+	MultiSig    bool `json:"is_multisig"`
+	Order       uint `json:"order"`
 }
 
 type AddressChanges struct {
@@ -37,6 +38,12 @@ type AddressBalance struct {
 	VotingWeight int64 `json:"voting_weight"`
 }
 
+type AddressReward struct {
+	Spendable    float64 `json:"spendable"`
+	Stakable     float64 `json:"stakable"`
+	VotingWeight float64 `json:"voting_weight"`
+}
+
 type BalanceType string
 
 var (
@@ -45,15 +52,7 @@ var (
 	VotingWeight BalanceType = "voting_weight"
 )
 
-func (a *AddressHistory) Id() string {
-	return a.id
-}
-
-func (a *AddressHistory) SetId(id string) {
-	a.id = id
-}
-
-func (a *AddressHistory) Slug() string {
+func (a AddressHistory) Slug() string {
 	return slug.Make(fmt.Sprintf("addresshistory-%s-%s", a.Hash, a.TxId))
 }
 

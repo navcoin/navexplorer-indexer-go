@@ -39,7 +39,6 @@ func (r *Repository) GetBestBlock() (*explorer.Block, error) {
 	if err = json.Unmarshal(hit.Source, &block); err != nil {
 		return nil, err
 	}
-	block.SetId(hit.Id)
 	return block, nil
 }
 
@@ -71,7 +70,6 @@ func (r *Repository) GetBlockByHash(hash string) (*explorer.Block, error) {
 	if err = json.Unmarshal(hit.Source, &block); err != nil {
 		return nil, err
 	}
-	block.SetId(hit.Id)
 
 	return block, nil
 }
@@ -96,7 +94,6 @@ func (r *Repository) GetTransactionsByBlock(block *explorer.Block) ([]*explorer.
 			raven.CaptureError(err, nil)
 			return nil, err
 		}
-		tx.SetId(hit.Id)
 		txs = append(txs, tx)
 	}
 
@@ -107,7 +104,10 @@ func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransacti
 	request := r.elastic.GetRequest(explorer.CreateBlockTxSlug(hash))
 	if request != nil {
 		log.WithField("hash", hash).Debug("GetTransactionByHash: Found in elastic requests")
-		return request.Entity.(*explorer.BlockTransaction), nil
+		entity := request.Entity
+		blockTx := entity.(explorer.BlockTransaction)
+
+		return &blockTx, nil
 	}
 
 	results, err := r.getTransactionByHash(hash, 3)
@@ -120,7 +120,6 @@ func (r *Repository) GetTransactionByHash(hash string) (*explorer.BlockTransacti
 	if err = json.Unmarshal(hit.Source, &tx); err != nil {
 		return nil, err
 	}
-	tx.SetId(hit.Id)
 
 	return tx, nil
 }
@@ -137,7 +136,7 @@ func (r *Repository) getTransactionByHash(hash string, retries int) (*elastic.Se
 
 	if len(results.Hits.Hits) == 0 {
 		if retries > 0 {
-			log.Infof("Retrying: getTransactionByHash(%s, %d)", hash, retries)
+			log.Debugf("Retrying: getTransactionByHash(%s, %d)", hash, retries)
 			time.Sleep(1 * time.Second)
 			return r.getTransactionByHash(hash, retries-1)
 		} else {
@@ -167,7 +166,6 @@ func (r *Repository) GetBlockByHeight(height uint64) (*explorer.Block, error) {
 	if err = json.Unmarshal(hit.Source, &block); err != nil {
 		return nil, err
 	}
-	block.SetId(hit.Id)
 
 	return block, nil
 }
@@ -189,7 +187,6 @@ func (r *Repository) GetBlocksBetweenHeight(start uint64, end uint64) ([]*explor
 		if err = json.Unmarshal(hit.Source, &block); err != nil {
 			return nil, err
 		}
-		block.SetId(hit.Id)
 		blocks = append(blocks, block)
 	}
 
@@ -208,15 +205,15 @@ func (r *Repository) GetTransactionsWithCfundPayment() error {
 	return nil
 }
 
-func (r *Repository) GetAllTransactionsThatIncludeAddress(hash string) ([]*explorer.BlockTransaction, error) {
+func (r *Repository) GetAllTransactionsThatIncludeAddress(hash string) ([]explorer.BlockTransaction, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Should(elastic.NewNestedQuery("vin",
 		elastic.NewBoolQuery().Must(elastic.NewMatchQuery("vin.addresses.keyword", hash))))
 	query = query.Should(elastic.NewNestedQuery("vout",
 		elastic.NewBoolQuery().Must(elastic.NewMatchQuery("vout.scriptPubKey.addresses.keyword", hash))))
 
-	service := r.elastic.Client.Scroll(elastic_cache.BlockTransactionIndex.Get()).Query(query).Size(10000).Sort("height", true)
-	txs := make([]*explorer.BlockTransaction, 0)
+	service := r.elastic.Client.Scroll(elastic_cache.BlockTransactionIndex.Get()).Query(query).Size(1000).Sort("height", true)
+	txs := make([]explorer.BlockTransaction, 0)
 
 	for {
 		results, err := service.Do(context.Background())
@@ -228,14 +225,41 @@ func (r *Repository) GetAllTransactionsThatIncludeAddress(hash string) ([]*explo
 		}
 
 		for _, hit := range results.Hits.Hits {
-			var tx *explorer.BlockTransaction
+			var tx explorer.BlockTransaction
 			if err = json.Unmarshal(hit.Source, &tx); err != nil {
 				raven.CaptureError(err, nil)
 				return nil, err
 			}
-			tx.SetId(hit.Id)
 			txs = append(txs, tx)
 		}
+	}
+
+	return txs, nil
+}
+
+func (r *Repository) GetTransactionsFromToHeight(from, to uint64) ([]*explorer.BlockTransaction, error) {
+	result, err := r.elastic.Client.
+		Search(elastic_cache.BlockTransactionIndex.Get()).
+		Query(elastic.NewRangeQuery("height").Gte(from).Lte(to)).
+		Sort("height", true).
+		Size(10000).
+		Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil || len(result.Hits.Hits) == 0 {
+		return nil, elastic_cache.ErrRecordNotFound
+	}
+
+	var txs []*explorer.BlockTransaction
+	for _, hit := range result.Hits.Hits {
+		var tx *explorer.BlockTransaction
+		if err = json.Unmarshal(hit.Source, &tx); err != nil {
+			raven.CaptureError(err, nil)
+			return nil, err
+		}
+		txs = append(txs, tx)
 	}
 
 	return txs, nil

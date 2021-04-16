@@ -6,8 +6,6 @@ import (
 )
 
 type Proposal struct {
-	id string
-
 	Version             uint32  `json:"version"`
 	Hash                string  `json:"hash"`
 	BlockHash           string  `json:"blockHash"`
@@ -31,15 +29,7 @@ type Proposal struct {
 	VotingCycle uint `json:"votingCycle"`
 }
 
-func (p *Proposal) Id() string {
-	return p.id
-}
-
-func (p *Proposal) SetId(id string) {
-	p.id = id
-}
-
-func (p *Proposal) Slug() string {
+func (p Proposal) Slug() string {
 	return slug.Make(fmt.Sprintf("proposal-%s", p.Hash))
 }
 

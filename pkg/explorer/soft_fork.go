@@ -9,9 +9,29 @@ import (
 
 type SoftForks []*SoftFork
 
-type SoftFork struct {
-	id string
+func (s SoftForks) GetSoftFork(name string) *SoftFork {
+	for i, _ := range s {
+		if s[i].Name == name {
+			return s[i]
+		}
+	}
+	return nil
+}
 
+func (s SoftForks) HasSoftFork(name string) bool {
+	return s.GetSoftFork(name) != nil
+}
+
+func (s SoftForks) StaticRewards() *SoftFork {
+	for i, _ := range s {
+		if s[i].Name == "static" {
+			return s[i]
+		}
+	}
+	return nil
+}
+
+type SoftFork struct {
 	Name             string         `json:"name"`
 	SignalBit        uint           `json:"signalBit"`
 	StartTime        time.Time      `json:"startTime"`
@@ -23,31 +43,8 @@ type SoftFork struct {
 	Cycles           SoftForkCycles `json:"cycles,omitempty"`
 }
 
-func (s *SoftFork) Id() string {
-	return s.id
-}
-
-func (s *SoftFork) SetId(id string) {
-	s.id = id
-}
-
-func (s *SoftFork) Slug() string {
+func (s SoftFork) Slug() string {
 	return slug.Make(fmt.Sprintf("softfork-%s", s.Name))
-}
-
-type SoftForkCycles []SoftForkCycle
-
-type SoftForkCycle struct {
-	Cycle            uint `json:"cycle"`
-	BlocksSignalling int  `json:"blocks"`
-}
-
-func (s *SoftFork) LatestCycle() *SoftForkCycle {
-	if len(s.Cycles) == 0 {
-		return nil
-	}
-
-	return &(s.Cycles)[len(s.Cycles)-1]
 }
 
 func (s *SoftFork) IsOpen() bool {
@@ -73,26 +70,17 @@ func (s *SoftFork) GetCycle(cycle uint) *SoftForkCycle {
 	return nil
 }
 
-func (s SoftForks) GetSoftFork(name string) *SoftFork {
-	for i, _ := range s {
-		if s[i].Name == name {
-			return s[i]
-		}
-	}
+type SoftForkCycles []SoftForkCycle
 
-	return nil
+type SoftForkCycle struct {
+	Cycle            uint `json:"cycle"`
+	BlocksSignalling int  `json:"blocks"`
 }
 
-func (s SoftForks) HasSoftFork(name string) bool {
-	return s.GetSoftFork(name) != nil
-}
-
-func (s SoftForks) StaticRewards() *SoftFork {
-	for i, _ := range s {
-		if s[i].Name == "static" {
-			return s[i]
-		}
+func (s *SoftFork) LatestCycle() *SoftForkCycle {
+	if len(s.Cycles) == 0 {
+		return nil
 	}
 
-	return nil
+	return &(s.Cycles)[len(s.Cycles)-1]
 }

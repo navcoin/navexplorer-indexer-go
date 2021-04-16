@@ -15,13 +15,16 @@
       },
       "height": {"type": "long"},
       "spendable": {"type": "long"},
-      "stakabout": {"type": "long"},
+      "stakable": {"type": "long"},
       "voting_weight": {"type": "long"},
       "created_time": {
         "type": "date"
       },
       "created_block": {
         "type": "long"
+      },
+      "attempt": {
+        "type": "integer"
       }
     }
   },

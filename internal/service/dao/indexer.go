@@ -39,18 +39,9 @@ func NewIndexer(
 	}
 }
 
-func (i *Indexer) Index(block *explorer.Block, txs []*explorer.BlockTransaction, header *navcoind.BlockHeader) {
+func (i *Indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, header *navcoind.BlockHeader) {
 	var wg sync.WaitGroup
-	wg.Add(4)
-
-	go func() {
-		defer wg.Done()
-		if consensus.Parameters == nil {
-			if err := i.consensusIndexer.Index(); err != nil {
-				log.WithError(err).Fatal("Failed to get Consensus")
-			}
-		}
-	}()
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()

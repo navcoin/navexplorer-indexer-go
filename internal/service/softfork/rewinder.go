@@ -1,42 +1,43 @@
 package softfork
 
 import (
-	"context"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork/signal"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
 )
 
 type Rewinder struct {
 	elastic       *elastic_cache.Index
+	Service       *Service
 	signalRepo    *signal.Repository
 	blocksInCycle uint
 	quorum        int
 }
 
-func NewRewinder(elastic *elastic_cache.Index, signalRepo *signal.Repository, blocksInCycle uint, quorum int) *Rewinder {
-	return &Rewinder{elastic, signalRepo, blocksInCycle, quorum}
+func NewRewinder(elastic *elastic_cache.Index, service *Service, signalRepo *signal.Repository, blocksInCycle uint, quorum int) *Rewinder {
+	return &Rewinder{elastic, service, signalRepo, blocksInCycle, quorum}
 }
 
 func (r *Rewinder) Rewind(height uint64) error {
+	softForks := r.Service.GetSoftForks()
+	defer r.Service.Update(softForks, true)
+
 	log.Infof("Rewinding soft fork index to height: %d", height)
 
 	if err := r.elastic.DeleteHeightGT(height, elastic_cache.SignalIndex.Get()); err != nil {
 		return err
 	}
 
-	for idx, s := range SoftForks {
-		SoftForks[idx] = &explorer.SoftFork{
+	for idx, s := range softForks {
+		softForks[idx] = &explorer.SoftFork{
 			Name:      s.Name,
 			SignalBit: s.SignalBit,
 			State:     explorer.SoftForkDefined,
 			StartTime: s.StartTime,
 			Timeout:   s.Timeout,
 		}
-		SoftForks[idx].SetId(s.Id())
 	}
 
 	start := uint64(1)
@@ -54,8 +55,8 @@ func (r *Rewinder) Rewind(height uint64) error {
 
 		for _, s := range signals {
 			for _, sf := range s.SoftForks {
-				softFork := SoftForks.GetSoftFork(sf)
-				if softFork.IsOpen() {
+				softFork := softForks.GetSoftFork(sf)
+				if (softFork.State == explorer.SoftForkLockedIn && height <= softFork.LockedInHeight) || softFork.IsOpen() {
 					softFork.SignalHeight = end
 					softFork.State = explorer.SoftForkStarted
 					blockCycle := GetSoftForkBlockCycle(r.blocksInCycle, s.Height)
@@ -70,7 +71,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 			}
 		}
 
-		for _, s := range SoftForks {
+		for _, s := range softForks {
 			if s.State == explorer.SoftForkStarted && s.LatestCycle() != nil && s.LatestCycle().BlocksSignalling >= explorer.GetQuorum(r.blocksInCycle, r.quorum) {
 				s.State = explorer.SoftForkLockedIn
 				s.LockedInHeight = end
@@ -89,21 +90,6 @@ func (r *Rewinder) Rewind(height uint64) error {
 			}
 			return start, end
 		}(start, end, height)
-	}
-
-	bulk := r.elastic.Client.Bulk()
-	for _, sf := range SoftForks {
-		log.Info("Updating softFork ", sf.Name)
-		bulk.Add(elastic.NewBulkUpdateRequest().
-			Index(elastic_cache.SoftForkIndex.Get()).
-			Id(sf.Id()).
-			Doc(sf))
-	}
-
-	if bulk.NumberOfActions() > 0 {
-		if _, err := bulk.Do(context.Background()); err != nil {
-			log.WithError(err).Fatal("Failed to rewind soft forks")
-		}
 	}
 
 	return nil

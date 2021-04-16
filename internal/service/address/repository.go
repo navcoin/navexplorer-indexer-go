@@ -8,7 +8,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
-	"strings"
+	"time"
 )
 
 type Repository struct {
@@ -52,9 +52,20 @@ func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
 	return r.findOneAddress(result)
 }
 
+func (r *Repository) GetAllAddresses() ([]*explorer.Address, error) {
+	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+		Size(1000).
+		Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return r.findManyAddress(result)
+}
+
 func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) {
 	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
-		Query(elastic.NewMatchQuery("hash", strings.Join(hashes, " "))).
+		Query(elastic.NewTermsQuery("hash", hashes)).
 		Size(len(hashes)).
 		Do(context.Background())
 	if err != nil {
@@ -77,23 +88,64 @@ func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, e
 	return r.findManyAddress(result)
 }
 
-func (r *Repository) GetOrCreateAddress(hash string) (*explorer.Address, error) {
+func (r *Repository) GetAddressesHeightLt(height uint64, size int) ([]*explorer.Address, error) {
 	result, err := r.elastic.Client.
 		Search(elastic_cache.AddressIndex.Get()).
-		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Query(elastic.NewRangeQuery("height").Lt(height)).
+		Size(size).
+		Sort("attempt", true).
+		Sort("created_block", true).
 		Do(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	if result.TotalHits() == 0 {
-		address := CreateAddress(hash)
-		log.Debug("Persisted new address ", hash)
-		r.elastic.Save(elastic_cache.AddressIndex, address)
-		return address, nil
+	return r.findManyAddress(result)
+}
+
+func (r *Repository) CreateAddress(hash string, createdBlock uint64, createdTime time.Time) (*explorer.Address, error) {
+	result, err := r.elastic.Client.
+		Search(elastic_cache.AddressIndex.Get()).
+		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Size(1).
+		Do(context.Background())
+	if err != nil {
+		log.WithError(err).Fatal("Failed to create address: " + hash)
+		return nil, err
 	}
 
-	return r.findOneAddress(result)
+	if len(result.Hits.Hits) != 0 {
+		return nil, errors.New("Address already exists: " + hash)
+	}
+
+	address := CreateAddress(hash)
+	address.CreatedBlock = createdBlock
+	address.CreatedTime = createdTime
+
+	if !r.elastic.HasRequest(address) {
+		r.elastic.AddIndexRequest(elastic_cache.AddressIndex.Get(), address)
+	}
+	return &address, nil
+}
+
+func (r *Repository) GetOrCreateAddress(hash string) explorer.Address {
+	result, err := r.elastic.Client.
+		Search(elastic_cache.AddressIndex.Get()).
+		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Size(1).
+		Do(context.Background())
+	if err != nil {
+		log.WithError(err).Fatal("Failed to get or create address")
+	}
+
+	if result.TotalHits() == 0 {
+		address := CreateAddress(hash)
+		r.elastic.Save(elastic_cache.AddressIndex.Get(), address)
+		return address
+	}
+
+	address, _ := r.findOneAddress(result)
+	return *address
 }
 
 func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHistory, error) {
@@ -121,9 +173,35 @@ func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHisto
 	if err != nil {
 		return nil, err
 	}
-	history.SetId(hit.Id)
 
 	return history, err
+}
+
+func (r *Repository) GetAddressBalanceAtHeight(height uint64) (int64, error) {
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewRangeQuery("height").Lte(height))
+
+	agg := elastic.NewNestedAggregation().Path("changes").
+		SubAggregation("spendable", elastic.NewSumAggregation().Field("changes.spendable"))
+
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+		Query(query).
+		Aggregation("changes", agg).
+		Size(0).
+		Do(context.Background())
+	if err != nil || results.TotalHits() == 0 {
+		err = ErrLatestHistoryNotFound
+		return 0, err
+	}
+
+	var addressBalance int64
+	if changes, found := results.Aggregations.Nested("changes"); found {
+		if spendableSum, found := changes.Sum("spendable"); found {
+			addressBalance += int64(*spendableSum.Value)
+		}
+	}
+
+	return addressBalance, err
 }
 
 func (r *Repository) findOneAddress(result *elastic.SearchResult) (*explorer.Address, error) {
@@ -136,7 +214,6 @@ func (r *Repository) findOneAddress(result *elastic.SearchResult) (*explorer.Add
 	if err := json.Unmarshal(hit.Source, &address); err != nil {
 		return nil, err
 	}
-	address.SetId(hit.Id)
 
 	return address, nil
 }
@@ -152,7 +229,6 @@ func (r *Repository) findManyAddress(result *elastic.SearchResult) ([]*explorer.
 		if err := json.Unmarshal(hit.Source, &address); err != nil {
 			return nil, err
 		}
-		address.SetId(hit.Id)
 		addresses = append(addresses, address)
 	}
 

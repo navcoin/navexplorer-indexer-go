@@ -6,8 +6,6 @@ import (
 )
 
 type PaymentRequest struct {
-	id string
-
 	Version             uint32  `json:"version"`
 	Hash                string  `json:"hash"`
 	BlockHash           string  `json:"blockHash"`
@@ -27,15 +25,7 @@ type PaymentRequest struct {
 	VotingCycle uint `json:"votingCycle"`
 }
 
-func (p *PaymentRequest) Id() string {
-	return p.id
-}
-
-func (p *PaymentRequest) SetId(id string) {
-	p.id = id
-}
-
-func (p *PaymentRequest) Slug() string {
+func (p PaymentRequest) Slug() string {
 	return slug.Make(fmt.Sprintf("paymentrequest-%s", p.Hash))
 }
 

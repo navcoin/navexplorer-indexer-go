@@ -18,8 +18,8 @@ func NewRepo(client *elastic.Client) *Repository {
 	return &Repository{client}
 }
 
-func (r *Repository) GetOpenConsultations(height uint64) ([]*explorer.Consultation, error) {
-	var consultations []*explorer.Consultation
+func (r *Repository) GetOpenConsultations(height uint64) ([]explorer.Consultation, error) {
+	var consultations []explorer.Consultation
 
 	openStatuses := make([]interface{}, 4)
 	openStatuses[0] = explorer.ConsultationPending.Status
@@ -42,11 +42,10 @@ func (r *Repository) GetOpenConsultations(height uint64) ([]*explorer.Consultati
 
 	if results != nil {
 		for _, hit := range results.Hits.Hits {
-			var consultation *explorer.Consultation
+			var consultation explorer.Consultation
 			if err := json.Unmarshal(hit.Source, &consultation); err != nil {
 				log.WithError(err).Fatal("Failed to unmarshall consultation")
 			}
-			consultation.SetId(hit.Id)
 			consultations = append(consultations, consultation)
 		}
 	}
@@ -78,7 +77,6 @@ func (r *Repository) GetPassedConsultations(maxHeight uint64) ([]*explorer.Consu
 				log.WithError(err).Fatal("Failed to unmarshall consultation")
 			}
 			if consultation.HasPassedAnswer() {
-				consultation.SetId(hit.Id)
 				consultations = append(consultations, consultation)
 			}
 		}

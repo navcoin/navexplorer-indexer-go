@@ -3,7 +3,6 @@ package block
 import (
 	"fmt"
 	"github.com/NavExplorer/navcoind-go"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 	"regexp"
@@ -58,9 +57,9 @@ func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize
 	}
 }
 
-func createBlockCycle(size uint, previousBlock *explorer.Block) *explorer.BlockCycle {
+func createBlockCycle(size uint, previousBlock *explorer.Block) explorer.BlockCycle {
 	if previousBlock == nil {
-		return &explorer.BlockCycle{
+		return explorer.BlockCycle{
 			Size:  size,
 			Cycle: 1,
 			Index: 1,
@@ -68,14 +67,14 @@ func createBlockCycle(size uint, previousBlock *explorer.Block) *explorer.BlockC
 	}
 
 	if !previousBlock.BlockCycle.IsEnd() {
-		return &explorer.BlockCycle{
+		return explorer.BlockCycle{
 			Size:  size,
 			Cycle: previousBlock.BlockCycle.Cycle,
 			Index: previousBlock.BlockCycle.Index + 1,
 		}
 	}
 
-	bc := &explorer.BlockCycle{
+	bc := explorer.BlockCycle{
 		Size:  size,
 		Cycle: previousBlock.BlockCycle.Cycle + 1,
 		Index: uint(previousBlock.Height+1) % size,
@@ -88,8 +87,8 @@ func createBlockCycle(size uint, previousBlock *explorer.Block) *explorer.BlockC
 	return bc
 }
 
-func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint, block *explorer.Block) *explorer.BlockTransaction {
-	tx := &explorer.BlockTransaction{
+func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint, block *explorer.Block) explorer.BlockTransaction {
+	tx := explorer.BlockTransaction{
 		RawBlockTransaction: explorer.RawBlockTransaction{
 			Hex:             rawTx.Hex,
 			Txid:            rawTx.Txid,
@@ -112,14 +111,14 @@ func CreateBlockTransaction(rawTx navcoind.RawTransaction, index uint, block *ex
 		Vout:     createVout(rawTx.Vout),
 	}
 
-	applyType(tx)
-	applyMultiSigColdStake(tx)
-	applyWrappedStatus(tx)
-	applyPrivateStatus(tx, block)
-	applyStaking(tx, block)
-	applySpend(tx, block)
-	applyCFundPayout(tx, block)
-	applyFees(tx, block)
+	applyType(&tx)
+	applyMultiSigColdStake(&tx)
+	applyWrappedStatus(&tx)
+	applyPrivateStatus(&tx, block)
+	applyStaking(&tx, block)
+	applySpend(&tx, block)
+	applyCFundPayout(&tx, block)
+	applyFees(&tx, block)
 
 	return tx
 }
@@ -292,14 +291,8 @@ func applyStaking(tx *explorer.BlockTransaction, block *explorer.Block) {
 	}
 
 	if tx.IsAnyStaking() {
-		if softfork.SoftForks.StaticRewards().IsActive() {
-			tx.Stake = STATIC_REWARD
-			block.Stake = STATIC_REWARD
-		} else {
-			tx.Stake = tx.Vout.GetSpendableAmount() - tx.Vin.GetAmount()
-			block.Stake = tx.Vout.GetSpendableAmount() - tx.Vin.GetAmount()
-		}
-
+		tx.Stake = tx.Vout.GetSpendableAmount() - tx.Vin.GetAmount()
+		block.Stake = tx.Vout.GetSpendableAmount() - tx.Vin.GetAmount()
 	} else if tx.IsCoinbase() {
 		for _, o := range tx.Vout {
 			if o.ScriptPubKey.Type == explorer.VoutPubkey {

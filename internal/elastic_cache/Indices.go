@@ -16,6 +16,7 @@ var (
 	ProposalIndex         Indices = "proposal"
 	DaoVoteIndex          Indices = "daovote"
 	DaoConsultationIndex  Indices = "consultation"
+	IndexerIndex          Indices = "indexer"
 	PaymentRequestIndex   Indices = "paymentrequest"
 	SignalIndex           Indices = "signal"
 	SoftForkIndex         Indices = "softfork"
@@ -36,6 +37,7 @@ func All() []Indices {
 		ProposalIndex,
 		DaoVoteIndex,
 		DaoConsultationIndex,
+		IndexerIndex,
 		PaymentRequestIndex,
 		SignalIndex,
 		SoftForkIndex,

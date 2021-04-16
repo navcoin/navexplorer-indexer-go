@@ -17,7 +17,7 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index) *Index
 	return &Indexer{navcoin, elastic}
 }
 
-func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
+func (i *Indexer) Index(txs []explorer.BlockTransaction) {
 	for _, tx := range txs {
 		if tx.Version != 5 {
 			continue
@@ -25,13 +25,13 @@ func (i *Indexer) Index(txs []*explorer.BlockTransaction) {
 
 		if navP, err := i.navcoin.GetPaymentRequest(tx.Hash); err == nil {
 			paymentRequest := CreatePaymentRequest(navP, tx.Height)
-			i.elastic.Save(elastic_cache.PaymentRequestIndex, paymentRequest)
+			i.elastic.Save(elastic_cache.PaymentRequestIndex.Get(), paymentRequest)
 			PaymentRequests = append(PaymentRequests, paymentRequest)
 		}
 	}
 }
 
-func (i *Indexer) Update(blockCycle *explorer.BlockCycle, block *explorer.Block) {
+func (i *Indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 	for _, p := range PaymentRequests {
 		if p == nil {
 			continue

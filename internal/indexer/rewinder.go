@@ -15,6 +15,8 @@ type Rewinder struct {
 	addressRewinder  *address.Rewinder
 	softforkRewinder *softfork.Rewinder
 	daoRewinder      *dao.Rewinder
+	blockService     *block.Service
+	blockRepo        *block.Repository
 }
 
 func NewRewinder(
@@ -23,6 +25,8 @@ func NewRewinder(
 	addressRewinder *address.Rewinder,
 	softforkRewinder *softfork.Rewinder,
 	daoRewinder *dao.Rewinder,
+	blockService *block.Service,
+	blockRepo *block.Repository,
 ) *Rewinder {
 	return &Rewinder{
 		elastic,
@@ -30,13 +34,18 @@ func NewRewinder(
 		addressRewinder,
 		softforkRewinder,
 		daoRewinder,
+		blockService,
+		blockRepo,
 	}
 }
 
 func (r *Rewinder) RewindToHeight(height uint64) error {
 	log.Infof("Rewinding to height: %d", height)
 
-	LastBlockIndexed = height
+	lastBlock, err := r.blockRepo.GetBlockByHeight(height)
+	if err != nil {
+		r.blockService.SetLastBlockIndexed(lastBlock)
+	}
 
 	if err := r.addressRewinder.Rewind(height); err != nil {
 		return err

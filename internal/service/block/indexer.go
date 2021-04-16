@@ -6,38 +6,32 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer/IndexOption"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/asaskevich/EventBus"
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 )
 
 type Indexer struct {
-	navcoin       *navcoind.Navcoind
-	elastic       *elastic_cache.Index
-	event         EventBus.Bus
-	orphanService *OrphanService
-	repository    *Repository
-	service       *Service
+	navcoin          *navcoind.Navcoind
+	elastic          *elastic_cache.Index
+	orphanService    *OrphanService
+	repository       *Repository
+	service          *Service
+	consensusService *consensus.Service
 }
 
 func NewIndexer(
 	navcoin *navcoind.Navcoind,
 	elastic *elastic_cache.Index,
-	event EventBus.Bus,
 	orphanService *OrphanService,
 	repository *Repository,
 	service *Service,
+	consensusService *consensus.Service,
 ) *Indexer {
-	i := &Indexer{navcoin, elastic, event, orphanService, repository, service}
-	if err := event.Subscribe("block.indexed", i.OnIndexed); err != nil {
-		log.WithError(err).Fatal("Failed to subscribe to block.indexed event")
-	}
-
-	return i
+	return &Indexer{navcoin, elastic, orphanService, repository, service, consensusService}
 }
 
-func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []*explorer.BlockTransaction, *navcoind.BlockHeader, error) {
+func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []explorer.BlockTransaction, *navcoind.BlockHeader, error) {
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
 		log.Error("Failed to get block at height ", height)
@@ -49,7 +43,8 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		return nil, nil, nil, err
 	}
 
-	block := CreateBlock(navBlock, i.service.GetLastBlockIndexed(), uint(consensus.Parameters.Get(consensus.VOTING_CYCLE_LENGTH).Value))
+	cycleSize := uint(i.consensusService.GetConsensusParameter(explorer.VOTING_CYCLE_LENGTH).Value)
+	block := CreateBlock(navBlock, i.service.GetLastBlockIndexed(), cycleSize)
 
 	available, err := strconv.ParseFloat(header.NcfSupply, 64)
 	if err != nil {
@@ -61,13 +56,13 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		log.WithError(err).Errorf("Failed to parse header.NcfLocked: %s", header.NcfLocked)
 	}
 
-	block.Cfund = &explorer.Cfund{Available: available, Locked: locked}
+	block.Cfund = explorer.Cfund{Available: available, Locked: locked}
 
 	if option == IndexOption.SingleIndex {
 		orphan, err := i.orphanService.IsOrphanBlock(block, i.service.GetLastBlockIndexed())
 		if orphan == true || err != nil {
 			log.WithFields(log.Fields{"block": block.Hash}).WithError(err).Info("Orphan Block Found")
-			i.service.setLastBlockIndexed(nil)
+			i.service.SetLastBlockIndexed(nil)
 			return nil, nil, nil, ErrOrphanBlockFound
 		}
 	}
@@ -84,12 +79,8 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 		i.updateNextHashOfPreviousBlock(block)
 	}
 
-	i.service.setLastBlockIndexed(block)
+	i.service.SetLastBlockIndexed(block)
 	i.elastic.AddIndexRequest(elastic_cache.BlockIndex.Get(), block)
-
-	if option == IndexOption.BatchIndex {
-		i.event.Publish("block.indexed", block, txs, header)
-	}
 
 	return block, txs, header, err
 }
@@ -140,7 +131,7 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 			Index:  *tx.Vin[vdx].Vout,
 		}
 
-		i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), prevTx)
+		i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), *prevTx)
 	}
 }
 
@@ -166,8 +157,8 @@ func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
 	i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), i.service.GetLastBlockIndexed())
 }
 
-func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
-	var txs = make([]*explorer.BlockTransaction, 0)
+func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]explorer.BlockTransaction, error) {
+	var txs = make([]explorer.BlockTransaction, 0)
 	for idx, txHash := range block.Tx {
 		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
 		if err != nil {
@@ -175,7 +166,7 @@ func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]*explorer.Bl
 		}
 
 		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx), block)
-		i.indexPreviousTxData(tx)
+		i.indexPreviousTxData(&tx)
 
 		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
 
@@ -185,7 +176,7 @@ func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]*explorer.Bl
 	return txs, nil
 }
 
-func (i *Indexer) updateStakingFees(block *explorer.Block, txs []*explorer.BlockTransaction) {
+func (i *Indexer) updateStakingFees(block *explorer.Block, txs []explorer.BlockTransaction) {
 	for _, tx := range txs {
 		if tx.IsAnyStaking() {
 			tx.Fees = block.Fees
@@ -193,7 +184,7 @@ func (i *Indexer) updateStakingFees(block *explorer.Block, txs []*explorer.Block
 	}
 }
 
-func (i *Indexer) updateSupply(block *explorer.Block, txs []*explorer.BlockTransaction) {
+func (i *Indexer) updateSupply(block *explorer.Block, txs []explorer.BlockTransaction) {
 	log.Debugf("Updating Supply for block %d", block.Height)
 
 	if block.Height == 1 {
@@ -225,6 +216,9 @@ func (i *Indexer) updateSupply(block *explorer.Block, txs []*explorer.BlockTrans
 				}
 			}
 			for idx, vout := range tx.Vout {
+				if vout.ScriptPubKey.Asm == "OP_RETURN OP_CFUND" {
+					continue
+				}
 				log.Debugf("Updating Supply for vout %d - %d", idx, vout.N)
 				if !vout.Private && !vout.Wrapped {
 					block.SupplyBalance.Public += vout.ValueSat
