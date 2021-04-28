@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
+	"math/big"
 	"os"
 	"strconv"
 	"strings"
@@ -93,13 +94,14 @@ func initLogger() {
 		filename := fmt.Sprintf("%s/indexer.log", Get().LogPath)
 		log.Infof("Logging to %s", filename)
 
+		log.SetFormatter(&log.JSONFormatter{})
 		//log.SetFormatter(&log.JSONFormatter{})
 		logger = &lumberjack.Logger{
 			Filename:   filename,
-			MaxSize:    500, // megabytes
+			MaxSize:    100, // megabytes
 			MaxBackups: 3,
-			MaxAge:     28,   // days
-			Compress:   true, // disabled by default
+			MaxAge:     28,    // days
+			Compress:   false, // disabled by default
 		}
 		log.SetOutput(io.MultiWriter(os.Stdout, logger))
 
@@ -128,7 +130,7 @@ func Get() *Config {
 		RewindToHeight:     getUint64("REWIND_TO_HEIGHT", 0),
 		BulkIndex:          getBool("BULK_INDEX", false),
 		BulkTargetHeight:   getUint64("BULK_TARGET_HEIGHT", 0),
-		BulkIndexSize:      getUint64("BULK_INDEX_SIZE", 200),
+		BulkIndexSize:      getUint64("BULK_INDEX_SIZE", 100),
 		VerifySupply:       getBool("VERIFY_SUPPLY", false),
 		VerifySupplyFrom:   getUint64("VERIFY_SUPPLY_FROM", 1),
 		Subscribe:          getBool("SUBSCRIBE", true),
@@ -174,11 +176,13 @@ func getString(key string, defaultValue string) string {
 
 func getInt(key string, defaultValue int) int {
 	valStr := getString(key, "")
-	if val, err := strconv.Atoi(valStr); err == nil {
-		return val
+	val, _, err := big.ParseFloat(valStr, 10, 0, big.ToNearestEven)
+	if err != nil {
+		return defaultValue
 	}
 
-	return defaultValue
+	intVal, _ := val.Int64()
+	return int(intVal)
 }
 
 func getUint(key string, defaultValue uint) uint {
