@@ -17,6 +17,7 @@ type AddressHistory struct {
 	Reward  AddressReward  `json:"reward,omitempty"`
 
 	Stake       bool `json:"is_stake"`
+	ColdStake   bool `json:"is_coldstake"`
 	CfundPayout bool `json:"is_cfund_payout"`
 	StakePayout bool `json:"is_stake_payout"`
 	MultiSig    bool `json:"is_multisig"`

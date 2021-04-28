@@ -55,6 +55,9 @@
       "is_stake": {
         "type": "boolean"
       },
+      "is_cold_stake": {
+        "type": "boolean"
+      },
       "is_cfund_payout": {
         "type": "boolean"
       },
