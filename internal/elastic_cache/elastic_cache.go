@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/queue"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
@@ -42,7 +41,7 @@ var (
 	ErrRecordNotFound  = errors.New("Record not found")
 )
 
-func New(publisher *queue.Publisher) (*Index, error) {
+func New() (*Index, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(strings.Join(config.Get().ElasticSearch.Hosts, ",")),
 		elastic.SetSniff(config.Get().ElasticSearch.Sniff),
@@ -146,6 +145,10 @@ func (i *Index) GetRequest(id string) *Request {
 	}
 }
 
+func (i *Index) ClearRequests() {
+	i.cache.Flush()
+}
+
 func (i *Index) Save(index string, entity explorer.Entity) {
 	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("Save")
 
@@ -171,7 +174,6 @@ func (i *Index) BatchPersist(height uint64) bool {
 	start := time.Now()
 	i.Persist()
 	logrus.WithField("time", time.Since(start)).Infof("Persisting data: %d", height)
-	waitOnReindex(height)
 
 	return true
 }
@@ -183,6 +185,13 @@ func (i *Index) Persist() int {
 			bulk.Add(elastic.NewBulkIndexRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
 		} else if r.Type == UpdateRequest {
 			bulk.Add(elastic.NewBulkUpdateRequest().Index(r.Index).Id(r.Entity.Slug()).Doc(r.Entity))
+		}
+
+		actions := bulk.NumberOfActions()
+		if actions >= 500 {
+			logrus.Infof("Persisting %d actions", actions)
+			i.persist(bulk)
+			bulk = i.Client.Bulk()
 		}
 	}
 
@@ -264,14 +273,4 @@ func (i *Index) createIndex(index string, mapping []byte) error {
 	}
 
 	return nil
-}
-
-func waitOnReindex(height uint64) {
-	if config.Get().Reindex == true && height == config.Get().BulkIndexSize {
-		logrus.Error("Stopping reindex at height:", height)
-		for {
-			switch {
-			}
-		}
-	}
 }

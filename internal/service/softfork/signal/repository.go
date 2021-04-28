@@ -16,8 +16,8 @@ func NewRepo(client *elastic.Client) *Repository {
 	return &Repository{client}
 }
 
-func (r *Repository) GetSignals(start uint64, end uint64) []*explorer.Signal {
-	signals := make([]*explorer.Signal, 0)
+func (r *Repository) GetSignals(start uint64, end uint64) []explorer.Signal {
+	signals := make([]explorer.Signal, 0)
 
 	results, err := r.Client.Search(elastic_cache.SignalIndex.Get()).
 		Sort("height", true).
@@ -27,7 +27,7 @@ func (r *Repository) GetSignals(start uint64, end uint64) []*explorer.Signal {
 
 	if err == nil && results != nil && results.Hits != nil {
 		for _, hit := range results.Hits.Hits {
-			var signal *explorer.Signal
+			var signal explorer.Signal
 			if err := json.Unmarshal(hit.Source, &signal); err == nil {
 				signals = append(signals, signal)
 			}

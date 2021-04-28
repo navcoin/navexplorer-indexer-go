@@ -115,16 +115,16 @@ func (r *Repository) CreateAddress(hash string, createdBlock uint64, createdTime
 	}
 
 	if len(result.Hits.Hits) != 0 {
-		return nil, errors.New("Address already exists: " + hash)
+		address, _ := r.findOneAddress(result)
+		return address, errors.New("Address already exists: " + hash)
 	}
 
 	address := CreateAddress(hash)
 	address.CreatedBlock = createdBlock
 	address.CreatedTime = createdTime
 
-	if !r.elastic.HasRequest(address) {
-		r.elastic.AddIndexRequest(elastic_cache.AddressIndex.Get(), address)
-	}
+	r.elastic.Save(elastic_cache.AddressIndex.Get(), address)
+
 	return &address, nil
 }
 

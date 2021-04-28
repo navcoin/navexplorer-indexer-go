@@ -37,8 +37,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "elastic",
-		Build: func(publisher *queue.Publisher) (*elastic_cache.Index, error) {
-			elastic, err := elastic_cache.New(publisher)
+		Build: func() (*elastic_cache.Index, error) {
+			elastic, err := elastic_cache.New()
 			if err != nil {
 				log.WithError(err).Fatal("Failed toStart ES")
 			}
@@ -133,13 +133,13 @@ var Definitions = []dingo.Def{
 	{
 		Name: "address.indexer",
 		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, cache *cache.Cache, addressRepo *address.Repository, blockService *block.Service, blockRepo *block.Repository) (*address.Indexer, error) {
-			return address.NewIndexer(navcoin, elastic, cache, addressRepo, blockService, blockRepo, config.Get().BulkIndexSize), nil
+			return address.NewIndexer(navcoin, elastic, cache, addressRepo, blockService, blockRepo), nil
 		},
 	},
 	{
 		Name: "address.rewinder",
-		Build: func(elastic *elastic_cache.Index, repo *address.Repository) (*address.Rewinder, error) {
-			return address.NewRewinder(elastic, repo), nil
+		Build: func(elastic *elastic_cache.Index, repo *address.Repository, indexer *address.Indexer) (*address.Rewinder, error) {
+			return address.NewRewinder(elastic, repo, indexer), nil
 		},
 	},
 	{
@@ -150,20 +150,20 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "softfork.indexer",
-		Build: func(elastic *elastic_cache.Index, service *softfork.Service) (*softfork.Indexer, error) {
-			return softfork.NewIndexer(elastic, service, uint(config.Get().SoftForkBlockCycle), config.Get().SoftForkQuorum), nil
+		Build: func(elastic *elastic_cache.Index) (*softfork.Indexer, error) {
+			return softfork.NewIndexer(elastic, uint(config.Get().SoftForkBlockCycle), config.Get().SoftForkQuorum), nil
 		},
 	},
 	{
 		Name: "softfork.rewinder",
-		Build: func(elastic *elastic_cache.Index, service *softfork.Service, signalRepo *signal.Repository) (*softfork.Rewinder, error) {
-			return softfork.NewRewinder(elastic, service, signalRepo, uint(config.Get().SoftForkBlockCycle), config.Get().SoftForkQuorum), nil
+		Build: func(elastic *elastic_cache.Index, signalRepo *signal.Repository) (*softfork.Rewinder, error) {
+			return softfork.NewRewinder(elastic, signalRepo, uint(config.Get().SoftForkBlockCycle), config.Get().SoftForkQuorum), nil
 		},
 	},
 	{
 		Name: "softfork.service",
-		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, cache *cache.Cache, repo *softfork.Repository) (*softfork.Service, error) {
-			return softfork.New(navcoin, elastic, cache, repo), nil
+		Build: func(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *softfork.Repository) (*softfork.Service, error) {
+			return softfork.New(navcoin, elastic, repo), nil
 		},
 	},
 	{

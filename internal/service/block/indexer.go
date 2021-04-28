@@ -9,6 +9,7 @@ import (
 	"github.com/getsentry/raven-go"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"time"
 )
 
 type Indexer struct {
@@ -34,7 +35,7 @@ func NewIndexer(
 func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []explorer.BlockTransaction, *navcoind.BlockHeader, error) {
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
-		log.Error("Failed to get block at height ", height)
+		log.WithError(err).Error("Failed to get block at height ", height)
 		return nil, nil, nil, err
 	}
 	header, err := i.navcoin.GetBlockheader(navBlock.Hash)
@@ -97,7 +98,15 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 
 		prevTx, err := i.repository.GetTransactionByHash(*tx.Vin[vdx].Txid)
 		if err != nil {
-			log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
+			log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Error("Failed to get previous transaction from index")
+			if err != nil {
+				log.Info("Retry get previous transaction in 5 seconds")
+				time.Sleep(5 * time.Second)
+				prevTx, err = i.repository.GetTransactionByHash(*tx.Vin[vdx].Txid)
+				if err != nil {
+					log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Error("Failed to get previous transaction from index")
+				}
+			}
 		}
 		tx.Vin[vdx].PreviousOutput = &explorer.PreviousOutput{
 			Height: prevTx.Height,
@@ -160,6 +169,8 @@ func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
 func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]explorer.BlockTransaction, error) {
 	var txs = make([]explorer.BlockTransaction, 0)
 	for idx, txHash := range block.Tx {
+
+		start := time.Now()
 		rawTx, err := i.navcoin.GetRawTransaction(txHash, true)
 		if err != nil {
 			return nil, err
@@ -169,6 +180,8 @@ func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]explorer.Blo
 		i.indexPreviousTxData(&tx)
 
 		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
+		elapsed := time.Since(start)
+		log.WithField("time", elapsed).Infof("Index block tx:  %s", tx.Hash)
 
 		txs = append(txs, tx)
 	}

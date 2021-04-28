@@ -21,7 +21,6 @@ type Indexer struct {
 	addressRepository *Repository
 	blockService      *block.Service
 	blockRepository   *block.Repository
-	bulkIndexSize     uint64
 }
 
 func NewIndexer(
@@ -31,7 +30,6 @@ func NewIndexer(
 	addressRepository *Repository,
 	blockService *block.Service,
 	blockRepository *block.Repository,
-	bulkIndexSize uint64,
 ) *Indexer {
 	return &Indexer{
 		navcoin,
@@ -40,7 +38,6 @@ func NewIndexer(
 		addressRepository,
 		blockService,
 		blockRepository,
-		bulkIndexSize,
 	}
 }
 
@@ -53,26 +50,33 @@ func (i *Indexer) bulkIndex(target uint64) error {
 	addresses, err := i.addressRepository.GetAddressesHeightLt(1, 100)
 	if err != nil {
 		log.WithError(err).Fatal("AddressIndexer: GetAddressesHeightLt")
-		for {
-			switch {
-			}
-		}
+		return err
 	}
+
 	if len(addresses) == 0 {
-		bb, _ := i.blockRepository.GetBestBlock()
-		if bb.Height == target {
+		bb, err := i.blockRepository.GetBestBlock()
+		if err != nil {
+			log.WithError(err).Errorf("AddressIndexer: Best block not found")
+			time.Sleep(2 * time.Second)
+		} else if bb.Height >= target {
 			log.Errorf("AddressIndexer: All addresses indexed to height %d", target)
 			return nil
 		} else {
 			log.Info("AddressIndexer: Paused Address indexing for 2 seconds")
 			time.Sleep(2 * time.Second)
 		}
-	} else {
-		log.Infof("AddressIndexer: %d addresses found with height 0", len(addresses))
 	}
 
+	log.Infof("AddressIndexer: Found %d addresses to index", len(addresses))
 	for _, address := range addresses {
+		if address.MultiSig != nil {
+			continue
+		}
+
 		from := address.CreatedBlock
+		if from == 0 {
+			from = 1
+		}
 		txids, err := i.navcoin.GetAddressHistory(&from, &target, address.Hash)
 		if err != nil || len(txids) == 0 {
 			address.Attempt++
@@ -87,7 +91,7 @@ func (i *Indexer) bulkIndex(target uint64) error {
 		if tx == nil {
 			address.Attempt++
 			i.elastic.Save(elastic_cache.AddressIndex.Get(), address)
-			log.Errorf("AddressIndexer: Could not find latest tx for %s", address.Hash)
+			log.Debugf("AddressIndexer: Could not find latest tx for %s", address.Hash)
 			continue
 		}
 
@@ -95,7 +99,7 @@ func (i *Indexer) bulkIndex(target uint64) error {
 		if err != nil {
 			address.Attempt++
 			i.elastic.Save(elastic_cache.AddressIndex.Get(), address)
-			log.Errorf("AddressIndexer: Failed to generate history for address %s", address.Hash)
+			log.WithError(err).Errorf("AddressIndexer: Failed to generate history for address %s", address.Hash)
 			continue
 		}
 
@@ -109,8 +113,9 @@ func (i *Indexer) bulkIndex(target uint64) error {
 			address.Stakable = addressHistory.Balance.Stakable
 			address.VotingWeight = addressHistory.Balance.VotingWeight
 
-			if bulk.NumberOfActions() > 500 {
-				log.Infof("AddressIndexer: Indexing 500 historys for address: %s", address.Hash)
+			actions := bulk.NumberOfActions()
+			if actions >= 500 {
+				log.Infof("Persisting %d address actions", actions)
 				i.bulkPersist(bulk)
 				bulk = i.elastic.Client.Bulk()
 			}
@@ -119,18 +124,11 @@ func (i *Indexer) bulkIndex(target uint64) error {
 		bulk.Add(elastic.NewBulkUpdateRequest().Index(elastic_cache.AddressIndex.Get()).Id(address.Slug()).Doc(address))
 
 		i.bulkPersist(bulk)
-
-		if err != nil {
-			log.WithError(err).Errorf("AddressIndexer: Could not update address: %s", address.Hash)
-			for {
-				switch {
-				}
-			}
-		}
+		i.cache.Delete(address.Hash)
 	}
 
-	log.Info("AddressIndexer: Paused Address indexing for 5 seconds")
-	time.Sleep(5 * time.Second)
+	log.Info("AddressIndexer: Paused Address indexing for 1 seconds")
+	time.Sleep(1 * time.Second)
 
 	return i.bulkIndex(target)
 }
@@ -181,6 +179,10 @@ func (i *Indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, 
 	wg.Wait()
 }
 
+func (i *Indexer) ClearCache() {
+	i.cache.Flush()
+}
+
 func (i *Indexer) indexAddresses(height uint64, txs []explorer.BlockTransaction, includeHistory bool) {
 	addresses := getAddressesForTxs(txs)
 
@@ -205,12 +207,9 @@ func (i *Indexer) indexAddresses(height uint64, txs []explorer.BlockTransaction,
 				address, err := i.addressRepository.CreateAddress(hash, txs[0].Height, txs[0].Time)
 				if err != nil {
 					log.WithError(err).Errorf("AddressIndexer: Failed to create address %s ", hash)
-					for {
-						switch {
-						}
-					}
+				} else {
+					log.Infof("Address created at height %d: %s ", txs[0].Height, hash)
 				}
-				log.Infof("AddressIndexer: Address created at height %d: %s ", txs[0].Height, hash)
 				i.cache.Set(hash, address, cache.NoExpiration)
 			}
 		}
@@ -230,7 +229,7 @@ func (i *Indexer) indexMultiSigs(txs []explorer.BlockTransaction) {
 			}
 
 			addressHistory := CreateMultiSigAddressHistory(tx, address.MultiSig, address)
-			i.elastic.AddIndexRequest(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
+			i.elastic.Save(elastic_cache.AddressHistoryIndex.Get(), addressHistory)
 
 			err := i.updateAddress(address, addressHistory)
 			if err != nil {
@@ -268,10 +267,6 @@ func (i *Indexer) generateAddressHistory(start, end uint64, address string, hist
 			return nil, errors.New("TX related to address history is not available")
 		}
 		addressHistory := CreateAddressHistory(address, uint(idx), h, tx)
-		log.WithFields(log.Fields{
-			"block": h.Block,
-			"order": idx,
-		}).Infof("AddressIndexer: Create Address History: %s", h.Address)
 		addressHistorys = append(addressHistorys, addressHistory)
 	}
 
@@ -293,7 +288,7 @@ func (i *Indexer) updateAddress(address explorer.Address, history explorer.Addre
 	address.VotingWeight = history.Balance.VotingWeight
 
 	i.cache.Set(address.Hash, address, cache.NoExpiration)
-	i.elastic.AddUpdateRequest(elastic_cache.AddressIndex.Get(), address)
+	i.elastic.Save(elastic_cache.AddressIndex.Get(), address)
 
 	return nil
 }

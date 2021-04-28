@@ -9,10 +9,11 @@ import (
 type Rewinder struct {
 	elastic *elastic_cache.Index
 	repo    *Repository
+	indexer *Indexer
 }
 
-func NewRewinder(elastic *elastic_cache.Index, repo *Repository) *Rewinder {
-	return &Rewinder{elastic, repo}
+func NewRewinder(elastic *elastic_cache.Index, repo *Repository, indexer *Indexer) *Rewinder {
+	return &Rewinder{elastic, repo, indexer}
 }
 
 func (r *Rewinder) Rewind(height uint64) error {
@@ -35,6 +36,8 @@ func (r *Rewinder) Rewind(height uint64) error {
 			return err
 		}
 	}
+
+	r.indexer.ClearCache()
 
 	return nil
 }

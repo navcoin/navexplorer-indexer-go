@@ -4,63 +4,38 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
+var SoftForks explorer.SoftForks
+
 type Service struct {
 	navcoin *navcoind.Navcoind
 	elastic *elastic_cache.Index
-	cache   *cache.Cache
 	repo    *Repository
 }
 
-var (
-	cacheKey = "explorer.SoftForks"
-)
-
-func New(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, cache *cache.Cache, repo *Repository) *Service {
-	return &Service{navcoin, elastic, cache, repo}
-}
-
-func (i *Service) GetSoftForks() explorer.SoftForks {
-	softForks, exists := i.cache.Get(cacheKey)
-	if exists == false {
-		return nil
-	}
-
-	return softForks.(explorer.SoftForks)
-}
-
-func (i *Service) Update(softForks explorer.SoftForks, persist bool) {
-	i.cache.Set(cacheKey, softForks, cache.NoExpiration)
-
-	for _, softFork := range softForks {
-		if persist {
-			i.elastic.Save(elastic_cache.SoftForkIndex.Get(), softFork)
-		} else {
-			i.elastic.AddUpdateRequest(elastic_cache.SoftForkIndex.Get(), softFork)
-		}
-	}
+func New(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *Repository) *Service {
+	return &Service{navcoin, elastic, repo}
 }
 
 func (i *Service) InitSoftForks() {
-	log.Info("Init SoftForks")
+	log.Info("SoftFork: Init")
 
 	info, err := i.navcoin.GetBlockchainInfo()
 	if err != nil {
-		log.WithError(err).Fatal("Failed to get blockchaininfo")
+		log.WithError(err).Fatal("SoftFork: Failed to get blockchaininfo")
 	}
 
-	softForks, err := i.repo.getSoftForks()
+	SoftForks, err = i.repo.GetSoftForks()
 	if err != nil && err != elastic_cache.ErrResultsNotFound {
-		log.WithError(err).Fatal("Failed to get soft forks")
+		log.WithError(err).Fatal("SoftFork: Failed to get soft forks")
 		return
 	}
 
 	for name, bip9fork := range info.Bip9SoftForks {
-		if !softForks.HasSoftFork(name) {
+		if !SoftForks.HasSoftFork(name) {
 			softFork := &explorer.SoftFork{
 				Name:             name,
 				SignalBit:        bip9fork.Bit,
@@ -73,30 +48,101 @@ func (i *Service) InitSoftForks() {
 
 			i.elastic.Save(elastic_cache.SoftForkIndex.Get(), softFork)
 
-			softForks = append(softForks, softFork)
+			SoftForks = append(SoftForks, softFork)
 		} else {
-			if bip9fork.Bit != softForks.GetSoftFork(name).SignalBit {
-				softForks.GetSoftFork(name).SignalBit = bip9fork.Bit
+			if bip9fork.Bit != SoftForks.GetSoftFork(name).SignalBit {
+				SoftForks.GetSoftFork(name).SignalBit = bip9fork.Bit
+				i.elastic.Save(elastic_cache.SoftForkIndex.Get(), SoftForks.GetSoftFork(name))
 			}
 		}
 	}
-
-	for _, softFork := range softForks {
-		log.WithFields(log.Fields{
-			"signalBit": softFork.SignalBit,
-			"state":     softFork.State,
-		}).Infof("SoftFork %s", softFork.Name)
-	}
-
-	i.Update(softForks, true)
 }
 
 func GetSoftForkBlockCycle(size uint, height uint64) *explorer.BlockCycle {
-	cycle := (uint(height-1) / size) + 1
+	cycle := (uint(height) / size) + 1
 
 	return &explorer.BlockCycle{
 		Size:  size,
 		Cycle: cycle,
 		Index: uint(height) - ((cycle * size) - size),
+	}
+}
+
+func ResetSoftForks() {
+	for idx, softFork := range SoftForks {
+		SoftForks[idx] = &explorer.SoftFork{
+			Name:      softFork.Name,
+			SignalBit: softFork.SignalBit,
+			StartTime: softFork.StartTime,
+			Timeout:   softFork.Timeout,
+			State:     explorer.SoftForkDefined,
+		}
+	}
+}
+
+func AddSoftForkSignal(signal *explorer.Signal, height uint64, blocksInCycle uint) {
+	if !signal.IsSignalling() {
+		return
+	}
+
+	blockCycle := GetSoftForkBlockCycle(blocksInCycle, height)
+
+	for _, signalSoftFork := range signal.SoftForks {
+		softFork := SoftForks.GetSoftFork(signalSoftFork)
+		if softFork == nil || !softFork.IsOpen() {
+			continue
+		}
+		log.WithFields(log.Fields{"softFork": softFork.Name, "state": softFork.State, "height": height}).
+			Info("SoftFork: SoftFork Signal added")
+
+		softFork.SignalHeight = height
+		if softFork.State == explorer.SoftForkDefined {
+			softFork.State = explorer.SoftForkStarted
+		}
+
+		var cycle *explorer.SoftForkCycle
+		if cycle = softFork.GetCycle(blockCycle.Cycle); cycle == nil {
+			softFork.Cycles = append(softFork.Cycles, explorer.SoftForkCycle{Cycle: blockCycle.Cycle, BlocksSignalling: 0})
+			cycle = softFork.GetCycle(blockCycle.Cycle)
+			log.WithFields(log.Fields{"softFork": softFork.Name, "cycle": cycle.Cycle, "height": height}).
+				Info("SoftFork: Create Next Cycle")
+		}
+
+		cycle.BlocksSignalling++
+	}
+}
+
+func UpdateSoftForksState(height uint64, blocksInCycle uint, quorum int) {
+	log.WithField("height", height).Info("SoftFork: Update Softforks")
+
+	for idx, _ := range SoftForks {
+		if SoftForks[idx].Cycles == nil {
+			log.WithField("softFork", SoftForks[idx].Name).Info("SoftFork: No Cycles found")
+			continue
+		}
+
+		if SoftForks[idx].State == explorer.SoftForkStarted && height >= SoftForks[idx].LockedInHeight {
+			if SoftForks[idx].LatestCycle().BlocksSignalling >= explorer.GetQuorum(blocksInCycle, quorum) {
+				SoftForks[idx].State = explorer.SoftForkLockedIn
+				SoftForks[idx].LockedInHeight = uint64(blocksInCycle * GetSoftForkBlockCycle(blocksInCycle, height).Cycle)
+				SoftForks[idx].ActivationHeight = SoftForks[idx].LockedInHeight + uint64(blocksInCycle)
+
+				log.WithFields(log.Fields{
+					"softFork":         SoftForks[idx].Name,
+					"height":           height,
+					"lockedInHeight":   SoftForks[idx].LockedInHeight,
+					"activationHeight": SoftForks[idx].ActivationHeight,
+				}).Infof("SoftFork: Locked in with %d signals", SoftForks[idx].LatestCycle().BlocksSignalling)
+			}
+		}
+
+		if SoftForks[idx].State == explorer.SoftForkLockedIn && height >= SoftForks[idx].ActivationHeight-1 {
+			SoftForks[idx].State = explorer.SoftForkActive
+			log.WithFields(log.Fields{
+				"softfork":         SoftForks[idx].Name,
+				"height":           height,
+				"activationHeight": SoftForks[idx].ActivationHeight,
+			}).Info("SoftFork: Activated")
+		}
 	}
 }

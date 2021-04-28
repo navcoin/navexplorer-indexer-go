@@ -3,11 +3,11 @@ package daemon
 import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/generated/dic"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer/IndexOption"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 	"sync"
-	"time"
 )
 
 var container *dic.Container
@@ -31,11 +31,12 @@ func Execute() {
 		}
 	}
 
+	rewind()
+
 	if config.Get().BulkIndex == true {
 		bulkIndex()
-	} else {
-		rewind()
 	}
+
 	if config.Get().Subscribe == true {
 		subscribe()
 	} else {
@@ -76,6 +77,15 @@ func rewind() {
 }
 
 func bulkIndex() {
+	addressHeight, _ := container.GetAddressRepo().GetBestHeight()
+	if addressHeight != 0 {
+		log.Fatalf("Bulk Index failed as address history exists to height %d", addressHeight)
+		for {
+			switch {
+			}
+		}
+	}
+
 	hash, err := container.GetNavcoin().GetBestBlockhash()
 	if err != nil {
 		log.WithError(err).Fatal("Failed to get best block hash")
@@ -95,18 +105,21 @@ func bulkIndex() {
 
 	go func() {
 		defer wg.Done()
-		if !config.Get().Reindex {
-			time.Sleep(10 * time.Second)
-			container.GetAddressIndexer().BulkIndex(targetHeight)
+		if err := container.GetAddressIndexer().BulkIndex(targetHeight); err != nil {
+			log.WithError(err).Fatalf("Failed to bulk index addresses")
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		container.GetIndexer().BulkIndex(targetHeight)
+		if err := container.GetIndexer().Index(IndexOption.BatchIndex, targetHeight); err != nil {
+			log.WithError(err).Fatalf("Failed to bulk index blocks")
+		}
 	}()
 
 	wg.Wait()
+
+	container.GetElastic().Persist()
 
 	log.Infof("Bulk index complete to height %d", targetHeight)
 }
@@ -167,6 +180,7 @@ func subscribe() {
 
 func targetHeight(bestBlock *explorer.Block) uint64 {
 	if config.Get().RewindToHeight != 0 {
+		log.Info("Rewinding to height from config: %d", config.Get().RewindToHeight)
 		return config.Get().RewindToHeight
 	}
 

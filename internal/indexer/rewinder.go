@@ -42,6 +42,7 @@ func NewRewinder(
 func (r *Rewinder) RewindToHeight(height uint64) error {
 	log.Infof("Rewinding to height: %d", height)
 
+	r.elastic.ClearRequests()
 	lastBlock, err := r.blockRepo.GetBlockByHeight(height)
 	if err != nil {
 		r.blockService.SetLastBlockIndexed(lastBlock)

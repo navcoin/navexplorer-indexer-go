@@ -152,7 +152,7 @@ var testnet = `[
     "id": 0,
     "desc": "Length in blocks of a voting cycle",
     "type": 0,
-    "value": 180
+    "value": 800
   },
   {
     "id": 1,

@@ -48,20 +48,6 @@ func NewIndexer(
 	}
 }
 
-func (i *Indexer) BulkIndex(target uint64) {
-	log.Infof("Bulk index blocks to %d", target)
-	if err := i.Index(IndexOption.BatchIndex, target); err != nil {
-		if err.Error() != "-8: Block height out of range" {
-			log.WithError(err).Fatal("Failed to index blocks")
-			for {
-				switch {
-				}
-			}
-		}
-	}
-	i.elastic.Persist()
-}
-
 func (i *Indexer) SingleIndex() {
 	err := i.Index(IndexOption.SingleIndex, 0)
 	if err != nil && err.Error() != "-8: Block height out of range" {
@@ -81,11 +67,15 @@ func (i *Indexer) Index(option IndexOption.IndexOption, target uint64) error {
 	}
 
 	err := i.index(height, target, option)
-	if option == IndexOption.SingleIndex && err == block.ErrOrphanBlockFound {
-		if err = i.rewinder.RewindToHeight(i.blockService.GetLastBlockIndexed().Height - config.Get().ReindexSize); err == nil {
-			return i.Index(option, target)
+
+	if option == IndexOption.SingleIndex {
+		if err == block.ErrOrphanBlockFound {
+			if err = i.rewinder.RewindToHeight(i.blockService.GetLastBlockIndexed().Height - config.Get().ReindexSize); err == nil {
+				return i.Index(option, target)
+			}
 		}
 	}
+	i.elastic.Persist()
 
 	return err
 }
