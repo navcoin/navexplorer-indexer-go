@@ -92,8 +92,6 @@ func AddSoftForkSignal(signal *explorer.Signal, height uint64, blocksInCycle uin
 		if softFork == nil || !softFork.IsOpen() {
 			continue
 		}
-		log.WithFields(log.Fields{"softFork": softFork.Name, "state": softFork.State, "height": height}).
-			Info("SoftFork: SoftFork Signal added")
 
 		softFork.SignalHeight = height
 		if softFork.State == explorer.SoftForkDefined {
@@ -113,11 +111,8 @@ func AddSoftForkSignal(signal *explorer.Signal, height uint64, blocksInCycle uin
 }
 
 func UpdateSoftForksState(height uint64, blocksInCycle uint, quorum int) {
-	log.WithField("height", height).Info("SoftFork: Update Softforks")
-
 	for idx, _ := range SoftForks {
 		if SoftForks[idx].Cycles == nil {
-			log.WithField("softFork", SoftForks[idx].Name).Info("SoftFork: No Cycles found")
 			continue
 		}
 
