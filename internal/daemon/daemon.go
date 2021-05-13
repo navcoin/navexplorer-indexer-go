@@ -17,33 +17,21 @@ func Execute() {
 
 	if config.Get().Reindex == true {
 		log.Info("Reindex complete")
-		for {
-			switch {
-			}
-		}
+		return
 	}
 
 	if config.Get().VerifySupply == true {
 		verifySupply()
-		for {
-			switch {
-			}
-		}
+		return
 	}
-
-	rewind()
 
 	if config.Get().BulkIndex == true {
 		bulkIndex()
 	}
 
 	if config.Get().Subscribe == true {
+		rewind()
 		subscribe()
-	} else {
-		for {
-			switch {
-			}
-		}
 	}
 }
 
@@ -77,13 +65,11 @@ func rewind() {
 }
 
 func bulkIndex() {
-	addressHeight, _ := container.GetAddressRepo().GetBestHeight()
-	if addressHeight != 0 {
-		log.Fatalf("Bulk Index failed as address history exists to height %d", addressHeight)
-		for {
-			switch {
-			}
-		}
+	targetHeight := config.Get().BulkTargetHeight
+
+	addressHeight, err := container.GetAddressRepo().GetBestHeight()
+	if err != nil {
+		log.WithError(err).Fatalf("Failed to get address height", addressHeight)
 	}
 
 	hash, err := container.GetNavcoin().GetBestBlockhash()
@@ -91,33 +77,35 @@ func bulkIndex() {
 		log.WithError(err).Fatal("Failed to get best block hash")
 	}
 
-	targetHeight := config.Get().BulkTargetHeight
-	if targetHeight == 0 {
-		bestBlock, err := container.GetNavcoin().GetBlock(hash)
-		if err != nil {
-			log.WithError(err).Fatal("Failed to get best block")
-		}
-		targetHeight = bestBlock.Height
+	bestNavBlock, err := container.GetNavcoin().GetBlock(hash)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to get best block from navcoind")
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(2)
+	if targetHeight == 0 {
+		targetHeight = bestNavBlock.Height
+	}
 
-	go func() {
-		defer wg.Done()
-		if err := container.GetAddressIndexer().BulkIndex(targetHeight); err != nil {
-			log.WithError(err).Fatalf("Failed to bulk index addresses")
-		}
-	}()
+	bestIndexedBlock, err := container.GetBlockRepo().GetBestBlock()
+	if err != nil {
+		log.WithError(err).Fatal("Failed to get best block from index")
+	}
+	log.Infof("Blocks indexed up to %d", bestIndexedBlock.Height)
 
-	go func() {
-		defer wg.Done()
+	log.Infof("Bulk indexing blocks to %d", targetHeight)
+	if bestIndexedBlock.Height < targetHeight && addressHeight == 0 {
 		if err := container.GetIndexer().Index(IndexOption.BatchIndex, targetHeight); err != nil {
-			log.WithError(err).Fatalf("Failed to bulk index blocks")
+			log.WithError(err).Fatal("Failed to bulk index blocks")
 		}
-	}()
+		container.GetElastic().Persist()
+	}
+	log.Infof("Blocks indexed up to %d", targetHeight)
 
-	wg.Wait()
+	log.Infof("Bulk indexing addresses to %d", targetHeight)
+	if err := container.GetAddressIndexer().BulkIndex(targetHeight); err != nil {
+		log.WithError(err).Error("Failed to bulk index addresses")
+	}
+	log.Infof("Addresses indexed up to %d", targetHeight)
 
 	container.GetElastic().Persist()
 
