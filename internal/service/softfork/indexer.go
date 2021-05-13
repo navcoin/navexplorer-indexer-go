@@ -7,17 +7,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Indexer struct {
-	elastic       *elastic_cache.Index
+type Indexer interface {
+	Index(block *explorer.Block)
+}
+
+type indexer struct {
+	elastic       elastic_cache.Index
 	blocksInCycle uint
 	quorum        int
 }
 
-func NewIndexer(elastic *elastic_cache.Index, blocksInCycle uint, quorum int) *Indexer {
-	return &Indexer{elastic, blocksInCycle, quorum}
+func NewIndexer(elastic elastic_cache.Index, blocksInCycle uint, quorum int) Indexer {
+	return indexer{elastic, blocksInCycle, quorum}
 }
 
-func (i *Indexer) Index(block *explorer.Block) {
+func (i indexer) Index(block *explorer.Block) {
 	sig := signal.CreateSignal(block, &SoftForks)
 	if sig != nil {
 		AddSoftForkSignal(sig, block.Height, i.blocksInCycle)

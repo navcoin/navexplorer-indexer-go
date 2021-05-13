@@ -9,26 +9,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Rewinder struct {
-	elastic          *elastic_cache.Index
-	blockRewinder    *block.Rewinder
-	addressRewinder  *address.Rewinder
-	softforkRewinder *softfork.Rewinder
-	daoRewinder      *dao.Rewinder
-	blockService     *block.Service
-	blockRepo        *block.Repository
+type Rewinder interface {
+	RewindToHeight(height uint64) error
+}
+
+type rewinder struct {
+	elastic          elastic_cache.Index
+	blockRewinder    block.Rewinder
+	addressRewinder  address.Rewinder
+	softforkRewinder softfork.Rewinder
+	daoRewinder      dao.Rewinder
+	blockService     block.Service
+	blockRepo        block.Repository
 }
 
 func NewRewinder(
-	elastic *elastic_cache.Index,
-	blockRewinder *block.Rewinder,
-	addressRewinder *address.Rewinder,
-	softforkRewinder *softfork.Rewinder,
-	daoRewinder *dao.Rewinder,
-	blockService *block.Service,
-	blockRepo *block.Repository,
-) *Rewinder {
-	return &Rewinder{
+	elastic elastic_cache.Index,
+	blockRewinder block.Rewinder,
+	addressRewinder address.Rewinder,
+	softforkRewinder softfork.Rewinder,
+	daoRewinder dao.Rewinder,
+	blockService block.Service,
+	blockRepo block.Repository,
+) Rewinder {
+	return rewinder{
 		elastic,
 		blockRewinder,
 		addressRewinder,
@@ -39,7 +43,7 @@ func NewRewinder(
 	}
 }
 
-func (r *Rewinder) RewindToHeight(height uint64) error {
+func (r rewinder) RewindToHeight(height uint64) error {
 	log.Infof("Rewinding to height: %d", height)
 
 	r.elastic.ClearRequests()

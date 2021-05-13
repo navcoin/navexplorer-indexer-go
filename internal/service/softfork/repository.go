@@ -10,18 +10,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Repository struct {
-	Client *elastic.Client
+type Repository interface {
+	GetSoftForks() (explorer.SoftForks, error)
+	GetSoftFork(name string) (*explorer.SoftFork, error)
 }
 
-func NewRepo(client *elastic.Client) *Repository {
-	return &Repository{client}
+type repository struct {
+	elastic elastic_cache.Index
 }
 
-func (r *Repository) GetSoftForks() (explorer.SoftForks, error) {
+func NewRepo(elastic elastic_cache.Index) Repository {
+	return repository{elastic}
+}
+
+func (r repository) GetSoftForks() (explorer.SoftForks, error) {
 	var softForks []*explorer.SoftFork
 
-	results, err := r.Client.Search(elastic_cache.SoftForkIndex.Get()).
+	results, err := r.elastic.GetClient().Search(elastic_cache.SoftForkIndex.Get()).
 		Size(9999).
 		Do(context.Background())
 	if err != nil {
@@ -42,10 +47,10 @@ func (r *Repository) GetSoftForks() (explorer.SoftForks, error) {
 	return softForks, nil
 }
 
-func (r *Repository) GetSoftFork(name string) (*explorer.SoftFork, error) {
+func (r repository) GetSoftFork(name string) (*explorer.SoftFork, error) {
 	var softfork *explorer.SoftFork
 
-	results, err := r.Client.Search(elastic_cache.SoftForkIndex.Get()).
+	results, err := r.elastic.GetClient().Search(elastic_cache.SoftForkIndex.Get()).
 		Query(elastic.NewTermQuery("name", name)).
 		Size(1).
 		Do(context.Background())

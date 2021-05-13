@@ -6,15 +6,19 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 )
 
-type Indexer struct {
-	elastic *elastic_cache.Index
+type Indexer interface {
+	Index(txs []explorer.BlockTransaction, block *explorer.Block, blockHeader *navcoind.BlockHeader)
 }
 
-func NewIndexer(elastic *elastic_cache.Index) *Indexer {
-	return &Indexer{elastic}
+type indexer struct {
+	elastic elastic_cache.Index
 }
 
-func (i *Indexer) IndexVotes(txs []explorer.BlockTransaction, block *explorer.Block, blockHeader *navcoind.BlockHeader) {
+func NewIndexer(elastic elastic_cache.Index) Indexer {
+	return indexer{elastic}
+}
+
+func (i indexer) Index(txs []explorer.BlockTransaction, block *explorer.Block, blockHeader *navcoind.BlockHeader) {
 	var votingAddress string
 	for _, tx := range txs {
 		var err error

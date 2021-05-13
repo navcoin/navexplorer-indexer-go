@@ -11,20 +11,37 @@ import (
 	"time"
 )
 
-type Repository struct {
-	elastic *elastic_cache.Index
+type Repository interface {
+	GetBestHeight() (uint64, error)
+	GetAddress(hash string) (*explorer.Address, error)
+	GetAllAddresses() ([]explorer.Address, error)
+	GetAddresses(hashes []string) ([]explorer.Address, error)
+	GetAddressesHeightGt(height uint64) ([]explorer.Address, error)
+	GetAddressesHeightLt(height uint64, size int) ([]explorer.Address, error)
+	CreateAddress(hash string, createdBlock uint64, createdTime time.Time) (*explorer.Address, error)
+	GetOrCreateAddress(hash string) explorer.Address
+	GetLatestHistoryByHash(hash string) (*explorer.AddressHistory, error)
+	GetAddressBalanceAtHeight(height uint64) (int64, error)
+
+	findOne(result *elastic.SearchResult) (*explorer.Address, error)
+	findMany(result *elastic.SearchResult) ([]explorer.Address, error)
+}
+
+type repository struct {
+	elastic elastic_cache.Index
 }
 
 var (
 	ErrLatestHistoryNotFound = errors.New("Latest history not found")
 )
 
-func NewRepo(elastic *elastic_cache.Index) *Repository {
-	return &Repository{elastic}
+func NewRepo(elastic elastic_cache.Index) Repository {
+	return repository{elastic}
 }
 
-func (r *Repository) GetBestHeight() (uint64, error) {
-	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+func (r repository) GetBestHeight() (uint64, error) {
+	result, err := r.elastic.GetClient().
+		Search(elastic_cache.AddressIndex.Get()).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
@@ -36,7 +53,7 @@ func (r *Repository) GetBestHeight() (uint64, error) {
 		return 0, nil
 	}
 
-	address, err := r.findOneAddress(result)
+	address, err := r.findOne(result)
 	if err != nil {
 		return 0, err
 	}
@@ -44,8 +61,9 @@ func (r *Repository) GetBestHeight() (uint64, error) {
 	return address.Height, nil
 }
 
-func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
-	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+func (r repository) GetAddress(hash string) (*explorer.Address, error) {
+	result, err := r.elastic.GetClient().
+		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -53,22 +71,24 @@ func (r *Repository) GetAddress(hash string) (*explorer.Address, error) {
 		return nil, err
 	}
 
-	return r.findOneAddress(result)
+	return r.findOne(result)
 }
 
-func (r *Repository) GetAllAddresses() ([]*explorer.Address, error) {
-	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+func (r repository) GetAllAddresses() ([]explorer.Address, error) {
+	result, err := r.elastic.GetClient().
+		Search(elastic_cache.AddressIndex.Get()).
 		Size(1000).
 		Do(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	return r.findManyAddress(result)
+	return r.findMany(result)
 }
 
-func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) {
-	result, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+func (r repository) GetAddresses(hashes []string) ([]explorer.Address, error) {
+	result, err := r.elastic.GetClient().
+		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermsQuery("hash", hashes)).
 		Size(len(hashes)).
 		Do(context.Background())
@@ -76,11 +96,11 @@ func (r *Repository) GetAddresses(hashes []string) ([]*explorer.Address, error) 
 		return nil, err
 	}
 
-	return r.findManyAddress(result)
+	return r.findMany(result)
 }
 
-func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, error) {
-	result, err := r.elastic.Client.
+func (r repository) GetAddressesHeightGt(height uint64) ([]explorer.Address, error) {
+	result, err := r.elastic.GetClient().
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewRangeQuery("height").Gt(height)).
 		Size(50000).
@@ -89,11 +109,11 @@ func (r *Repository) GetAddressesHeightGt(height uint64) ([]*explorer.Address, e
 		return nil, err
 	}
 
-	return r.findManyAddress(result)
+	return r.findMany(result)
 }
 
-func (r *Repository) GetAddressesHeightLt(height uint64, size int) ([]*explorer.Address, error) {
-	result, err := r.elastic.Client.
+func (r repository) GetAddressesHeightLt(height uint64, size int) ([]explorer.Address, error) {
+	result, err := r.elastic.GetClient().
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewRangeQuery("height").Lt(height)).
 		Size(size).
@@ -104,11 +124,11 @@ func (r *Repository) GetAddressesHeightLt(height uint64, size int) ([]*explorer.
 		return nil, err
 	}
 
-	return r.findManyAddress(result)
+	return r.findMany(result)
 }
 
-func (r *Repository) CreateAddress(hash string, createdBlock uint64, createdTime time.Time) (*explorer.Address, error) {
-	result, err := r.elastic.Client.
+func (r repository) CreateAddress(hash string, createdBlock uint64, createdTime time.Time) (*explorer.Address, error) {
+	result, err := r.elastic.GetClient().
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
@@ -119,7 +139,7 @@ func (r *Repository) CreateAddress(hash string, createdBlock uint64, createdTime
 	}
 
 	if len(result.Hits.Hits) != 0 {
-		address, _ := r.findOneAddress(result)
+		address, _ := r.findOne(result)
 		return address, errors.New("Address already exists: " + hash)
 	}
 
@@ -132,8 +152,8 @@ func (r *Repository) CreateAddress(hash string, createdBlock uint64, createdTime
 	return &address, nil
 }
 
-func (r *Repository) GetOrCreateAddress(hash string) explorer.Address {
-	result, err := r.elastic.Client.
+func (r repository) GetOrCreateAddress(hash string) explorer.Address {
+	result, err := r.elastic.GetClient().
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
@@ -148,15 +168,16 @@ func (r *Repository) GetOrCreateAddress(hash string) explorer.Address {
 		return address
 	}
 
-	address, _ := r.findOneAddress(result)
+	address, _ := r.findOne(result)
 	return *address
 }
 
-func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHistory, error) {
+func (r repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHistory, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.GetClient().
+		Search(elastic_cache.AddressHistoryIndex.Get()).
 		Query(query).
 		Sort("height", false).
 		Size(1).
@@ -181,14 +202,15 @@ func (r *Repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHisto
 	return history, err
 }
 
-func (r *Repository) GetAddressBalanceAtHeight(height uint64) (int64, error) {
+func (r repository) GetAddressBalanceAtHeight(height uint64) (int64, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewRangeQuery("height").Lte(height))
 
 	agg := elastic.NewNestedAggregation().Path("changes").
 		SubAggregation("spendable", elastic.NewSumAggregation().Field("changes.spendable"))
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.GetClient().
+		Search(elastic_cache.AddressHistoryIndex.Get()).
 		Query(query).
 		Aggregation("changes", agg).
 		Size(0).
@@ -208,7 +230,7 @@ func (r *Repository) GetAddressBalanceAtHeight(height uint64) (int64, error) {
 	return addressBalance, err
 }
 
-func (r *Repository) findOneAddress(result *elastic.SearchResult) (*explorer.Address, error) {
+func (r repository) findOne(result *elastic.SearchResult) (*explorer.Address, error) {
 	if result == nil || len(result.Hits.Hits) != 1 {
 		return nil, errors.New("AddressRepository: findOneAddress - Invalid result")
 	}
@@ -222,14 +244,14 @@ func (r *Repository) findOneAddress(result *elastic.SearchResult) (*explorer.Add
 	return address, nil
 }
 
-func (r *Repository) findManyAddress(result *elastic.SearchResult) ([]*explorer.Address, error) {
+func (r repository) findMany(result *elastic.SearchResult) ([]explorer.Address, error) {
 	if result == nil {
 		return nil, errors.New("AddressRepository: findManyAddress - Invalid result")
 	}
 
-	addresses := make([]*explorer.Address, 0)
+	addresses := make([]explorer.Address, 0)
 	for _, hit := range result.Hits.Hits {
-		var address *explorer.Address
+		var address explorer.Address
 		if err := json.Unmarshal(hit.Source, &address); err != nil {
 			return nil, err
 		}

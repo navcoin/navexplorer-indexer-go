@@ -6,13 +6,18 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-type Service struct {
-	repo  *Repository
-	cache *cache.Cache
+type Service interface {
+	SetLastBlockIndexed(block *explorer.Block)
+	GetLastBlockIndexed() *explorer.Block
 }
 
-func NewService(repo *Repository, cache *cache.Cache) *Service {
-	return &Service{repo, cache}
+type service struct {
+	repository Repository
+	cache      *cache.Cache
+}
+
+func NewService(repository Repository, cache *cache.Cache) Service {
+	return service{repository, cache}
 }
 
 var (
@@ -20,17 +25,17 @@ var (
 	ErrBlockTransactionNotFound = errors.New("Transaction not found")
 )
 
-func (s *Service) SetLastBlockIndexed(block *explorer.Block) {
+func (s service) SetLastBlockIndexed(block *explorer.Block) {
 	s.cache.Set("lastBlockIndexed", *block, cache.NoExpiration)
 }
 
-func (s *Service) GetLastBlockIndexed() *explorer.Block {
+func (s service) GetLastBlockIndexed() *explorer.Block {
 	if lastBlockIndexed, exists := s.cache.Get("lastBlockIndexed"); exists {
 		block := lastBlockIndexed.(explorer.Block)
 		return &block
 	}
 
-	block, err := s.repo.GetBestBlock()
+	block, err := s.repository.GetBestBlock()
 	if err != nil {
 		return nil
 	}

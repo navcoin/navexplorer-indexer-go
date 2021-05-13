@@ -9,22 +9,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Repository struct {
-	Client *elastic.Client
+type Repository interface {
+	GetPossibleVotingProposals(height uint64) ([]*explorer.Proposal, error)
 }
 
-func NewRepo(client *elastic.Client) *Repository {
-	return &Repository{client}
+type repository struct {
+	elastic elastic_cache.Index
 }
 
-func (r *Repository) GetPossibleVotingProposals(height uint64) ([]*explorer.Proposal, error) {
+func NewRepo(elastic elastic_cache.Index) Repository {
+	return repository{elastic}
+}
+
+func (r repository) GetPossibleVotingProposals(height uint64) ([]*explorer.Proposal, error) {
 	var proposals []*explorer.Proposal
 
 	query := elastic.NewBoolQuery()
 	query = query.Should(elastic.NewMatchQuery("status", "pending accepted pending_voting_preq pending_funds"))
 	query = query.Should(elastic.NewRangeQuery("updatedOnBlock").Gte(height))
 
-	results, err := r.Client.Search(elastic_cache.ProposalIndex.Get()).
+	results, err := r.elastic.GetClient().Search(elastic_cache.ProposalIndex.Get()).
 		Query(query).
 		Size(9999).
 		Sort("updatedOnBlock", false).

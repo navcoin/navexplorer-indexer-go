@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"errors"
 	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
@@ -15,28 +16,33 @@ import (
 	"time"
 )
 
-type Indexer struct {
-	elastic         *elastic_cache.Index
-	publisher       *queue.Publisher
-	blockIndexer    *block.Indexer
-	blockService    *block.Service
-	addressIndexer  *address.Indexer
-	softForkIndexer *softfork.Indexer
-	daoIndexer      *dao.Indexer
-	rewinder        *Rewinder
+type Indexer interface {
+	SingleIndex()
+	Index(option IndexOption.IndexOption, target uint64) error
+}
+
+type indexer struct {
+	elastic         elastic_cache.Index
+	publisher       queue.Publisher
+	blockIndexer    block.Indexer
+	blockService    block.Service
+	addressIndexer  address.Indexer
+	softForkIndexer softfork.Indexer
+	daoIndexer      dao.Indexer
+	rewinder        Rewinder
 }
 
 func NewIndexer(
-	elastic *elastic_cache.Index,
-	publisher *queue.Publisher,
-	blockIndexer *block.Indexer,
-	blockService *block.Service,
-	addressIndexer *address.Indexer,
-	softForkIndexer *softfork.Indexer,
-	daoIndexer *dao.Indexer,
-	rewinder *Rewinder,
-) *Indexer {
-	return &Indexer{
+	elastic elastic_cache.Index,
+	publisher queue.Publisher,
+	blockIndexer block.Indexer,
+	blockService block.Service,
+	addressIndexer address.Indexer,
+	softForkIndexer softfork.Indexer,
+	daoIndexer dao.Indexer,
+	rewinder Rewinder,
+) Indexer {
+	return indexer{
 		elastic,
 		publisher,
 		blockIndexer,
@@ -48,7 +54,7 @@ func NewIndexer(
 	}
 }
 
-func (i *Indexer) SingleIndex() {
+func (i indexer) SingleIndex() {
 	err := i.Index(IndexOption.SingleIndex, 0)
 	if err != nil && err.Error() != "-8: Block height out of range" {
 		log.WithError(err).Fatal("Failed to index subscribed block")
@@ -57,7 +63,7 @@ func (i *Indexer) SingleIndex() {
 	i.publisher.PublishToQueue("indexed.block", fmt.Sprintf("%d", i.blockService.GetLastBlockIndexed().Height))
 }
 
-func (i *Indexer) Index(option IndexOption.IndexOption, target uint64) error {
+func (i indexer) Index(option IndexOption.IndexOption, target uint64) error {
 	var height uint64 = 1
 	if lastBlockIndexed := i.blockService.GetLastBlockIndexed(); lastBlockIndexed != nil {
 		height = lastBlockIndexed.Height + 1
@@ -68,19 +74,19 @@ func (i *Indexer) Index(option IndexOption.IndexOption, target uint64) error {
 
 	err := i.index(height, target, option)
 
-	if option == IndexOption.SingleIndex {
-		if err == block.ErrOrphanBlockFound {
-			if err = i.rewinder.RewindToHeight(i.blockService.GetLastBlockIndexed().Height - config.Get().ReindexSize); err == nil {
-				return i.Index(option, target)
-			}
+	if errors.Is(block.ErrOrphanBlockFound, err) && option == IndexOption.SingleIndex {
+		targetHeight := i.blockService.GetLastBlockIndexed().Height - config.Get().ReindexSize
+		if err = i.rewinder.RewindToHeight(targetHeight); err == nil {
+			return i.Index(option, target)
 		}
 	}
+
 	i.elastic.Persist()
 
 	return err
 }
 
-func (i *Indexer) index(height, target uint64, option IndexOption.IndexOption) error {
+func (i indexer) index(height, target uint64, option IndexOption.IndexOption) error {
 	start := time.Now()
 	b, txs, header, err := i.blockIndexer.Index(height, option)
 	if err != nil {

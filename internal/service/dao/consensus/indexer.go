@@ -6,18 +6,22 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 )
 
-type Indexer struct {
-	navcoin *navcoind.Navcoind
-	elastic *elastic_cache.Index
-	repo    *Repository
-	service *Service
+type Indexer interface {
+	Update(block *explorer.Block)
 }
 
-func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *Repository, service *Service) *Indexer {
-	return &Indexer{navcoin, elastic, repo, service}
+type indexer struct {
+	navcoin    *navcoind.Navcoind
+	elastic    elastic_cache.Index
+	repository Repository
+	service    Service
 }
 
-func (i *Indexer) Update(block *explorer.Block) {
+func NewIndexer(navcoin *navcoind.Navcoind, elastic elastic_cache.Index, repository Repository, service Service) Indexer {
+	return indexer{navcoin, elastic, repository, service}
+}
+
+func (i indexer) Update(block *explorer.Block) {
 	parameters := i.service.GetConsensusParameters()
 	for _, p := range parameters {
 		if p.UpdatedOnBlock != block.Height {

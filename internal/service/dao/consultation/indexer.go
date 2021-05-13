@@ -11,18 +11,23 @@ import (
 	"strconv"
 )
 
-type Indexer struct {
+type Indexer interface {
+	Index(txs []explorer.BlockTransaction)
+	Update(blockCycle explorer.BlockCycle, block *explorer.Block)
+}
+
+type indexer struct {
 	navcoin          *navcoind.Navcoind
-	elastic          *elastic_cache.Index
-	blockRepository  *block.Repository
-	consensusService *consensus.Service
+	elastic          elastic_cache.Index
+	blockRepository  block.Repository
+	consensusService consensus.Service
 }
 
-func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, blockRepository *block.Repository, consensusService *consensus.Service) *Indexer {
-	return &Indexer{navcoin, elastic, blockRepository, consensusService}
+func NewIndexer(navcoin *navcoind.Navcoind, elastic elastic_cache.Index, blockRepository block.Repository, consensusService consensus.Service) Indexer {
+	return indexer{navcoin, elastic, blockRepository, consensusService}
 }
 
-func (i *Indexer) Index(txs []explorer.BlockTransaction) {
+func (i indexer) Index(txs []explorer.BlockTransaction) {
 	for _, tx := range txs {
 		if tx.Version != 6 {
 			continue
@@ -38,7 +43,7 @@ func (i *Indexer) Index(txs []explorer.BlockTransaction) {
 	}
 }
 
-func (i *Indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
+func (i indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 	consensusParameters := i.consensusService.GetConsensusParameters()
 	for _, c := range Consultations {
 		navC, err := i.navcoin.GetConsultation(c.Hash)
@@ -68,7 +73,7 @@ func (i *Indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) 
 	}
 }
 
-func (i *Indexer) updateConsensusParameter(c explorer.Consultation, b *explorer.Block) {
+func (i indexer) updateConsensusParameter(c explorer.Consultation, b *explorer.Block) {
 	answer := c.GetPassedAnswer()
 	if answer == nil {
 		log.WithField("consultation", c).Fatal("Passed Consultation with no passed answer")

@@ -6,15 +6,19 @@ import (
 	"math"
 )
 
-type Service struct {
-	repo *Repository
+type Service interface {
+	LoadOpenConsultations(block *explorer.Block)
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo}
+type service struct {
+	repository Repository
 }
 
-func (s *Service) LoadOpenConsultations(block *explorer.Block) {
+func NewService(repository Repository) Service {
+	return service{repository}
+}
+
+func (s service) LoadOpenConsultations(block *explorer.Block) {
 	log.Info("Load Open Consultations")
 
 	excludeOlderThan := block.Height - (uint64(block.BlockCycle.Size * 2))
@@ -22,7 +26,7 @@ func (s *Service) LoadOpenConsultations(block *explorer.Block) {
 		excludeOlderThan = 0
 	}
 
-	consultations, err := s.repo.GetOpenConsultations(excludeOlderThan)
+	consultations, err := s.repository.GetOpenConsultations(excludeOlderThan)
 	if err != nil {
 		log.WithError(err).Error("Failed to load consultations")
 	}

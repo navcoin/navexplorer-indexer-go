@@ -7,19 +7,23 @@ import (
 	"time"
 )
 
-type OrphanService struct {
-	repository *Repository
+type OrphanService interface {
+	IsOrphanBlock(block *explorer.Block, previousBlock *explorer.Block) (bool, error)
 }
 
-func NewOrphanService(repository *Repository) *OrphanService {
-	return &OrphanService{repository}
+type orphanService struct {
+	repository Repository
+}
+
+func NewOrphanService(repository Repository) OrphanService {
+	return orphanService{repository}
 }
 
 var (
 	ErrOrphanBlockFound = errors.New("Orphan block_indexer found")
 )
 
-func (o *OrphanService) IsOrphanBlock(block *explorer.Block, previousBlock *explorer.Block) (bool, error) {
+func (o orphanService) IsOrphanBlock(block *explorer.Block, previousBlock *explorer.Block) (bool, error) {
 	if block.Height == 1 {
 		return false, nil
 	}

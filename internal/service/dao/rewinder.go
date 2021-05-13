@@ -8,20 +8,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Rewinder struct {
-	elastic           *elastic_cache.Index
-	consensusRewinder *consensus.Rewinder
-	consultationRepo  *consultation.Repository
+type Rewinder interface {
+	Rewind(height uint64) error
 }
 
-func NewRewinder(elastic *elastic_cache.Index, consensusRewinder *consensus.Rewinder, consultationRepo *consultation.Repository) *Rewinder {
-	return &Rewinder{elastic, consensusRewinder, consultationRepo}
+type rewinder struct {
+	elastic           elastic_cache.Index
+	consensusRewinder consensus.Rewinder
+	repository        consultation.Repository
 }
 
-func (r *Rewinder) Rewind(height uint64) error {
+func NewRewinder(elastic elastic_cache.Index, consensusRewinder consensus.Rewinder, repository consultation.Repository) Rewinder {
+	return rewinder{elastic, consensusRewinder, repository}
+}
+
+func (r rewinder) Rewind(height uint64) error {
 	log.Infof("Rewinding DAO index to height: %d", height)
 
-	passedConsultations, err := r.consultationRepo.GetPassedConsultations(height)
+	passedConsultations, err := r.repository.GetPassedConsultations(height)
 	if err != nil {
 		return err
 	}

@@ -9,22 +9,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Service struct {
-	network string
-	elastic *elastic_cache.Index
-	cache   *cache.Cache
-	repo    *Repository
+type Service interface {
+	GetConsensusParameters() explorer.ConsensusParameters
+	GetConsensusParameter(parameter explorer.Parameter) *explorer.ConsensusParameter
+	Update(parameters explorer.ConsensusParameters, persist bool)
+	InitConsensusParameters()
+	InitialState() explorer.ConsensusParameters
+}
+
+type service struct {
+	network    string
+	elastic    elastic_cache.Index
+	cache      *cache.Cache
+	repository Repository
 }
 
 var (
 	cacheKey = "explorer.ConsensusParameters"
 )
 
-func NewService(network string, elastic *elastic_cache.Index, cache *cache.Cache, repo *Repository) *Service {
-	return &Service{network, elastic, cache, repo}
+func NewService(network string, elastic elastic_cache.Index, cache *cache.Cache, repository Repository) Service {
+	return service{network, elastic, cache, repository}
 }
 
-func (s *Service) GetConsensusParameters() explorer.ConsensusParameters {
+func (s service) GetConsensusParameters() explorer.ConsensusParameters {
 	parameters, exists := s.cache.Get(cacheKey)
 	if exists == false {
 		return nil
@@ -33,7 +41,7 @@ func (s *Service) GetConsensusParameters() explorer.ConsensusParameters {
 	return parameters.(explorer.ConsensusParameters)
 }
 
-func (s *Service) GetConsensusParameter(parameter explorer.Parameter) *explorer.ConsensusParameter {
+func (s service) GetConsensusParameter(parameter explorer.Parameter) *explorer.ConsensusParameter {
 	parameters := s.GetConsensusParameters()
 	for idx := range parameters {
 		if parameters[idx].Id == int(parameter) {
@@ -44,7 +52,7 @@ func (s *Service) GetConsensusParameter(parameter explorer.Parameter) *explorer.
 	return nil
 }
 
-func (s *Service) Update(parameters explorer.ConsensusParameters, persist bool) {
+func (s service) Update(parameters explorer.ConsensusParameters, persist bool) {
 	s.cache.Set(cacheKey, parameters, cache.NoExpiration)
 
 	for _, parameter := range parameters {
@@ -56,8 +64,8 @@ func (s *Service) Update(parameters explorer.ConsensusParameters, persist bool) 
 	}
 }
 
-func (s *Service) InitConsensusParameters() {
-	parameters, err := s.repo.getConsensusParameters()
+func (s service) InitConsensusParameters() {
+	parameters, err := s.repository.GetConsensusParameters()
 	if err != nil && err != elastic_cache.ErrRecordNotFound {
 		log.WithError(err).Fatal("Failed to load consensus parameters")
 		return
@@ -78,7 +86,7 @@ func (s *Service) InitConsensusParameters() {
 	s.Update(parameters, true)
 }
 
-func (s *Service) InitialState() explorer.ConsensusParameters {
+func (s service) InitialState() explorer.ConsensusParameters {
 	parameters := make(explorer.ConsensusParameters, 0)
 	var byteParams []byte
 	if config.Get().SoftForkBlockCycle != 20160 {

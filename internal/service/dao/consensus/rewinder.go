@@ -8,18 +8,22 @@ import (
 	"strconv"
 )
 
-type Rewinder struct {
-	navcoin *navcoind.Navcoind
-	elastic *elastic_cache.Index
-	repo    *Repository
-	service *Service
+type Rewinder interface {
+	Rewind(consultations []*explorer.Consultation) error
 }
 
-func NewRewinder(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *Repository, service *Service) *Rewinder {
-	return &Rewinder{navcoin, elastic, repo, service}
+type rewinder struct {
+	navcoin    *navcoind.Navcoind
+	elastic    elastic_cache.Index
+	repository Repository
+	service    Service
 }
 
-func (r *Rewinder) Rewind(consultations []*explorer.Consultation) error {
+func NewRewinder(navcoin *navcoind.Navcoind, elastic elastic_cache.Index, repository Repository, service Service) Rewinder {
+	return rewinder{navcoin, elastic, repository, service}
+}
+
+func (r rewinder) Rewind(consultations []*explorer.Consultation) error {
 	log.Debug("Rewind consensus")
 
 	parameters := r.service.InitialState()

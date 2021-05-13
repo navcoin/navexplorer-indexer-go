@@ -12,34 +12,38 @@ import (
 	"sync"
 )
 
-type Indexer struct {
-	proposalIndexer       *proposal.Indexer
-	paymentRequestIndexer *payment_request.Indexer
-	consultationIndexer   *consultation.Indexer
-	voteIndexer           *vote.Indexer
-	consensusIndexer      *consensus.Indexer
+type Indexer interface {
+	Index(block *explorer.Block, txs []explorer.BlockTransaction, header *navcoind.BlockHeader)
+}
+
+type indexer struct {
 	navcoin               *navcoind.Navcoind
+	proposalIndexer       proposal.Indexer
+	paymentRequestIndexer payment_request.Indexer
+	consultationIndexer   consultation.Indexer
+	voteIndexer           vote.Indexer
+	consensusIndexer      consensus.Indexer
 }
 
 func NewIndexer(
-	proposalIndexer *proposal.Indexer,
-	paymentRequestIndexer *payment_request.Indexer,
-	consultationIndexer *consultation.Indexer,
-	voteIndexer *vote.Indexer,
-	consensusIndexer *consensus.Indexer,
 	navcoin *navcoind.Navcoind,
-) *Indexer {
-	return &Indexer{
+	proposalIndexer proposal.Indexer,
+	paymentRequestIndexer payment_request.Indexer,
+	consultationIndexer consultation.Indexer,
+	voteIndexer vote.Indexer,
+	consensusIndexer consensus.Indexer,
+) Indexer {
+	return indexer{
+		navcoin,
 		proposalIndexer,
 		paymentRequestIndexer,
 		consultationIndexer,
 		voteIndexer,
 		consensusIndexer,
-		navcoin,
 	}
 }
 
-func (i *Indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, header *navcoind.BlockHeader) {
+func (i indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, header *navcoind.BlockHeader) {
 	var wg sync.WaitGroup
 	wg.Add(3)
 
@@ -60,7 +64,7 @@ func (i *Indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, 
 
 	wg.Wait()
 
-	i.voteIndexer.IndexVotes(txs, block, header)
+	i.voteIndexer.Index(txs, block, header)
 	i.proposalIndexer.Update(block.BlockCycle, block)
 	i.paymentRequestIndexer.Update(block.BlockCycle, block)
 	i.consultationIndexer.Update(block.BlockCycle, block)

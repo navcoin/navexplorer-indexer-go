@@ -10,15 +10,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Repository struct {
-	Client *elastic.Client
+type Repository interface {
+	GetOpenConsultations(height uint64) ([]explorer.Consultation, error)
+	GetPassedConsultations(maxHeight uint64) ([]*explorer.Consultation, error)
 }
 
-func NewRepo(client *elastic.Client) *Repository {
-	return &Repository{client}
+type repository struct {
+	elastic elastic_cache.Index
 }
 
-func (r *Repository) GetOpenConsultations(height uint64) ([]explorer.Consultation, error) {
+func NewRepo(elastic elastic_cache.Index) Repository {
+	return repository{elastic}
+}
+
+func (r repository) GetOpenConsultations(height uint64) ([]explorer.Consultation, error) {
 	var consultations []explorer.Consultation
 
 	openStatuses := make([]interface{}, 4)
@@ -31,7 +36,7 @@ func (r *Repository) GetOpenConsultations(height uint64) ([]explorer.Consultatio
 	query = query.Should(elastic.NewTermsQuery("status.keyword", openStatuses...))
 	query = query.Should(elastic.NewRangeQuery("updatedOnBlock").Gte(height))
 
-	results, err := r.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	results, err := r.elastic.GetClient().Search(elastic_cache.DaoConsultationIndex.Get()).
 		Query(query).
 		Size(9999).
 		Sort("updatedOnBlock", false).
@@ -53,14 +58,14 @@ func (r *Repository) GetOpenConsultations(height uint64) ([]explorer.Consultatio
 	return consultations, nil
 }
 
-func (r *Repository) GetPassedConsultations(maxHeight uint64) ([]*explorer.Consultation, error) {
+func (r repository) GetPassedConsultations(maxHeight uint64) ([]*explorer.Consultation, error) {
 	var consultations []*explorer.Consultation
 
 	query := elastic.NewBoolQuery()
 	query = query.Should(elastic.NewMatchQuery("state", explorer.ConsultationPassed.State))
 	query = query.Should(elastic.NewRangeQuery("updatedOnBlock").Lte(maxHeight))
 
-	results, err := r.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	results, err := r.elastic.GetClient().Search(elastic_cache.DaoConsultationIndex.Get()).
 		Query(query).
 		Size(9999).
 		Sort("updatedOnBlock", true).

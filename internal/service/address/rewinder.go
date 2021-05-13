@@ -6,20 +6,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Rewinder struct {
-	elastic *elastic_cache.Index
-	repo    *Repository
-	indexer *Indexer
+type Rewinder interface {
+	Rewind(height uint64) error
+	ResetAddress(address explorer.Address) error
 }
 
-func NewRewinder(elastic *elastic_cache.Index, repo *Repository, indexer *Indexer) *Rewinder {
-	return &Rewinder{elastic, repo, indexer}
+type rewinder struct {
+	elastic    elastic_cache.Index
+	repository Repository
+	indexer    Indexer
 }
 
-func (r *Rewinder) Rewind(height uint64) error {
+func NewRewinder(elastic elastic_cache.Index, repository Repository, indexer Indexer) Rewinder {
+	return rewinder{elastic, repository, indexer}
+}
+
+func (r rewinder) Rewind(height uint64) error {
 	log.Infof("Rewinding address index to height: %d", height)
 
-	addresses, err := r.repo.GetAddressesHeightGt(height)
+	addresses, err := r.repository.GetAddressesHeightGt(height)
 	if err != nil {
 		log.Error("Failed to get addresses greater than ", height)
 		return err
@@ -42,10 +47,10 @@ func (r *Rewinder) Rewind(height uint64) error {
 	return nil
 }
 
-func (r *Rewinder) ResetAddress(address *explorer.Address) error {
+func (r rewinder) ResetAddress(address explorer.Address) error {
 	log.Infof("Resetting address: %s", address.Hash)
 
-	latestHistory, err := r.repo.GetLatestHistoryByHash(address.Hash)
+	latestHistory, err := r.repository.GetLatestHistoryByHash(address.Hash)
 	if err != nil && err != ErrLatestHistoryNotFound {
 		return err
 	}
@@ -64,5 +69,5 @@ func (r *Rewinder) ResetAddress(address *explorer.Address) error {
 
 	r.elastic.Save(elastic_cache.AddressIndex.Get(), address)
 
-	return err
+	return nil
 }

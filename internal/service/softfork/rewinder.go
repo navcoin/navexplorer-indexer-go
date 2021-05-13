@@ -10,18 +10,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Rewinder struct {
-	elastic       *elastic_cache.Index
-	signalRepo    *signal.Repository
+type Rewinder interface {
+	Rewind(height uint64) error
+}
+
+type rewinder struct {
+	elastic       elastic_cache.Index
+	signalRepo    signal.Repository
 	blocksInCycle uint
 	quorum        int
 }
 
-func NewRewinder(elastic *elastic_cache.Index, signalRepo *signal.Repository, blocksInCycle uint, quorum int) *Rewinder {
-	return &Rewinder{elastic, signalRepo, blocksInCycle, quorum}
+func NewRewinder(elastic elastic_cache.Index, signalRepo signal.Repository, blocksInCycle uint, quorum int) Rewinder {
+	return rewinder{elastic, signalRepo, blocksInCycle, quorum}
 }
 
-func (r *Rewinder) Rewind(height uint64) error {
+func (r rewinder) Rewind(height uint64) error {
 	log.WithField("height", height).Infof("SoftFork: Rewinding soft fork index")
 
 	log.WithField("height", height).Info("Delete Signals greater than height")
@@ -70,7 +74,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 		}(start, end, height)
 	}
 
-	bulk := r.elastic.Client.Bulk()
+	bulk := r.elastic.GetClient().Bulk()
 	for _, sf := range SoftForks {
 		bulk.Add(elastic.NewBulkUpdateRequest().Index(elastic_cache.SoftForkIndex.Get()).Id(sf.Slug()).Doc(sf))
 	}

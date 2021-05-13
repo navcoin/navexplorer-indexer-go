@@ -8,16 +8,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Indexer struct {
+type Indexer interface {
+	Index(txs []explorer.BlockTransaction)
+	Update(blockCycle explorer.BlockCycle, block *explorer.Block)
+}
+
+type indexer struct {
 	navcoin *navcoind.Navcoind
-	elastic *elastic_cache.Index
+	elastic elastic_cache.Index
 }
 
-func NewIndexer(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index) *Indexer {
-	return &Indexer{navcoin, elastic}
+func NewIndexer(navcoin *navcoind.Navcoind, elastic elastic_cache.Index) Indexer {
+	return indexer{navcoin, elastic}
 }
 
-func (i *Indexer) Index(txs []explorer.BlockTransaction) {
+func (i indexer) Index(txs []explorer.BlockTransaction) {
 	for _, tx := range txs {
 		if tx.Version != 5 {
 			continue
@@ -31,7 +36,7 @@ func (i *Indexer) Index(txs []explorer.BlockTransaction) {
 	}
 }
 
-func (i *Indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
+func (i indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 	for _, p := range PaymentRequests {
 		if p == nil {
 			continue

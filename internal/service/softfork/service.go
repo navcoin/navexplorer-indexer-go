@@ -10,17 +10,21 @@ import (
 
 var SoftForks explorer.SoftForks
 
-type Service struct {
-	navcoin *navcoind.Navcoind
-	elastic *elastic_cache.Index
-	repo    *Repository
+type Service interface {
+	InitSoftForks()
 }
 
-func New(navcoin *navcoind.Navcoind, elastic *elastic_cache.Index, repo *Repository) *Service {
-	return &Service{navcoin, elastic, repo}
+type service struct {
+	navcoin    *navcoind.Navcoind
+	elastic    elastic_cache.Index
+	repository Repository
 }
 
-func (i *Service) InitSoftForks() {
+func New(navcoin *navcoind.Navcoind, elastic elastic_cache.Index, repository Repository) Service {
+	return service{navcoin, elastic, repository}
+}
+
+func (i service) InitSoftForks() {
 	log.Info("SoftFork: Init")
 
 	info, err := i.navcoin.GetBlockchainInfo()
@@ -28,7 +32,7 @@ func (i *Service) InitSoftForks() {
 		log.WithError(err).Fatal("SoftFork: Failed to get blockchaininfo")
 	}
 
-	SoftForks, err = i.repo.GetSoftForks()
+	SoftForks, err = i.repository.GetSoftForks()
 	if err != nil && err != elastic_cache.ErrResultsNotFound {
 		log.WithError(err).Fatal("SoftFork: Failed to get soft forks")
 		return
@@ -65,18 +69,6 @@ func GetSoftForkBlockCycle(size uint, height uint64) *explorer.BlockCycle {
 		Size:  size,
 		Cycle: cycle,
 		Index: uint(height) - ((cycle * size) - size),
-	}
-}
-
-func ResetSoftForks() {
-	for idx, softFork := range SoftForks {
-		SoftForks[idx] = &explorer.SoftFork{
-			Name:      softFork.Name,
-			SignalBit: softFork.SignalBit,
-			StartTime: softFork.StartTime,
-			Timeout:   softFork.Timeout,
-			State:     explorer.SoftForkDefined,
-		}
 	}
 }
 

@@ -12,27 +12,31 @@ import (
 	"time"
 )
 
-type Indexer struct {
+type Indexer interface {
+	Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []explorer.BlockTransaction, *navcoind.BlockHeader, error)
+}
+
+type indexer struct {
 	navcoin          *navcoind.Navcoind
-	elastic          *elastic_cache.Index
-	orphanService    *OrphanService
-	repository       *Repository
-	service          *Service
-	consensusService *consensus.Service
+	elastic          elastic_cache.Index
+	orphanService    OrphanService
+	repository       Repository
+	service          Service
+	consensusService consensus.Service
 }
 
 func NewIndexer(
 	navcoin *navcoind.Navcoind,
-	elastic *elastic_cache.Index,
-	orphanService *OrphanService,
-	repository *Repository,
-	service *Service,
-	consensusService *consensus.Service,
-) *Indexer {
-	return &Indexer{navcoin, elastic, orphanService, repository, service, consensusService}
+	elastic elastic_cache.Index,
+	orphanService OrphanService,
+	repository Repository,
+	service Service,
+	consensusService consensus.Service,
+) Indexer {
+	return indexer{navcoin, elastic, orphanService, repository, service, consensusService}
 }
 
-func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []explorer.BlockTransaction, *navcoind.BlockHeader, error) {
+func (i indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []explorer.BlockTransaction, *navcoind.BlockHeader, error) {
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
 		log.WithError(err).Error("Failed to get block at height ", height)
@@ -86,7 +90,7 @@ func (i *Indexer) Index(height uint64, option IndexOption.IndexOption) (*explore
 	return block, txs, header, err
 }
 
-func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
+func (i indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 	if tx.IsCoinbase() {
 		return
 	}
@@ -145,7 +149,7 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 	}
 }
 
-func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
+func (i indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 	hash, err := i.navcoin.GetBlockHash(height)
 	if err != nil {
 		log.WithFields(log.Fields{"hash": hash, "height": height}).WithError(err).Error("Failed to GetBlockHash")
@@ -162,12 +166,12 @@ func (i *Indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 	return &block, nil
 }
 
-func (i *Indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
+func (i indexer) updateNextHashOfPreviousBlock(block *explorer.Block) {
 	i.service.GetLastBlockIndexed().Nextblockhash = block.Hash
 	i.elastic.AddUpdateRequest(elastic_cache.BlockIndex.Get(), i.service.GetLastBlockIndexed())
 }
 
-func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]explorer.BlockTransaction, error) {
+func (i indexer) createBlockTransactions(block *explorer.Block) ([]explorer.BlockTransaction, error) {
 	var txs = make([]explorer.BlockTransaction, 0)
 	for idx, txHash := range block.Tx {
 
@@ -190,7 +194,7 @@ func (i *Indexer) createBlockTransactions(block *explorer.Block) ([]explorer.Blo
 	return txs, nil
 }
 
-func (i *Indexer) updateStakingFees(block *explorer.Block, txs []explorer.BlockTransaction) {
+func (i indexer) updateStakingFees(block *explorer.Block, txs []explorer.BlockTransaction) {
 	for _, tx := range txs {
 		if tx.IsAnyStaking() {
 			tx.Fees = block.Fees
@@ -198,7 +202,7 @@ func (i *Indexer) updateStakingFees(block *explorer.Block, txs []explorer.BlockT
 	}
 }
 
-func (i *Indexer) updateSupply(block *explorer.Block, txs []explorer.BlockTransaction) {
+func (i indexer) updateSupply(block *explorer.Block, txs []explorer.BlockTransaction) {
 	log.Debugf("Updating Supply for block %d", block.Height)
 
 	if block.Height == 1 {

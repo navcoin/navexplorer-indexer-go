@@ -14,24 +14,38 @@ import (
 	"time"
 )
 
-type Indexer struct {
+type Indexer interface {
+	BulkIndex(target uint64) error
+	bulkIndex(target uint64) error
+	bulkPersist(bulk *elastic.BulkService)
+	Index(block *explorer.Block, txs []explorer.BlockTransaction, includeHistory bool)
+	ClearCache()
+	indexAddresses(height uint64, txs []explorer.BlockTransaction, includeHistory bool)
+	indexMultiSigs(txs []explorer.BlockTransaction)
+	getAddress(hash string) explorer.Address
+	updateAddress(address explorer.Address, history explorer.AddressHistory) error
+	getAndUpdateAddress(history explorer.AddressHistory) error
+	generateAddressHistory(start, end uint64, address string, history []*navcoind.AddressHistory) ([]explorer.AddressHistory, error)
+}
+
+type indexer struct {
 	navcoin           *navcoind.Navcoind
-	elastic           *elastic_cache.Index
+	elastic           elastic_cache.Index
 	cache             *cache.Cache
-	addressRepository *Repository
-	blockService      *block.Service
-	blockRepository   *block.Repository
+	addressRepository Repository
+	blockService      block.Service
+	blockRepository   block.Repository
 }
 
 func NewIndexer(
 	navcoin *navcoind.Navcoind,
-	elastic *elastic_cache.Index,
+	elastic elastic_cache.Index,
 	cache *cache.Cache,
-	addressRepository *Repository,
-	blockService *block.Service,
-	blockRepository *block.Repository,
-) *Indexer {
-	return &Indexer{
+	addressRepository Repository,
+	blockService block.Service,
+	blockRepository block.Repository,
+) Indexer {
+	return indexer{
 		navcoin,
 		elastic,
 		cache,
@@ -41,12 +55,12 @@ func NewIndexer(
 	}
 }
 
-func (i *Indexer) BulkIndex(target uint64) error {
+func (i indexer) BulkIndex(target uint64) error {
 	log.Infof("AddressIndexer: Bulk index addresses to %d", target)
 	return i.bulkIndex(target)
 }
 
-func (i *Indexer) bulkIndex(target uint64) error {
+func (i indexer) bulkIndex(target uint64) error {
 	addresses, err := i.addressRepository.GetAddressesHeightLt(1, 200)
 	if err != nil {
 		log.WithError(err).Fatal("AddressIndexer: GetAddressesHeightLt")
@@ -74,6 +88,7 @@ func (i *Indexer) bulkIndex(target uint64) error {
 		if from == 0 {
 			from = 1
 		}
+
 		txids, err := i.navcoin.GetAddressHistory(&from, &target, address.Hash)
 		if err != nil || len(txids) == 0 {
 			address.Attempt++
@@ -100,7 +115,7 @@ func (i *Indexer) bulkIndex(target uint64) error {
 			continue
 		}
 
-		bulk := i.elastic.Client.Bulk()
+		bulk := i.elastic.GetClient().Bulk()
 		log.Infof("AddressIndexer: Index address history for address: %s", address.Hash)
 		for _, addressHistory := range addressHistorys {
 			bulk.Add(elastic.NewBulkIndexRequest().Index(elastic_cache.AddressHistoryIndex.Get()).Id(addressHistory.Slug()).Doc(addressHistory))
@@ -114,7 +129,7 @@ func (i *Indexer) bulkIndex(target uint64) error {
 			if actions >= 100 {
 				log.Infof("Persisting %d address actions", actions)
 				i.bulkPersist(bulk)
-				bulk = i.elastic.Client.Bulk()
+				bulk = i.elastic.GetClient().Bulk()
 			}
 		}
 
@@ -130,7 +145,7 @@ func (i *Indexer) bulkIndex(target uint64) error {
 	return i.bulkIndex(target)
 }
 
-func (i *Indexer) bulkPersist(bulk *elastic.BulkService) {
+func (i indexer) bulkPersist(bulk *elastic.BulkService) {
 	response, err := bulk.Do(context.Background())
 	if err != nil {
 		log.WithError(err).Error("AddressIndexer: Failed to persist requests")
@@ -155,7 +170,7 @@ func (i *Indexer) bulkPersist(bulk *elastic.BulkService) {
 	}
 }
 
-func (i *Indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, includeHistory bool) {
+func (i indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, includeHistory bool) {
 	if len(txs) == 0 {
 		return
 	}
@@ -176,11 +191,11 @@ func (i *Indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, 
 	wg.Wait()
 }
 
-func (i *Indexer) ClearCache() {
+func (i indexer) ClearCache() {
 	i.cache.Flush()
 }
 
-func (i *Indexer) indexAddresses(height uint64, txs []explorer.BlockTransaction, includeHistory bool) {
+func (i indexer) indexAddresses(height uint64, txs []explorer.BlockTransaction, includeHistory bool) {
 	addresses := getAddressesForTxs(txs)
 
 	if includeHistory {
@@ -213,7 +228,7 @@ func (i *Indexer) indexAddresses(height uint64, txs []explorer.BlockTransaction,
 	}
 }
 
-func (i *Indexer) indexMultiSigs(txs []explorer.BlockTransaction) {
+func (i indexer) indexMultiSigs(txs []explorer.BlockTransaction) {
 	for _, tx := range txs {
 		for _, multiSig := range tx.GetAllMultiSigs() {
 			address := i.getAddress(multiSig.Key())
@@ -236,7 +251,7 @@ func (i *Indexer) indexMultiSigs(txs []explorer.BlockTransaction) {
 	}
 }
 
-func (i *Indexer) getAddress(hash string) explorer.Address {
+func (i indexer) getAddress(hash string) explorer.Address {
 	address, exists := i.cache.Get(hash)
 	if exists == false {
 		address := i.addressRepository.GetOrCreateAddress(hash)
@@ -246,7 +261,7 @@ func (i *Indexer) getAddress(hash string) explorer.Address {
 	return address.(explorer.Address)
 }
 
-func (i *Indexer) generateAddressHistory(start, end uint64, address string, history []*navcoind.AddressHistory) ([]explorer.AddressHistory, error) {
+func (i indexer) generateAddressHistory(start, end uint64, address string, history []*navcoind.AddressHistory) ([]explorer.AddressHistory, error) {
 	addressHistorys := make([]explorer.AddressHistory, 0)
 
 	if history == nil {
@@ -270,11 +285,11 @@ func (i *Indexer) generateAddressHistory(start, end uint64, address string, hist
 	return addressHistorys, nil
 }
 
-func (i *Indexer) getAndUpdateAddress(history explorer.AddressHistory) error {
+func (i indexer) getAndUpdateAddress(history explorer.AddressHistory) error {
 	return i.updateAddress(i.getAddress(history.Hash), history)
 }
 
-func (i *Indexer) updateAddress(address explorer.Address, history explorer.AddressHistory) error {
+func (i indexer) updateAddress(address explorer.Address, history explorer.AddressHistory) error {
 	if address.CreatedBlock == 0 {
 		address.CreatedBlock = history.Height
 		address.CreatedTime = history.Time
