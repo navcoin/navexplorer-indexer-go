@@ -100,11 +100,12 @@ func (i *Indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 		if err != nil {
 			log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Error("Failed to get previous transaction from index")
 			if err != nil {
+				i.elastic.Persist()
 				log.Info("Retry get previous transaction in 5 seconds")
 				time.Sleep(5 * time.Second)
 				prevTx, err = i.repository.GetTransactionByHash(*tx.Vin[vdx].Txid)
 				if err != nil {
-					log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Error("Failed to get previous transaction from index")
+					log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
 				}
 			}
 		}
