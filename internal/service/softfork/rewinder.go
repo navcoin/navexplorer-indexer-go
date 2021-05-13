@@ -51,12 +51,7 @@ func (r *Rewinder) Rewind(height uint64) error {
 			end = height
 		}
 
-		signals := r.signalRepo.GetSignals(start, end)
-		if len(signals) != 0 {
-			log.WithFields(log.Fields{"start": start, "end": end, "signals": len(signals)}).Info("SoftFork: Rewinder Processing signals")
-		}
-
-		for _, sig := range signals {
+		for _, sig := range r.signalRepo.GetSignals(start, end) {
 			AddSoftForkSignal(&sig, sig.Height, r.blocksInCycle)
 		}
 
