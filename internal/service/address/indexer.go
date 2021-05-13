@@ -47,7 +47,7 @@ func (i *Indexer) BulkIndex(target uint64) error {
 }
 
 func (i *Indexer) bulkIndex(target uint64) error {
-	addresses, err := i.addressRepository.GetAddressesHeightLt(1, 100)
+	addresses, err := i.addressRepository.GetAddressesHeightLt(1, 200)
 	if err != nil {
 		log.WithError(err).Fatal("AddressIndexer: GetAddressesHeightLt")
 		return err
@@ -61,9 +61,6 @@ func (i *Indexer) bulkIndex(target uint64) error {
 		} else if bb.Height >= target {
 			log.Errorf("AddressIndexer: All addresses indexed to height %d", target)
 			return nil
-		} else {
-			log.Info("AddressIndexer: Paused Address indexing for 2 seconds")
-			time.Sleep(2 * time.Second)
 		}
 	}
 
@@ -114,7 +111,7 @@ func (i *Indexer) bulkIndex(target uint64) error {
 			address.VotingWeight = addressHistory.Balance.VotingWeight
 
 			actions := bulk.NumberOfActions()
-			if actions >= 500 {
+			if actions >= 100 {
 				log.Infof("Persisting %d address actions", actions)
 				i.bulkPersist(bulk)
 				bulk = i.elastic.Client.Bulk()
