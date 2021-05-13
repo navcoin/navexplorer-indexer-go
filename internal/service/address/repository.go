@@ -32,6 +32,10 @@ func (r *Repository) GetBestHeight() (uint64, error) {
 		return 0, err
 	}
 
+	if len(result.Hits.Hits) == 0 {
+		return 0, nil
+	}
+
 	address, err := r.findOneAddress(result)
 	if err != nil {
 		return 0, err
