@@ -4,7 +4,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 )
 
-var Consultations consultations
+var Consultations = consultations{}
 
 type consultations map[string]explorer.Consultation
 
