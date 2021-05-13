@@ -41,6 +41,8 @@ var (
 	ErrRecordNotFound  = errors.New("Record not found")
 )
 
+const saveAttempts int = 3
+
 func New() (*Index, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(strings.Join(config.Get().ElasticSearch.Hosts, ",")),
@@ -150,7 +152,16 @@ func (i *Index) ClearRequests() {
 }
 
 func (i *Index) Save(index string, entity explorer.Entity) {
-	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("Save")
+	i.save(index, entity, 1)
+}
+
+func (i *Index) save(index string, entity explorer.Entity, attempt int) {
+	if attempt > saveAttempts {
+		logrus.WithFields(logrus.Fields{
+			"index": index,
+			"slug":  entity.Slug(),
+		}).Fatal("Failed to save entity, Too many attempts")
+	}
 
 	_, err := i.Client.Index().
 		Index(index).
@@ -159,10 +170,12 @@ func (i *Index) Save(index string, entity explorer.Entity) {
 		Do(context.Background())
 
 	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{
-			"index": index,
-			"slug":  entity.Slug(),
-		}).Fatal("Failed to save entity")
+		logrus.WithError(err).
+			WithFields(logrus.Fields{"index": index, "slug": entity.Slug()}).
+			Error("Failed to save entity")
+		time.Sleep(1 * time.Second)
+
+		i.save(index, entity, attempt+1)
 	}
 }
 
@@ -188,7 +201,7 @@ func (i *Index) Persist() int {
 		}
 
 		actions := bulk.NumberOfActions()
-		if actions >= 500 {
+		if actions >= 100 {
 			logrus.Infof("Persisting %d actions", actions)
 			i.persist(bulk)
 			bulk = i.Client.Bulk()
