@@ -6,10 +6,13 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer/IndexOption"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"strconv"
 	"time"
+)
+
+const (
+	logType = "BlockIndexer"
 )
 
 type Indexer interface {
@@ -33,18 +36,25 @@ func NewIndexer(
 	service Service,
 	consensusService consensus.Service,
 ) Indexer {
-	return indexer{navcoin, elastic, orphanService, repository, service, consensusService}
+	return indexer{
+		navcoin,
+		elastic,
+		orphanService,
+		repository,
+		service,
+		consensusService,
+	}
 }
 
 func (i indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer.Block, []explorer.BlockTransaction, *navcoind.BlockHeader, error) {
 	navBlock, err := i.getBlockAtHeight(height)
 	if err != nil {
-		log.WithError(err).Error("Failed to get block at height ", height)
+		zap.L().With(zap.Error(err), zap.Uint64("height", height)).Error("BlockIndexer: Failed to get block")
 		return nil, nil, nil, err
 	}
 	header, err := i.navcoin.GetBlockheader(navBlock.Hash)
 	if err != nil {
-		log.Error("Failed to get header at height ", height)
+		zap.L().With(zap.Error(err), zap.Uint64("height", height)).Error("BlockIndexer: Failed to get block header")
 		return nil, nil, nil, err
 	}
 
@@ -53,12 +63,20 @@ func (i indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer
 
 	available, err := strconv.ParseFloat(header.NcfSupply, 64)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to parse header.NcfSupply: %s", header.NcfSupply)
+		zap.L().With(
+			zap.Error(err),
+			zap.Uint64("height", height),
+			zap.String("ncfSupply", header.NcfSupply),
+		).Error("BlockIndexer: Failed to parse header.NcfSupply")
 	}
 
 	locked, err := strconv.ParseFloat(header.NcfLocked, 64)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to parse header.NcfLocked: %s", header.NcfLocked)
+		zap.L().With(
+			zap.Error(err),
+			zap.Uint64("height", height),
+			zap.String("ncfLocked", header.NcfLocked),
+		).Error("BlockIndexer: Failed to parse header.NcfLocked")
 	}
 
 	block.Cfund = explorer.Cfund{Available: available, Locked: locked}
@@ -66,8 +84,8 @@ func (i indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer
 	if option == IndexOption.SingleIndex {
 		orphan, err := i.orphanService.IsOrphanBlock(block, i.service.GetLastBlockIndexed())
 		if orphan == true || err != nil {
-			log.WithFields(log.Fields{"block": block.Hash}).WithError(err).Info("Orphan Block Found")
-			i.service.SetLastBlockIndexed(nil)
+			zap.L().With(zap.Error(err), zap.Uint64("height", height)).Error("BlockIndexer: Orphan Block Found")
+			i.service.ClearLastBlockIndexed()
 			return nil, nil, nil, ErrOrphanBlockFound
 		}
 	}
@@ -90,9 +108,9 @@ func (i indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer
 	return block, txs, header, err
 }
 
-func (i indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
+func (i indexer) indexPreviousTxData(tx explorer.BlockTransaction) explorer.BlockTransaction {
 	if tx.IsCoinbase() {
-		return
+		return tx
 	}
 
 	for vdx := range tx.Vin {
@@ -102,14 +120,22 @@ func (i indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 
 		prevTx, err := i.repository.GetTransactionByHash(*tx.Vin[vdx].Txid)
 		if err != nil {
-			log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Error("Failed to get previous transaction from index")
+			zap.L().With(
+				zap.Error(err),
+				zap.Uint64("height", tx.Height),
+				zap.String("txid", tx.Txid),
+				zap.String("previousHash", *tx.Vin[vdx].Txid),
+			).Error("BlockIndexer: Failed to get previous transaction from index")
 			if err != nil {
 				i.elastic.Persist()
-				log.Info("Retry get previous transaction in 5 seconds")
+				zap.L().Info("BlockIndexer: Retry get previous transaction in 5 seconds")
 				time.Sleep(5 * time.Second)
 				prevTx, err = i.repository.GetTransactionByHash(*tx.Vin[vdx].Txid)
 				if err != nil {
-					log.WithFields(log.Fields{"hash": *tx.Vin[vdx].Txid}).WithError(err).Fatal("Failed to get previous transaction from index")
+					zap.L().With(
+						zap.Error(err),
+						zap.String("hash", *tx.Vin[vdx].Txid),
+					).Fatal("BlockIndexer: Failed to get previous transaction from index")
 				}
 			}
 		}
@@ -147,19 +173,22 @@ func (i indexer) indexPreviousTxData(tx *explorer.BlockTransaction) {
 
 		i.elastic.AddUpdateRequest(elastic_cache.BlockTransactionIndex.Get(), *prevTx)
 	}
+
+	return tx
 }
 
 func (i indexer) getBlockAtHeight(height uint64) (*navcoind.Block, error) {
 	hash, err := i.navcoin.GetBlockHash(height)
 	if err != nil {
-		log.WithFields(log.Fields{"hash": hash, "height": height}).WithError(err).Error("Failed to GetBlockHash")
+		zap.L().With(zap.Error(err), zap.Uint64("height", height)).
+			Error("BlockIndexer: Failed to get block hash")
 		return nil, err
 	}
 
 	block, err := i.navcoin.GetBlock(hash)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.WithFields(log.Fields{"hash": hash, "height": height}).WithError(err).Error("Failed to GetBlock")
+		zap.L().With(zap.Error(err), zap.Uint64("height", height), zap.String("hash", hash)).
+			Error("BlockIndexer: Failed to get block")
 		return nil, err
 	}
 
@@ -182,11 +211,14 @@ func (i indexer) createBlockTransactions(block *explorer.Block) ([]explorer.Bloc
 		}
 
 		tx := CreateBlockTransaction(rawTx.(navcoind.RawTransaction), uint(idx), block)
-		i.indexPreviousTxData(&tx)
+		tx = i.indexPreviousTxData(tx)
 
 		i.elastic.AddIndexRequest(elastic_cache.BlockTransactionIndex.Get(), tx)
-		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Index block tx:  %s", tx.Hash)
+
+		zap.L().With(
+			zap.Duration("elapsed", time.Since(start)),
+			zap.String("txid", tx.Txid),
+		).Debug("Index block tx")
 
 		txs = append(txs, tx)
 	}
@@ -203,7 +235,7 @@ func (i indexer) updateStakingFees(block *explorer.Block, txs []explorer.BlockTr
 }
 
 func (i indexer) updateSupply(block *explorer.Block, txs []explorer.BlockTransaction) {
-	log.Debugf("Updating Supply for block %d", block.Height)
+	zap.L().With(zap.Uint64("height", block.Height)).Debug("BlockIndexer: Updating Supply")
 
 	if block.Height == 1 {
 		for _, tx := range txs {
@@ -213,44 +245,37 @@ func (i indexer) updateSupply(block *explorer.Block, txs []explorer.BlockTransac
 		}
 	} else {
 		for _, tx := range txs {
-			log.Debugf("Updating Supply for tx %s", tx.Hash)
-			for idx, vin := range tx.Vin {
+			zap.L().With(zap.Uint64("height", block.Height), zap.String("hash", tx.Hash)).
+				Debug("BlockIndexer: Updating Supply for TX")
+			for _, vin := range tx.Vin {
 				if vin.IsCoinbase() {
 					continue
 				}
 
-				log.Debugf("Updating Supply for vin %d", idx)
 				if !vin.PreviousOutput.Private && !vin.PreviousOutput.Wrapped {
 					block.SupplyBalance.Public -= vin.ValueSat
-					log.Debugf("Public decrease by %d", vin.ValueSat)
 				}
 				if tx.Private {
 					block.SupplyBalance.Private += vin.ValueSat
-					log.Debugf("Private increase by %d", vin.ValueSat)
 				}
 				if tx.Wrapped && vin.PreviousOutput.Wrapped {
 					block.SupplyBalance.Wrapped -= vin.ValueSat
-					log.Debugf("Wrapped decrease by %d", vin.ValueSat)
 				}
 			}
-			for idx, vout := range tx.Vout {
+			for _, vout := range tx.Vout {
 				if vout.ScriptPubKey.Asm == "OP_RETURN OP_CFUND" {
 					continue
 				}
-				log.Debugf("Updating Supply for vout %d - %d", idx, vout.N)
 				if !vout.Private && !vout.Wrapped {
 					block.SupplyBalance.Public += vout.ValueSat
-					log.Debugf("Public increase by %d", vout.ValueSat)
 				}
 				if tx.Private {
 					block.SupplyBalance.Private -= vout.ValueSat
-					log.Debugf("Private decrease by %d", vout.ValueSat)
 					if vout.IsPrivateFee() {
 						block.SupplyBalance.Public -= vout.ValueSat
 					}
 				}
 				if tx.Wrapped && vout.Wrapped {
-					log.Debugf("Wrapped increase by %d", vout.ValueSat)
 					block.SupplyBalance.Wrapped += vout.ValueSat
 				}
 			}

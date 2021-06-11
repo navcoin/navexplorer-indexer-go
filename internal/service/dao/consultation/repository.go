@@ -7,7 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Repository interface {
@@ -49,7 +49,7 @@ func (r repository) GetOpenConsultations(height uint64) ([]explorer.Consultation
 		for _, hit := range results.Hits.Hits {
 			var consultation explorer.Consultation
 			if err := json.Unmarshal(hit.Source, &consultation); err != nil {
-				log.WithError(err).Fatal("Failed to unmarshall consultation")
+				zap.L().With(zap.Error(err)).Fatal("ConsultationRepository: Failed to unmarshall consultation")
 			}
 			consultations = append(consultations, consultation)
 		}
@@ -79,7 +79,7 @@ func (r repository) GetPassedConsultations(maxHeight uint64) ([]*explorer.Consul
 		for _, hit := range results.Hits.Hits {
 			var consultation *explorer.Consultation
 			if err := json.Unmarshal(hit.Source, &consultation); err != nil {
-				log.WithError(err).Fatal("Failed to unmarshall consultation")
+				zap.L().With(zap.Error(err)).Fatal("ConsultationRepository: Failed to unmarshall consultation")
 			}
 			if consultation.HasPassedAnswer() {
 				consultations = append(consultations, consultation)

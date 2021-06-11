@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -15,7 +14,7 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	"github.com/patrickmn/go-cache"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Index interface {
@@ -24,10 +23,12 @@ type Index interface {
 	InstallMappings()
 	createIndex(index string, mapping []byte) error
 
+	GetBulkIndexSize() uint64
 	AddIndexRequest(index string, entity explorer.Entity)
 	AddUpdateRequest(index string, entity explorer.Entity)
 	HasRequest(entity explorer.Entity) bool
 	AddRequest(index string, entity explorer.Entity, reqType RequestType)
+	GetEntitiesByIndex(index string) []explorer.Entity
 	GetRequests() []Request
 	GetRequest(id string) *Request
 	ClearRequests()
@@ -83,12 +84,12 @@ func New() (Index, error) {
 	}
 
 	if config.Get().ElasticSearch.Debug {
-		opts = append(opts, elastic.SetTraceLog(logrus.StandardLogger()))
+		opts = append(opts, elastic.SetTraceLog(ElasticLogger{}))
 	}
 
 	client, err := elastic.NewClient(opts...)
 	if err != nil {
-		log.Println("Error: ", err)
+		zap.L().With(zap.Error(err)).Fatal("ElasticCache: Failed to create client")
 	}
 
 	return index{
@@ -103,10 +104,11 @@ func (i index) GetClient() *elastic.Client {
 }
 
 func (i index) InstallMappings() {
-	logrus.Info("Install Mappings")
+	zap.L().Info("ElasticCache: Install Mappings")
+
 	files, err := ioutil.ReadDir(config.Get().ElasticSearch.MappingDir)
 	if err != nil {
-		logrus.WithError(err).Fatal("Failed to initialize ES")
+		zap.L().With(zap.Error(err)).Fatal("ElasticCache: Elastic mappings directory error")
 	}
 
 	for _, f := range files {
@@ -116,12 +118,12 @@ func (i index) InstallMappings() {
 
 		b, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", config.Get().ElasticSearch.MappingDir, f.Name()))
 		if err != nil {
-			logrus.WithError(err).Fatal("Failed to initialize ES")
+			zap.L().With(zap.Error(err)).With(zap.String("file", f.Name())).Fatal("ElasticCache: Elastic mappings file error")
 		}
 
 		index := fmt.Sprintf("%s.%s.%s", config.Get().Network, config.Get().Index, f.Name()[0:len(f.Name())-len(filepath.Ext(f.Name()))])
 		if err = i.createIndex(index, b); err != nil {
-			logrus.WithError(err).Fatal("Failed to initialize ES")
+			zap.S().With(zap.Error(err)).Fatalf("ElasticCache: Failed to create index %s", index)
 		}
 	}
 }
@@ -137,7 +139,7 @@ func (i index) createIndex(index string, mapping []byte) error {
 	}
 
 	if exists && config.Get().Reindex {
-		logrus.Infof("Deleting Index: %s", index)
+		zap.S().Infof("ElasticCache: Deleting index %s", index)
 		_, err = client.DeleteIndex(index).Do(ctx)
 		if err != nil {
 			raven.CaptureError(err, nil)
@@ -154,20 +156,26 @@ func (i index) createIndex(index string, mapping []byte) error {
 		}
 
 		if createIndex.Acknowledged {
-			logrus.Info("Created index: ", index)
+			zap.S().Infof("ElasticCache: Created index %s", index)
 		}
 	}
 
 	return nil
 }
 
+func (i index) GetBulkIndexSize() uint64 {
+	return i.bulkIndexSize
+}
+
 func (i index) AddIndexRequest(index string, entity explorer.Entity) {
-	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("AddIndexRequest")
+	zap.L().With(zap.String("slug", entity.Slug())).Debug("ElasticCache: AddIndexRequest")
+
 	i.AddRequest(index, entity, IndexRequest)
 }
 
 func (i index) AddUpdateRequest(index string, entity explorer.Entity) {
-	logrus.WithFields(logrus.Fields{"slug": entity.Slug()}).Debug("AddUpdateRequest")
+	zap.L().With(zap.String("slug", entity.Slug())).Debug("ElasticCache: AddUpdateRequest")
+
 	i.AddRequest(index, entity, UpdateRequest)
 }
 
@@ -178,18 +186,28 @@ func (i index) HasRequest(entity explorer.Entity) bool {
 }
 
 func (i index) AddRequest(index string, entity explorer.Entity, reqType RequestType) {
-	logrus.WithFields(logrus.Fields{
-		"index": index,
-		"type":  reqType,
-		"slug":  entity.Slug(),
-	}).Debugf("AddRequest")
+	zap.L().With(
+		zap.String("index", index),
+		zap.String("type", string(reqType)),
+		zap.String("slug", entity.Slug())).Debug("ElasticCache: AddRequest")
 
 	if cached, found := i.cache.Get(entity.Slug()); found == true && cached.(Request).Type == IndexRequest {
-		logrus.Debugf("Switch update to index as not previously persisted %s", entity.Slug())
+		zap.L().With(zap.String("slug", entity.Slug())).Debug("ElasticCache: Switch update to index")
 		reqType = IndexRequest
 	}
 
 	i.cache.Set(entity.Slug(), Request{index, entity, reqType}, cache.DefaultExpiration)
+}
+
+func (i index) GetEntitiesByIndex(index string) []explorer.Entity {
+	entities := make([]explorer.Entity, 0)
+	for _, req := range i.GetRequests() {
+		if req.Index == index {
+			entities = append(entities, req.Entity)
+		}
+	}
+
+	return entities
 }
 
 func (i index) GetRequests() []Request {
@@ -221,10 +239,8 @@ func (i index) Save(index string, entity explorer.Entity) {
 
 func (i index) save(index string, entity explorer.Entity, attempt int) {
 	if attempt > saveAttempts {
-		logrus.WithFields(logrus.Fields{
-			"index": index,
-			"slug":  entity.Slug(),
-		}).Fatal("Failed to save entity, Too many attempts")
+		zap.L().With(zap.String("index", index), zap.String("slug", entity.Slug())).
+			Fatal("ElasticCache: Failed to save entity, Too many attempts")
 	}
 
 	_, err := i.client.Index().
@@ -234,9 +250,8 @@ func (i index) save(index string, entity explorer.Entity, attempt int) {
 		Do(context.Background())
 
 	if err != nil {
-		logrus.WithError(err).
-			WithFields(logrus.Fields{"index": index, "slug": entity.Slug()}).
-			Error("Failed to save entity")
+		zap.L().With(zap.Error(err), zap.String("index", index), zap.String("slug", entity.Slug())).
+			Error("ElasticCache: Failed to save entity")
 		time.Sleep(1 * time.Second)
 
 		i.save(index, entity, attempt+1)
@@ -250,7 +265,10 @@ func (i index) BatchPersist(height uint64) bool {
 
 	start := time.Now()
 	i.Persist()
-	logrus.WithField("time", time.Since(start)).Infof("Persisting data: %d", height)
+
+	zap.L().With(
+		zap.Uint64("height", height),
+		zap.Duration("elapsed", time.Since(start))).Info("ElasticCache: Persisting data")
 
 	return true
 }
@@ -266,14 +284,12 @@ func (i index) Persist() int {
 
 		actions := bulk.NumberOfActions()
 		if actions >= 100 {
-			logrus.Infof("Persisting %d actions", actions)
 			i.persist(bulk)
 			bulk = i.client.Bulk()
 		}
 	}
 
 	actions := bulk.NumberOfActions()
-	logrus.Infof("Persisting %d actions", actions)
 	if actions != 0 {
 		i.persist(bulk)
 	}
@@ -282,22 +298,25 @@ func (i index) Persist() int {
 }
 
 func (i index) persist(bulk *elastic.BulkService) {
+	actions := bulk.NumberOfActions()
+	zap.S().Infof("ElasticCache: Persisting %d actions", actions)
+
 	response, err := bulk.Do(context.Background())
 	if err != nil {
-		logrus.WithError(err).Fatal("Failed to persist requests")
+		zap.L().With(zap.Error(err)).Fatal("ElasticCache: Failed to persist requests")
 	}
 
 	if response.Errors == true {
 		for _, failed := range response.Failed() {
-			logrus.WithFields(logrus.Fields{
-				"error": failed.Error,
-				"index": failed.Index,
-				"id":    failed.Id,
-			}).Fatal("Failed to persist to ES")
+			zap.L().With(
+				zap.Any("error", failed.Error),
+				zap.String("index", failed.Index),
+				zap.String("id", failed.Id),
+			).Fatal("ElasticCache: Failed to persist requests")
 		}
 	}
 
-	logrus.Debug("Flushing ES cache")
+	zap.L().Debug("ElasticCache: Flushing ES cache")
 	i.cache.Flush()
 }
 
@@ -305,14 +324,15 @@ func (i index) DeleteHeightGT(height uint64, indices ...string) error {
 	_, err := i.client.DeleteByQuery(indices...).
 		Query(elastic.NewRangeQuery("height").Gt(height)).
 		Do(context.Background())
+
 	if err != nil {
-		logrus.WithError(err).Fatalf("Could not rewind to %d", height)
+		zap.S().With(zap.Error(err)).Fatalf("Could not rewind to %d", height)
 		return err
 	}
 
 	i.client.Flush(indices...)
 
-	logrus.Debugf("Deleted height greater than %d", height)
+	zap.S().Infof("Deleted height greater than %d", height)
 
 	return nil
 }

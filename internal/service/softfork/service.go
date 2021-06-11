@@ -1,11 +1,12 @@
 package softfork
 
 import (
+	"time"
+
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
-	"time"
+	"go.uber.org/zap"
 )
 
 var SoftForks explorer.SoftForks
@@ -25,17 +26,16 @@ func New(navcoin *navcoind.Navcoind, elastic elastic_cache.Index, repository Rep
 }
 
 func (i service) InitSoftForks() {
-	log.Info("SoftFork: Init")
+	zap.L().Info("SoftFork: Init")
 
 	info, err := i.navcoin.GetBlockchainInfo()
 	if err != nil {
-		log.WithError(err).Fatal("SoftFork: Failed to get blockchaininfo")
+		zap.L().With(zap.Error(err)).Fatal("SoftFork: Failed to get blockchaininfo")
 	}
 
 	SoftForks, err = i.repository.GetSoftForks()
 	if err != nil && err != elastic_cache.ErrResultsNotFound {
-		log.WithError(err).Fatal("SoftFork: Failed to get soft forks")
-		return
+		zap.L().With(zap.Error(err)).Fatal("SoftFork: Failed to get soft forks")
 	}
 
 	for name, bip9fork := range info.Bip9SoftForks {
@@ -94,8 +94,12 @@ func AddSoftForkSignal(signal *explorer.Signal, height uint64, blocksInCycle uin
 		if cycle = softFork.GetCycle(blockCycle.Cycle); cycle == nil {
 			softFork.Cycles = append(softFork.Cycles, explorer.SoftForkCycle{Cycle: blockCycle.Cycle, BlocksSignalling: 0})
 			cycle = softFork.GetCycle(blockCycle.Cycle)
-			log.WithFields(log.Fields{"softFork": softFork.Name, "cycle": cycle.Cycle, "height": height}).
-				Info("SoftFork: Create Next Cycle")
+
+			zap.L().With(
+				zap.String("softfork", softFork.Name),
+				zap.Uint("cycle", cycle.Cycle),
+				zap.Uint64("height", height),
+			).Info("SoftFork: Create Next Cycle")
 		}
 
 		cycle.BlocksSignalling++
@@ -114,22 +118,23 @@ func UpdateSoftForksState(height uint64, blocksInCycle uint, quorum int) {
 				SoftForks[idx].LockedInHeight = uint64(blocksInCycle * GetSoftForkBlockCycle(blocksInCycle, height).Cycle)
 				SoftForks[idx].ActivationHeight = SoftForks[idx].LockedInHeight + uint64(blocksInCycle)
 
-				log.WithFields(log.Fields{
-					"softFork":         SoftForks[idx].Name,
-					"height":           height,
-					"lockedInHeight":   SoftForks[idx].LockedInHeight,
-					"activationHeight": SoftForks[idx].ActivationHeight,
-				}).Infof("SoftFork: Locked in with %d signals", SoftForks[idx].LatestCycle().BlocksSignalling)
+				zap.L().With(
+					zap.String("softFork", SoftForks[idx].Name),
+					zap.Uint64("height", height),
+					zap.Uint64("lockedInHeight", SoftForks[idx].LockedInHeight),
+					zap.Int("signals", SoftForks[idx].LatestCycle().BlocksSignalling),
+				).Info("SoftFork: Locked in")
 			}
 		}
 
 		if SoftForks[idx].State == explorer.SoftForkLockedIn && height >= SoftForks[idx].ActivationHeight-1 {
 			SoftForks[idx].State = explorer.SoftForkActive
-			log.WithFields(log.Fields{
-				"softfork":         SoftForks[idx].Name,
-				"height":           height,
-				"activationHeight": SoftForks[idx].ActivationHeight,
-			}).Info("SoftFork: Activated")
+
+			zap.L().With(
+				zap.String("softfork", SoftForks[idx].Name),
+				zap.Uint64("height", height),
+				zap.Uint64("activationHeight", SoftForks[idx].ActivationHeight),
+			).Info("SoftFork: Activated")
 		}
 	}
 }

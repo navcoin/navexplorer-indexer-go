@@ -6,7 +6,9 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork"
-	log "github.com/sirupsen/logrus"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
+	"go.uber.org/zap"
+	"time"
 )
 
 type Rewinder interface {
@@ -44,13 +46,9 @@ func NewRewinder(
 }
 
 func (r rewinder) RewindToHeight(height uint64) error {
-	log.Infof("Rewinding to height: %d", height)
+	zap.L().With(zap.Uint64("height", height)).Info("Rewinding to height")
 
 	r.elastic.ClearRequests()
-	lastBlock, err := r.blockRepo.GetBlockByHeight(height)
-	if err != nil {
-		r.blockService.SetLastBlockIndexed(lastBlock)
-	}
 
 	if err := r.addressRewinder.Rewind(height); err != nil {
 		return err
@@ -65,8 +63,34 @@ func (r rewinder) RewindToHeight(height uint64) error {
 		return err
 	}
 
-	log.Infof("Rewound to height: %d", height)
+	zap.L().With(zap.Uint64("height", height)).Info("Rewound to height")
 	r.elastic.Persist()
 
+	r.checkBlock(height)
+
 	return nil
+}
+
+func (r rewinder) checkBlock(height uint64) {
+	zap.L().With(zap.Uint64("height", height)).Info("Checking block height")
+	exists, bestBlock := r.isBestBlockAtHeight(height)
+	if !exists {
+		zap.L().With(zap.Uint64("height", height)).Info("BestBlock is not at expected height")
+		time.Sleep(5 * time.Second)
+		r.checkBlock(height)
+	}
+	zap.L().With(zap.Uint64("height", height)).Info("Best block rewound to height")
+	zap.L().With(zap.String("hash", bestBlock.Hash), zap.Uint64("height", bestBlock.Height)).Info("Set last block indexed")
+
+	r.blockService.SetLastBlockIndexed(bestBlock)
+}
+
+func (r rewinder) isBestBlockAtHeight(height uint64) (bool, *explorer.Block) {
+	lastBlock, err := r.blockRepo.GetBestBlock()
+	if err != nil {
+		zap.L().With(zap.Error(err), zap.Uint64("height", height)).Fatal("Failed to get last block indexed")
+	}
+	zap.L().With(zap.Uint64("height", lastBlock.Height)).Info("Best block height")
+
+	return lastBlock.Height == height, lastBlock
 }

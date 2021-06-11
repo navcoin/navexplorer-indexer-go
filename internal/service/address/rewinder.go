@@ -3,7 +3,7 @@ package address
 import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Rewinder interface {
@@ -22,17 +22,17 @@ func NewRewinder(elastic elastic_cache.Index, repository Repository, indexer Ind
 }
 
 func (r rewinder) Rewind(height uint64) error {
-	log.Infof("Rewinding address index to height: %d", height)
+	zap.L().With(zap.Uint64("height", height)).Info("AddressRewinder: Rewinding address index")
 
 	addresses, err := r.repository.GetAddressesHeightGt(height)
 	if err != nil {
-		log.Error("Failed to get addresses greater than ", height)
+		zap.S().With(zap.Error(err)).Errorf("AddressRewinder: Failed to get addresses greater than %d", height)
 		return err
 	}
 
 	err = r.elastic.DeleteHeightGT(height, elastic_cache.AddressHistoryIndex.Get())
 	if err != nil {
-		log.Error("Failed to delete address history greater than ", height)
+		zap.S().With(zap.Error(err)).Errorf("AddressRewinder: Failed to delete addresses greater than %d", height)
 		return err
 	}
 
@@ -48,7 +48,7 @@ func (r rewinder) Rewind(height uint64) error {
 }
 
 func (r rewinder) ResetAddress(address explorer.Address) error {
-	log.Infof("Resetting address: %s", address.Hash)
+	zap.L().With(zap.String("hash", address.Hash)).Info("AddressRewinder: Resetting address")
 
 	latestHistory, err := r.repository.GetLatestHistoryByHash(address.Hash)
 	if err != nil && err != ErrLatestHistoryNotFound {

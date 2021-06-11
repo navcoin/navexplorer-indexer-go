@@ -11,7 +11,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -57,7 +57,7 @@ func NewIndexer(
 func (i indexer) SingleIndex() {
 	err := i.Index(IndexOption.SingleIndex, 0)
 	if err != nil && err.Error() != "-8: Block height out of range" {
-		log.WithError(err).Fatal("Failed to index subscribed block")
+		zap.L().With(zap.Error(err)).Fatal("Failed to index subscribed block")
 	}
 
 	i.publisher.PublishToQueue("indexed.block", fmt.Sprintf("%d", i.blockService.GetLastBlockIndexed().Height))
@@ -81,8 +81,6 @@ func (i indexer) Index(option IndexOption.IndexOption, target uint64) error {
 		}
 	}
 
-	i.elastic.Persist()
-
 	return err
 }
 
@@ -99,31 +97,57 @@ func (i indexer) index(height, target uint64, option IndexOption.IndexOption) er
 	go func() {
 		defer wg.Done()
 		start := time.Now()
-		i.addressIndexer.Index(b, txs, option == IndexOption.SingleIndex)
-		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Index addresses: %d", height)
+
+		if option == IndexOption.SingleIndex {
+			i.addressIndexer.Index(height, height, txs)
+			return
+		}
+
+		if option == IndexOption.BatchIndex {
+			if height%i.elastic.GetBulkIndexSize() != 0 && height != target {
+				return
+			}
+
+			from := height
+			if option == IndexOption.BatchIndex {
+				from = height - i.elastic.GetBulkIndexSize() + 1
+			}
+			i.addressIndexer.Index(from, height, txs)
+		}
+		zap.L().With(
+			zap.Duration("elapsed", time.Since(start)),
+			zap.Uint64("height", height),
+		).Info("Index addresses")
 	}()
 
 	go func() {
 		defer wg.Done()
 		start := time.Now()
 		i.softForkIndexer.Index(b)
-		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Index softforks: %d", height)
+
+		zap.L().With(
+			zap.Duration("elapsed", time.Since(start)),
+			zap.Uint64("height", height),
+		).Info("Index softforks")
 	}()
 
 	go func() {
 		defer wg.Done()
 		start := time.Now()
 		i.daoIndexer.Index(b, txs, header)
-		elapsed := time.Since(start)
-		log.WithField("time", elapsed).Infof("Index dao:       %d", height)
+
+		zap.L().With(
+			zap.Duration("elapsed", time.Since(start)),
+			zap.Uint64("height", height),
+		).Info("Index dao")
 	}()
 
 	wg.Wait()
 
-	elapsed := time.Since(start)
-	log.WithField("time", elapsed).Infof("Index block:     %d", height)
+	zap.L().With(
+		zap.Duration("elapsed", time.Since(start)),
+		zap.Uint64("height", height),
+	).Info("Index block")
 
 	i.blockService.SetLastBlockIndexed(b)
 

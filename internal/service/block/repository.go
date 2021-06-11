@@ -7,7 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"io"
 	"time"
 )
@@ -114,12 +114,8 @@ func (r repository) GetTransactionsByBlock(block *explorer.Block) ([]*explorer.B
 }
 
 func (r repository) GetTransactionByHash(hash string) (*explorer.BlockTransaction, error) {
-	request := r.elastic.GetRequest(explorer.CreateBlockTxSlug(hash))
-	if request != nil {
-		log.WithField("hash", hash).Debug("GetTransactionByHash: Found in elastic requests")
-		entity := request.Entity
-		blockTx := entity.(explorer.BlockTransaction)
-
+	if request := r.elastic.GetRequest(explorer.CreateBlockTxSlug(hash)); request != nil {
+		blockTx := request.Entity.(explorer.BlockTransaction)
 		return &blockTx, nil
 	}
 
@@ -149,8 +145,10 @@ func (r repository) getTransactionByHash(hash string, retries int) (*elastic.Sea
 
 	if len(results.Hits.Hits) == 0 {
 		if retries > 0 {
-			log.Debugf("Retrying: getTransactionByHash(%s, %d)", hash, retries)
-			time.Sleep(1 * time.Second)
+			zap.L().With(zap.String("hash", hash), zap.Int("retries", retries)).
+				Info("BlockRepository: Retrying Get transaction by hash")
+			time.Sleep(5 * time.Second)
+
 			return r.getTransactionByHash(hash, retries-1)
 		} else {
 			return nil, ErrBlockTransactionNotFound
@@ -239,7 +237,7 @@ func (r repository) GetAllTransactionsThatIncludeAddress(hash string) ([]explore
 			break
 		}
 		if err != nil || results == nil {
-			log.Fatal(err)
+			zap.L().With(zap.Error(err), zap.String("hash", hash)).Fatal("BlockRepository: Failed getting all txs for address")
 		}
 
 		for _, hit := range results.Hits.Hits {
@@ -274,7 +272,6 @@ func (r repository) GetTransactionsFromToHeight(from, to uint64) ([]*explorer.Bl
 	for _, hit := range result.Hits.Hits {
 		var tx *explorer.BlockTransaction
 		if err = json.Unmarshal(hit.Source, &tx); err != nil {
-			raven.CaptureError(err, nil)
 			return nil, err
 		}
 		txs = append(txs, tx)

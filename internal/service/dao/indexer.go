@@ -8,7 +8,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/proposal"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/vote"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"sync"
 )
 
@@ -70,9 +70,8 @@ func (i indexer) Index(block *explorer.Block, txs []explorer.BlockTransaction, h
 	i.consultationIndexer.Update(block.BlockCycle, block)
 
 	if block.BlockCycle.IsEnd() {
-		log.
-			WithFields(log.Fields{"size": block.BlockCycle.Size, "height": block.Height}).
-			Infof("Blockcycle %d complete", block.BlockCycle.Cycle)
+		zap.L().With(zap.Uint("cycle", block.BlockCycle.Cycle), zap.Uint64("height", block.Height)).
+			Info("DaoIndexer: BlockCycle complete")
 		i.consensusIndexer.Update(block)
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork/signal"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Rewinder interface {
@@ -26,15 +26,15 @@ func NewRewinder(elastic elastic_cache.Index, signalRepo signal.Repository, bloc
 }
 
 func (r rewinder) Rewind(height uint64) error {
-	log.WithField("height", height).Infof("SoftFork: Rewinding soft fork index")
+	zap.L().With(zap.Uint64("height", height)).Info("Rewinding soft fork index")
 
-	log.WithField("height", height).Info("Delete Signals greater than height")
+	zap.L().With(zap.Uint64("height", height)).Info("Delete Signals greater than height")
 	if err := r.elastic.DeleteHeightGT(height, elastic_cache.SignalIndex.Get()); err != nil {
 		return err
 	}
 
 	for idx, s := range SoftForks {
-		log.Info("Resetting SoftFork")
+		zap.L().With(zap.String("softfork", s.Name)).Info("Resetting soft fork")
 		SoftForks[idx] = &explorer.SoftFork{
 			Name:      s.Name,
 			SignalBit: s.SignalBit,
@@ -60,7 +60,12 @@ func (r rewinder) Rewind(height uint64) error {
 		}
 
 		if end-start == uint64(r.blocksInCycle)-1 {
-			log.WithFields(log.Fields{"index": end - start, "height": end, "blocksInCycle": r.blocksInCycle, "quorum": r.quorum}).Info("SoftFork: Block cycle end")
+			zap.L().With(
+				zap.Uint64("index", end-start),
+				zap.Uint64("height", end),
+				zap.Uint("blocksInCycle", r.blocksInCycle),
+				zap.Int("quorum", r.quorum),
+			).Info("SoftFork: Block cycle end")
 			UpdateSoftForksState(end-1, r.blocksInCycle, r.quorum)
 		}
 
@@ -81,7 +86,7 @@ func (r rewinder) Rewind(height uint64) error {
 
 	if bulk.NumberOfActions() > 0 {
 		if _, err := bulk.Do(context.Background()); err != nil {
-			log.WithError(err).Fatal("Failed to rewind soft forks")
+			zap.L().With(zap.Error(err)).Fatal("Failed to rewind soft forks")
 		}
 	}
 

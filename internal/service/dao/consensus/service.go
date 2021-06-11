@@ -6,7 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/patrickmn/go-cache"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Service interface {
@@ -67,7 +67,7 @@ func (s service) Update(parameters explorer.ConsensusParameters, persist bool) {
 func (s service) InitConsensusParameters() {
 	parameters, err := s.repository.GetConsensusParameters()
 	if err != nil && err != elastic_cache.ErrRecordNotFound {
-		log.WithError(err).Fatal("Failed to load consensus parameters")
+		zap.L().With(zap.Error(err)).Fatal("ConsensusService: Failed to load consensus parameters")
 		return
 	}
 
@@ -78,9 +78,11 @@ func (s service) InitConsensusParameters() {
 		}
 	}
 
-	log.Info("Consensus parameters initialised")
 	for idx := range parameters {
-		log.WithField("slug", parameters[idx].Slug()).Infof("Consensus Parameter %s", parameters[idx].Description)
+		zap.L().With(
+			zap.String("name", parameters[idx].Description),
+			zap.Int("value", parameters[idx].Value),
+		).Info("ConsensusService: Parameter initialised")
 	}
 
 	s.Update(parameters, true)
@@ -90,15 +92,15 @@ func (s service) InitialState() explorer.ConsensusParameters {
 	parameters := make(explorer.ConsensusParameters, 0)
 	var byteParams []byte
 	if config.Get().SoftForkBlockCycle != 20160 {
-		log.Info("Initialising Testnet Consensus parameters")
+		zap.L().Info("ConsensusService: Initialising Testnet Consensus parameters")
 		byteParams = []byte(testnet)
 	} else {
-		log.Info("Initialising Mainnet Consensus parameters")
+		zap.L().Info("ConsensusService: Initialising Mainnet Consensus parameters")
 		byteParams = []byte(mainnet)
 	}
 
 	if err := json.Unmarshal(byteParams, &parameters); err != nil {
-		log.WithError(err).Fatalf("Failed to load consensus parameters from JSON")
+		zap.L().With(zap.Error(err)).Fatal("ConsensusService: Failed to load consensus parameters from JSON")
 	}
 
 	return parameters

@@ -5,7 +5,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consultation"
 	"github.com/getsentry/raven-go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Rewinder interface {
@@ -23,7 +23,7 @@ func NewRewinder(elastic elastic_cache.Index, consensusRewinder consensus.Rewind
 }
 
 func (r rewinder) Rewind(height uint64) error {
-	log.Infof("Rewinding DAO index to height: %d", height)
+	zap.L().With(zap.Uint64("height", height)).Info("DaoRewinder: Rewinding DAO Index")
 
 	passedConsultations, err := r.repository.GetPassedConsultations(height)
 	if err != nil {

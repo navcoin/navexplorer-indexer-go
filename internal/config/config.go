@@ -2,11 +2,10 @@ package config
 
 import (
 	"fmt"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/log"
 	"github.com/getsentry/raven-go"
 	"github.com/joho/godotenv"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/natefinch/lumberjack.v2"
-	"io"
+	"go.uber.org/zap"
 	"math/big"
 	"os"
 	"strconv"
@@ -25,8 +24,6 @@ type Config struct {
 	BulkIndex          bool
 	BulkTargetHeight   uint64
 	BulkIndexSize      uint64
-	VerifySupply       bool
-	VerifySupplyFrom   uint64
 	Subscribe          bool
 	SoftForkBlockCycle int
 	SoftForkQuorum     int
@@ -43,6 +40,7 @@ type NavcoindConfig struct {
 	User     string
 	Password string
 	Ssl      bool
+	Timeout  int
 }
 
 type ElasticSearchConfig struct {
@@ -74,11 +72,7 @@ type SentryConfig struct {
 func Init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.WithError(err).Fatal("Unable to init config")
-	}
-
-	if Get().Debug {
-		log.SetLevel(log.DebugLevel)
+		zap.L().With(zap.Error(err)).Fatal("Unable to init config")
 	}
 
 	if Get().Sentry.Active {
@@ -89,31 +83,7 @@ func Init() {
 }
 
 func initLogger() {
-	var logger *lumberjack.Logger
-	if Get().Logging {
-		filename := fmt.Sprintf("%s/indexer.log", Get().LogPath)
-		log.Infof("Logging to %s", filename)
-
-		log.SetFormatter(&log.JSONFormatter{})
-		//log.SetFormatter(&log.JSONFormatter{})
-		logger = &lumberjack.Logger{
-			Filename:   filename,
-			MaxSize:    100, // megabytes
-			MaxBackups: 3,
-			MaxAge:     28,    // days
-			Compress:   false, // disabled by default
-		}
-		log.SetOutput(io.MultiWriter(os.Stdout, logger))
-
-		log.RegisterExitHandler(func() {
-			if logger == nil {
-				return
-			}
-			log.Info("Indexer is exiting")
-
-			_ = logger.Close()
-		})
-	}
+	log.NewLogger(fmt.Sprintf("%s/indexer.log", Get().LogPath), Get().Debug)
 }
 
 func Get() *Config {
@@ -131,8 +101,6 @@ func Get() *Config {
 		BulkIndex:          getBool("BULK_INDEX", false),
 		BulkTargetHeight:   getUint64("BULK_TARGET_HEIGHT", 0),
 		BulkIndexSize:      getUint64("BULK_INDEX_SIZE", 100),
-		VerifySupply:       getBool("VERIFY_SUPPLY", false),
-		VerifySupplyFrom:   getUint64("VERIFY_SUPPLY_FROM", 1),
 		Subscribe:          getBool("SUBSCRIBE", true),
 		Navcoind: NavcoindConfig{
 			Host:     getString("NAVCOIND_HOST", ""),
@@ -140,6 +108,7 @@ func Get() *Config {
 			User:     getString("NAVCOIND_USER", "user"),
 			Password: getString("NAVCOIND_PASSWORD", "password"),
 			Ssl:      getBool("NAVCOIND_SSL", false),
+			Timeout:  getInt("NAVCOIND_TIMEOUT", 30),
 		},
 		ElasticSearch: ElasticSearchConfig{
 			Hosts:       getSlice("ELASTIC_SEARCH_HOSTS", make([]string, 0), ","),

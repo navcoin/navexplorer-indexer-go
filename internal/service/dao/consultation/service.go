@@ -2,7 +2,7 @@ package consultation
 
 import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"math"
 )
 
@@ -19,7 +19,7 @@ func NewService(repository Repository) Service {
 }
 
 func (s service) LoadOpenConsultations(block *explorer.Block) {
-	log.Info("Load Open Consultations")
+	zap.L().Info("ConsultationService: Load Open Consultations")
 
 	excludeOlderThan := block.Height - (uint64(block.BlockCycle.Size * 2))
 	if excludeOlderThan < 0 {
@@ -28,11 +28,11 @@ func (s service) LoadOpenConsultations(block *explorer.Block) {
 
 	consultations, err := s.repository.GetOpenConsultations(excludeOlderThan)
 	if err != nil {
-		log.WithError(err).Error("Failed to load consultations")
+		zap.L().With(zap.Error(err)).Error("ConsultationService: Failed to load consultations")
 	}
 
 	for _, c := range consultations {
-		log.WithField("hash", c.Hash).Info("Loaded consultation")
+		zap.L().With(zap.String("consultation", c.Hash)).Info("ConsultationService: Loaded consultation")
 		Consultations[c.Hash] = c
 	}
 }

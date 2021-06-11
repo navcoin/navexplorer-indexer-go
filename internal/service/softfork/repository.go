@@ -7,7 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Repository interface {
@@ -39,7 +39,7 @@ func (r repository) GetSoftForks() (explorer.SoftForks, error) {
 	for _, hit := range results.Hits.Hits {
 		var softFork *explorer.SoftFork
 		if err := json.Unmarshal(hit.Source, &softFork); err != nil {
-			log.WithError(err).Fatal("Failed to unmarshall soft fork")
+			zap.L().With(zap.Error(err)).Fatal("Failed to unmarshall soft fork")
 		}
 		softForks = append(softForks, softFork)
 	}

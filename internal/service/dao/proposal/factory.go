@@ -3,7 +3,7 @@ package proposal
 import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"strconv"
 )
 
@@ -78,7 +78,7 @@ func UpdateProposal(proposal navcoind.Proposal, height uint64, p *explorer.Propo
 func convertStringToFloat(input string) float64 {
 	output, err := strconv.ParseFloat(input, 64)
 	if err != nil {
-		log.WithError(err).Errorf("Unable to convert %s to uint64", input)
+		zap.S().With(zap.Error(err)).Errorf("Unable to convert %s to uint64", input)
 		return 0
 	}
 

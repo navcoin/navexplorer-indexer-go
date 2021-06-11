@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
-var (
-	STATIC_REWARD uint64 = 200000000
-	MULTISIG_ASM         = "^OP_COINSTAKE OP_IF OP_DUP OP_HASH160 (?P<hash>[0-9a-f]{40}) OP_EQUALVERIFY OP_CHECKSIG OP_ELSE (?P<signaturesRequired>[1-9]) (?P<signatures>(?:0[0-9a-f]{65} )*)(?P<signaturesTotal>[1-9]) OP_CHECKMULTISIG OP_ENDIF$"
-	WRAPPED_HEX          = "c66376a914a456b36048ce2e732ef729d044a1f744738df5fa88ac6753210277fa3f4f6d447c5914d8d69c259f94c76aa6eae829c5bd54e3cd6fc3f7e12f2f21033a0879f9ab601b4ee20ec9fed77ea1a48e9026b48e0d2a425d874b40ef13d02221034a51aa6aafbd6c6075ecaee0fbcf2c9ffbac05a49007a0f02c9d6680dccee6d42103ad915271a0b327f5379585c00c42a732530f246b60f9bb1c19af7db59363897e54ae68"
+const (
+	MULTISIG_ASM = "^OP_COINSTAKE OP_IF OP_DUP OP_HASH160 (?P<hash>[0-9a-f]{40}) OP_EQUALVERIFY OP_CHECKSIG OP_ELSE (?P<signaturesRequired>[1-9]) (?P<signatures>(?:0[0-9a-f]{65} )*)(?P<signaturesTotal>[1-9]) OP_CHECKMULTISIG OP_ENDIF$"
+	WRAPPED_HEX  = "c66376a914a456b36048ce2e732ef729d044a1f744738df5fa88ac6753210277fa3f4f6d447c5914d8d69c259f94c76aa6eae829c5bd54e3cd6fc3f7e12f2f21033a0879f9ab601b4ee20ec9fed77ea1a48e9026b48e0d2a425d874b40ef13d02221034a51aa6aafbd6c6075ecaee0fbcf2c9ffbac05a49007a0f02c9d6680dccee6d42103ad915271a0b327f5379585c00c42a732530f246b60f9bb1c19af7db59363897e54ae68"
 )
 
 func CreateBlock(block *navcoind.Block, previousBlock *explorer.Block, cycleSize uint) *explorer.Block {
-	log.Debugf("Create Block %s", block.Hash)
+	zap.L().With(zap.String("hash", block.Hash)).Debug("BlockFactory: Create Block")
+
 	return &explorer.Block{
 		RawBlock: explorer.RawBlock{
 			Hash:              block.Hash,
@@ -179,6 +179,10 @@ func createVout(vouts []navcoind.Vout) []explorer.Vout {
 			},
 			Redeemed: false,
 		})
+
+		if o.SpentHeight < 0 {
+			zap.L().With(zap.Int("SpentHeight", o.SpentHeight), zap.String("hash", o.SpentTxId)).Fatal("Spent height less than 0")
+		}
 	}
 
 	return output
@@ -330,10 +334,8 @@ func applyFees(tx *explorer.BlockTransaction, block *explorer.Block) {
 
 	if tx.Private == true {
 		tx.Fees = tx.Vout.PrivateFees()
-		log.Debugf("Fees for PRIVATE|%s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	} else {
 		tx.Fees = tx.Vin.GetAmount() - tx.Vout.GetAmount()
-		log.Debugf("Fees for %s %d %d %d", tx.Hash, tx.Vin.GetAmount(), tx.Vout.GetAmount(), tx.Fees)
 	}
 	block.Fees += tx.Fees
 }

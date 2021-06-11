@@ -10,13 +10,13 @@ func CreateAddress(hash string) explorer.Address {
 	return explorer.Address{Hash: hash}
 }
 
-func CreateAddressHistory(hash string, order uint, history *navcoind.AddressHistory, tx *explorer.BlockTransaction) explorer.AddressHistory {
+func CreateAddressHistory(order uint, history *navcoind.AddressHistory, tx *explorer.BlockTransaction) explorer.AddressHistory {
 	h := explorer.AddressHistory{
 		Height:  history.Block,
 		TxIndex: history.TxIndex,
 		Time:    time.Unix(history.Time, 0),
 		TxId:    history.TxId,
-		Hash:    hash,
+		Hash:    history.Address,
 		Changes: explorer.AddressChanges{
 			Spendable:    history.Changes.Balance,
 			Stakable:     history.Changes.Stakable,

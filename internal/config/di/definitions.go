@@ -19,7 +19,7 @@ import (
 	"github.com/NavExplorer/subscriber"
 	"github.com/patrickmn/go-cache"
 	"github.com/sarulabs/dingo/v3"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -28,9 +28,9 @@ var Definitions = []dingo.Def{
 		Name: "navcoin",
 		Build: func() (*navcoind.Navcoind, error) {
 			c := config.Get().Navcoind
-			navcoin, err := navcoind.New(c.Host, c.Port, c.User, c.Password, c.Ssl, config.Get().Debug)
+			navcoin, err := navcoind.New(c.Host, c.Port, c.User, c.Password, c.Ssl, config.Get().Debug, c.Timeout)
 			if err != nil {
-				log.WithError(err).Fatal("Failed to initialize Navcoind")
+				zap.L().With(zap.Error(err)).Fatal("Failed to initialize Navcoind")
 			}
 			return navcoin, nil
 		},
@@ -40,7 +40,7 @@ var Definitions = []dingo.Def{
 		Build: func() (elastic_cache.Index, error) {
 			elastic, err := elastic_cache.New()
 			if err != nil {
-				log.WithError(err).Fatal("Failed toStart ES")
+				zap.L().With(zap.Error(err)).Fatal("Failed to start ES")
 			}
 
 			return elastic, nil

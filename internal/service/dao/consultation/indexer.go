@@ -6,8 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"strconv"
 )
 
@@ -38,7 +37,7 @@ func (i indexer) Index(txs []explorer.BlockTransaction) {
 			i.elastic.Save(elastic_cache.DaoConsultationIndex.Get(), consultation)
 			Consultations.Add(consultation)
 		} else {
-			log.WithField("hash", tx.Hash).WithError(err).Error("Failed to find consultation")
+			zap.L().With(zap.String("hash", tx.Hash), zap.Error(err)).Error("Failed to find consultation")
 		}
 	}
 }
@@ -48,13 +47,16 @@ func (i indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 	for _, c := range Consultations {
 		navC, err := i.navcoin.GetConsultation(c.Hash)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.WithError(err).Fatalf("Failed to find active consultation: %s", c.Hash)
+			zap.L().
+				With(zap.Error(err), zap.String("consultation", c.Hash)).
+				Fatal("ConsensusIndexer: Failed to find active consultation")
 		}
 
 		if UpdateConsultation(navC, &c, consensusParameters) {
 			c.UpdatedOnBlock = block.Height
-			log.Infof("Consultation %s updated on block %d", c.Hash, block.Height)
+			zap.L().
+				With(zap.String("consultation", c.Hash), zap.Uint64("height", c.Height)).
+				Debug("ConsensusIndexer: Consultation updated")
 			i.elastic.AddUpdateRequest(elastic_cache.DaoConsultationIndex.Get(), c)
 		}
 
@@ -76,14 +78,14 @@ func (i indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 func (i indexer) updateConsensusParameter(c explorer.Consultation, b *explorer.Block) {
 	answer := c.GetPassedAnswer()
 	if answer == nil {
-		log.WithField("consultation", c).Fatal("Passed Consultation with no passed answer")
+		zap.L().With(zap.String("consultation", c.Hash)).Fatal("ConsensusIndexer: Passed Consultation with no passed answer")
 		return
 	}
 
 	parameters := i.consensusService.GetConsensusParameters()
 	parameter := parameters.GetConsensusParameterById(c.Min)
 	if parameter == nil {
-		log.WithField("consultation", c).Fatal("updateConsensusParameter: Consensus parameter not found")
+		zap.L().With(zap.String("consultation", c.Hash)).Fatal("ConsensusIndexer: Parameter not found")
 		return
 	}
 
@@ -93,9 +95,9 @@ func (i indexer) updateConsensusParameter(c explorer.Consultation, b *explorer.B
 
 	i.consensusService.Update(parameters, false)
 
-	log.WithFields(log.Fields{
-		"parameter": parameter.Description,
-		"value":     parameter.Value,
-		"height":    b.Height,
-	}).Info("Updated Consensus Parameter")
+	zap.L().With(
+		zap.String("parameter", parameter.Description),
+		zap.Int("value", parameter.Value),
+		zap.Uint64("height", b.Height),
+	).Info("ConsensusIndexer: Updated Consensus Parameter")
 }

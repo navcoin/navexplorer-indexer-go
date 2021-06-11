@@ -4,8 +4,7 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Indexer interface {
@@ -44,13 +43,13 @@ func (i indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 
 		navP, err := i.navcoin.GetPaymentRequest(p.Hash)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.WithError(err).Fatalf("Failed to find active payment request: %s", p.Hash)
+			zap.L().With(zap.Error(err), zap.String("paymentRequest", p.Hash)).Fatal("Failed to find active payment request")
 		}
 
 		UpdatePaymentRequest(navP, block.Height, p)
 		if p.UpdatedOnBlock == block.Height {
-			log.Debugf("Payment Request %s updated on block %d", p.Hash, block.Height)
+			zap.L().With(zap.String("paymentRequest", p.Hash), zap.Uint64("height", block.Height)).
+				Debug("Payment Request updated")
 			i.elastic.AddUpdateRequest(elastic_cache.PaymentRequestIndex.Get(), p)
 		}
 

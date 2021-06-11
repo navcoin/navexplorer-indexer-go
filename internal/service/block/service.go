@@ -9,6 +9,7 @@ import (
 type Service interface {
 	SetLastBlockIndexed(block *explorer.Block)
 	GetLastBlockIndexed() *explorer.Block
+	ClearLastBlockIndexed()
 }
 
 type service struct {
@@ -24,6 +25,10 @@ var (
 	ErrBlockNotFound            = errors.New("Block not found")
 	ErrBlockTransactionNotFound = errors.New("Transaction not found")
 )
+
+func (s service) ClearLastBlockIndexed() {
+	s.cache.Delete("lastBlockIndexed")
+}
 
 func (s service) SetLastBlockIndexed(block *explorer.Block) {
 	s.cache.Set("lastBlockIndexed", *block, cache.NoExpiration)

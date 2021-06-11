@@ -2,7 +2,7 @@ package proposal
 
 import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Service interface {
@@ -24,7 +24,7 @@ func (s service) LoadVotingProposals(block *explorer.Block) {
 	}
 
 	proposals, _ := s.repository.GetPossibleVotingProposals(excludeOlderThan)
-	log.Infof("Load Voting Proposals (%d)", len(proposals))
+	zap.S().Infof("Load Voting Proposals (%d)", len(proposals))
 
 	Proposals = proposals
 }

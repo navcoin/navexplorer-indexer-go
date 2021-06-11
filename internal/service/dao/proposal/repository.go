@@ -6,7 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Repository interface {
@@ -41,7 +41,7 @@ func (r repository) GetPossibleVotingProposals(height uint64) ([]*explorer.Propo
 		for _, hit := range results.Hits.Hits {
 			var proposal *explorer.Proposal
 			if err := json.Unmarshal(hit.Source, &proposal); err != nil {
-				log.WithError(err).Fatal("Failed to unmarshall proposal")
+				zap.L().With(zap.Error(err)).Fatal("Failed to unmarshall proposal")
 			}
 			proposals = append(proposals, proposal)
 		}

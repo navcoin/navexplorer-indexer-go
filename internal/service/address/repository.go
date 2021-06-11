@@ -7,7 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -33,6 +33,7 @@ type repository struct {
 
 var (
 	ErrLatestHistoryNotFound = errors.New("Latest history not found")
+	ErrAddressAlreadyExists  = errors.New("Address already exists")
 )
 
 func NewRepo(elastic elastic_cache.Index) Repository {
@@ -134,13 +135,13 @@ func (r repository) CreateAddress(hash string, createdBlock uint64, createdTime 
 		Size(1).
 		Do(context.Background())
 	if err != nil {
-		log.WithError(err).Fatal("Failed to create address: " + hash)
+		zap.L().With(zap.Error(err), zap.String("hash", hash)).Fatal("AddressRepository: Failed to create address")
 		return nil, err
 	}
 
 	if len(result.Hits.Hits) != 0 {
 		address, _ := r.findOne(result)
-		return address, errors.New("Address already exists: " + hash)
+		return address, ErrAddressAlreadyExists
 	}
 
 	address := CreateAddress(hash)
@@ -159,7 +160,7 @@ func (r repository) GetOrCreateAddress(hash string) explorer.Address {
 		Size(1).
 		Do(context.Background())
 	if err != nil {
-		log.WithError(err).Fatal("Failed to get or create address")
+		zap.L().With(zap.Error(err), zap.String("hash", hash)).Fatal("AddressRepository: Failed to get or create address")
 	}
 
 	if result.TotalHits() == 0 {
@@ -183,7 +184,7 @@ func (r repository) GetLatestHistoryByHash(hash string) (*explorer.AddressHistor
 		Size(1).
 		Do(context.Background())
 	if err != nil {
-		log.WithError(err).Error("Failed to find address")
+		zap.L().With(zap.Error(err), zap.String("hash", hash)).Fatal("AddressRepository: Failed to find address")
 		err = ErrLatestHistoryNotFound
 		return nil, err
 	}

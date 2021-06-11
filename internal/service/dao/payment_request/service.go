@@ -2,7 +2,7 @@ package payment_request
 
 import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Service interface {
@@ -24,7 +24,7 @@ func (s service) LoadVotingPaymentRequests(block *explorer.Block) {
 	}
 
 	paymentRequests, _ := s.repository.GetPossibleVotingRequests(excludeOlderThan)
-	log.Infof("Load Voting Payment Requests (%d)", len(paymentRequests))
+	zap.S().Infof("Load Voting Payment Requests (%d)", len(paymentRequests))
 
 	PaymentRequests = paymentRequests
 }

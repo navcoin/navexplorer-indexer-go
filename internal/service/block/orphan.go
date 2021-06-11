@@ -3,7 +3,7 @@ package block
 import (
 	"errors"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -36,18 +36,23 @@ func (o orphanService) IsOrphanBlock(block *explorer.Block, previousBlock *explo
 		var err error
 		previousBlock, err = getPreviousBlock(block.Height)
 		if err != nil {
-			log.Info("Retry get previous block in 1 seconds")
+			zap.L().With(zap.Error(err)).Info("OrphanService: Retry get previous block in 1 seconds")
 			time.Sleep(1 * time.Second)
+
 			previousBlock, err = getPreviousBlock(block.Height)
 			if err != nil {
-				log.WithError(err).WithField("height", block.Height-1).Fatal("Failed to get previous block")
+				zap.L().With(zap.Error(err)).Fatal("OrphanService: Failed get previous block")
 			}
 		}
 	}
 
 	orphan := previousBlock.Hash != block.Previousblockhash
 	if orphan == true {
-		log.WithFields(log.Fields{"height": block.Height, "block": block.Hash, "previous": previousBlock.Hash}).Info("Orphan block found")
+		zap.L().With(
+			zap.Uint64("height", block.Height),
+			zap.String("hash", block.Hash),
+			zap.String("previous", previousBlock.Hash),
+		).Info("OrphanService: Orphan block found")
 	}
 
 	return orphan, nil

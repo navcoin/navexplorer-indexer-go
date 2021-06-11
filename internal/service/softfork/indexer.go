@@ -4,7 +4,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork/signal"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Indexer interface {
@@ -28,7 +28,11 @@ func (i indexer) Index(block *explorer.Block) {
 	}
 
 	if block.BlockCycle.IsEnd() {
-		log.WithFields(log.Fields{"height": block.Height, "blocksInCycle": i.blocksInCycle, "quorum": i.quorum}).Info("SoftFork: Block cycle end")
+		zap.L().With(
+			zap.Uint64("height", block.Height),
+			zap.Uint("blocksInCycle", i.blocksInCycle),
+			zap.Int("quorum", i.quorum),
+		).Debug("SoftFork: Block cycle end")
 		UpdateSoftForksState(block.Height, i.blocksInCycle, i.quorum)
 	}
 
@@ -39,7 +43,7 @@ func (i indexer) Index(block *explorer.Block) {
 	if sig != nil {
 		for _, s := range sig.SoftForks {
 			if SoftForks.GetSoftFork(s) != nil && SoftForks.GetSoftFork(s).State == explorer.SoftForkActive {
-				log.Info("SoftFork: Delete active softForks")
+				zap.L().Info("SoftFork: Delete active softForks")
 				sig.DeleteSoftFork(s)
 			}
 		}

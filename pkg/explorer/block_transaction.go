@@ -3,7 +3,6 @@ package explorer
 import (
 	"fmt"
 	"github.com/gosimple/slug"
-	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -102,20 +101,14 @@ func (tx *BlockTransaction) GetAllMultiSigs() map[string]MultiSig {
 
 	for _, vin := range tx.Vin {
 		if vin.PreviousOutput != nil && vin.PreviousOutput.MultiSig != nil {
-			log.Infof("MultiSig input found for tx %s:%d", tx.Hash, vin.Vout)
 			multiSigs[vin.PreviousOutput.MultiSig.Key()] = *vin.PreviousOutput.MultiSig
 		}
 	}
 
 	for _, vout := range tx.Vout {
 		if vout.MultiSig != nil {
-			log.Infof("MultiSig output found for tx %s:%d", tx.Hash, vout.N)
 			multiSigs[vout.MultiSig.Key()] = *vout.MultiSig
 		}
-	}
-
-	if len(multiSigs) > 0 {
-		log.Infof("Matched %d multisigs on tx %s", len(multiSigs), tx.Hash)
 	}
 
 	return multiSigs
