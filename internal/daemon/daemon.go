@@ -89,8 +89,14 @@ func bulkIndex() {
 		targetHeight = bestNavBlock.Height
 	}
 
+	currentHeight := uint64(0)
+	lastBlockIndexed := container.GetBlockService().GetLastBlockIndexed()
+	if lastBlockIndexed != nil {
+		currentHeight = lastBlockIndexed.Height
+	}
+
 	zap.L().With(
-		zap.Uint64("current-height", container.GetBlockService().GetLastBlockIndexed().Height),
+		zap.Uint64("current-height", currentHeight),
 		zap.Uint64("target", targetHeight),
 	).Info("Bulk indexing blocks")
 
