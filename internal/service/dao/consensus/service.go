@@ -35,7 +35,7 @@ func NewService(network string, elastic elastic_cache.Index, cache *cache.Cache,
 func (s service) GetConsensusParameters() explorer.ConsensusParameters {
 	parameters, exists := s.cache.Get(cacheKey)
 	if exists == false {
-		return nil
+		return explorer.ConsensusParameters{}
 	}
 
 	return parameters.(explorer.ConsensusParameters)
@@ -43,9 +43,9 @@ func (s service) GetConsensusParameters() explorer.ConsensusParameters {
 
 func (s service) GetConsensusParameter(parameter explorer.Parameter) *explorer.ConsensusParameter {
 	parameters := s.GetConsensusParameters()
-	for idx := range parameters {
-		if parameters[idx].Id == int(parameter) {
-			return parameters[idx]
+	for _, p := range parameters.All() {
+		if p.Id == int(parameter) {
+			return &p
 		}
 	}
 
@@ -55,7 +55,7 @@ func (s service) GetConsensusParameter(parameter explorer.Parameter) *explorer.C
 func (s service) Update(parameters explorer.ConsensusParameters, persist bool) {
 	s.cache.Set(cacheKey, parameters, cache.NoExpiration)
 
-	for _, parameter := range parameters {
+	for _, parameter := range parameters.All() {
 		if persist {
 			s.elastic.Save(elastic_cache.ConsensusIndex.Get(), parameter)
 		} else {
@@ -66,22 +66,22 @@ func (s service) Update(parameters explorer.ConsensusParameters, persist bool) {
 
 func (s service) InitConsensusParameters() {
 	parameters, err := s.repository.GetConsensusParameters()
-	if err != nil && err != elastic_cache.ErrRecordNotFound {
+	if err != nil {
 		zap.L().With(zap.Error(err)).Fatal("ConsensusService: Failed to load consensus parameters")
 		return
 	}
 
-	if len(parameters) == 0 {
+	if len(parameters.All()) == 0 {
 		parameters = s.InitialState()
-		for _, parameter := range parameters {
+		for _, parameter := range parameters.All() {
 			parameter.UpdatedOnBlock = 0
 		}
 	}
 
-	for idx := range parameters {
+	for _, p := range parameters.All() {
 		zap.L().With(
-			zap.String("name", parameters[idx].Description),
-			zap.Int("value", parameters[idx].Value),
+			zap.String("name", p.Description),
+			zap.Int("value", p.Value),
 		).Info("ConsensusService: Parameter initialised")
 	}
 
@@ -89,7 +89,7 @@ func (s service) InitConsensusParameters() {
 }
 
 func (s service) InitialState() explorer.ConsensusParameters {
-	parameters := make(explorer.ConsensusParameters, 0)
+	parameters := explorer.ConsensusParameters{}
 	var byteParams []byte
 	if config.Get().SoftForkBlockCycle != 20160 {
 		zap.L().Info("ConsensusService: Initialising Testnet Consensus parameters")

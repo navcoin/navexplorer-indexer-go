@@ -23,7 +23,7 @@ func NewIndexer(navcoin *navcoind.Navcoind, elastic elastic_cache.Index, reposit
 
 func (i indexer) Update(block *explorer.Block) {
 	parameters := i.service.GetConsensusParameters()
-	for _, p := range parameters {
+	for _, p := range parameters.All() {
 		if p.UpdatedOnBlock != block.Height {
 			continue
 		}

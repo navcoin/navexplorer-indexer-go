@@ -25,21 +25,21 @@ func (r repository) GetConsensusParameters() (explorer.ConsensusParameters, erro
 		Size(10000).
 		Do(context.Background())
 	if err != nil || results == nil {
-		return nil, err
+		return explorer.ConsensusParameters{}, err
 	}
 
 	if len(results.Hits.Hits) == 0 {
-		return nil, elastic_cache.ErrRecordNotFound
+		return explorer.ConsensusParameters{}, nil
 	}
 
-	consensusParameters := make(explorer.ConsensusParameters, 0)
+	consensusParameters := explorer.ConsensusParameters{}
 	for _, hit := range results.Hits.Hits {
-		var consensusParameter *explorer.ConsensusParameter
+		var consensusParameter explorer.ConsensusParameter
 		if err = json.Unmarshal(hit.Source, &consensusParameter); err != nil {
-			return nil, err
+			return explorer.ConsensusParameters{}, err
 		}
 
-		consensusParameters = append(consensusParameters, consensusParameter)
+		consensusParameters.Add(consensusParameter)
 	}
 
 	return consensusParameters, nil

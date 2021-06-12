@@ -29,7 +29,7 @@ func (r rewinder) Rewind(consultations []*explorer.Consultation) error {
 	parameters := r.service.InitialState()
 
 	for _, c := range consultations {
-		for _, p := range parameters {
+		for _, p := range parameters.All() {
 			if c.Min == p.Id {
 				value, _ := strconv.Atoi(c.GetPassedAnswer().Answer)
 				zap.L().With(
