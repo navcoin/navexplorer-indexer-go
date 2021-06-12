@@ -53,6 +53,10 @@ type SupplyBalance struct {
 	Wrapped uint64 `json:"wrapped"`
 }
 
+func (sb SupplyBalance) Total() uint64 {
+	return sb.Public + sb.Private + sb.Wrapped
+}
+
 type SupplyChange struct {
 	Public  int64 `json:"public"`
 	Private int64 `json:"private"`
