@@ -58,7 +58,12 @@ func (i indexer) Index(height uint64, option IndexOption.IndexOption) (*explorer
 		return nil, nil, nil, err
 	}
 
-	cycleSize := uint(i.consensusService.GetConsensusParameter(explorer.VOTING_CYCLE_LENGTH).Value)
+	var cycleSize uint
+	if exists, votingCycleParameter := i.consensusService.GetConsensusParameter(explorer.VOTING_CYCLE_LENGTH); exists {
+		cycleSize = uint(votingCycleParameter.Value)
+	} else {
+		zap.L().Fatal("Consensus Parameter `VOTING_CYCLE_LENGTH` not found")
+	}
 	block := CreateBlock(navBlock, i.service.GetLastBlockIndexed(), cycleSize)
 
 	available, err := strconv.ParseFloat(header.NcfSupply, 64)

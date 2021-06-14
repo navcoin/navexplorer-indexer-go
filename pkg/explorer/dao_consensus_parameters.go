@@ -3,6 +3,7 @@ package explorer
 import (
 	"fmt"
 	"github.com/gosimple/slug"
+	"go.uber.org/zap"
 )
 
 type ConsensusParameterType int
@@ -46,15 +47,16 @@ type ConsensusParameters struct {
 	data []ConsensusParameter
 }
 
-func (cps ConsensusParameters) Add(parameter ConsensusParameter) {
+func (cps *ConsensusParameters) Add(parameter ConsensusParameter) {
+	zap.S().Infof("Add Parameter (%s)", parameter.Description)
 	cps.data = append(cps.data, parameter)
 }
 
-func (cps ConsensusParameters) All() []ConsensusParameter {
+func (cps *ConsensusParameters) All() []ConsensusParameter {
 	return cps.data
 }
 
-func (cps ConsensusParameters) GetConsensusParameter(parameter Parameter) *ConsensusParameter {
+func (cps *ConsensusParameters) GetConsensusParameter(parameter Parameter) *ConsensusParameter {
 	for _, data := range cps.data {
 		if data.Id == int(parameter) {
 			return &data
@@ -64,7 +66,7 @@ func (cps ConsensusParameters) GetConsensusParameter(parameter Parameter) *Conse
 	return nil
 }
 
-func (cps ConsensusParameters) GetConsensusParameterById(parameter int) *ConsensusParameter {
+func (cps *ConsensusParameters) GetConsensusParameterById(parameter int) *ConsensusParameter {
 	for _, data := range cps.data {
 		if data.Id == parameter {
 			return &data

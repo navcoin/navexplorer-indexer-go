@@ -11,7 +11,7 @@ import (
 
 type Service interface {
 	GetConsensusParameters() explorer.ConsensusParameters
-	GetConsensusParameter(parameter explorer.Parameter) *explorer.ConsensusParameter
+	GetConsensusParameter(parameter explorer.Parameter) (bool, explorer.ConsensusParameter)
 	Update(parameters explorer.ConsensusParameters, persist bool)
 	InitConsensusParameters()
 	InitialState() explorer.ConsensusParameters
@@ -41,15 +41,18 @@ func (s service) GetConsensusParameters() explorer.ConsensusParameters {
 	return parameters.(explorer.ConsensusParameters)
 }
 
-func (s service) GetConsensusParameter(parameter explorer.Parameter) *explorer.ConsensusParameter {
+func (s service) GetConsensusParameter(parameter explorer.Parameter) (bool, explorer.ConsensusParameter) {
 	parameters := s.GetConsensusParameters()
 	for _, p := range parameters.All() {
+		zap.L().
+			With(zap.String("desc", p.Description), zap.Int("id", p.Id), zap.Int("id", p.Value)).
+			Debug("Consensus Parameter found")
 		if p.Id == int(parameter) {
-			return &p
+			return true, p
 		}
 	}
 
-	return nil
+	return false, explorer.ConsensusParameter{}
 }
 
 func (s service) Update(parameters explorer.ConsensusParameters, persist bool) {
@@ -89,7 +92,6 @@ func (s service) InitConsensusParameters() {
 }
 
 func (s service) InitialState() explorer.ConsensusParameters {
-	parameters := explorer.ConsensusParameters{}
 	var byteParams []byte
 	if config.Get().SoftForkBlockCycle != 20160 {
 		zap.L().Info("ConsensusService: Initialising Testnet Consensus parameters")
@@ -99,8 +101,14 @@ func (s service) InitialState() explorer.ConsensusParameters {
 		byteParams = []byte(mainnet)
 	}
 
-	if err := json.Unmarshal(byteParams, &parameters); err != nil {
+	parameterSlice := make([]explorer.ConsensusParameter, 0)
+	if err := json.Unmarshal(byteParams, &parameterSlice); err != nil {
 		zap.L().With(zap.Error(err)).Fatal("ConsensusService: Failed to load consensus parameters from JSON")
+	}
+
+	parameters := explorer.ConsensusParameters{}
+	for idx := range parameterSlice {
+		parameters.Add(parameterSlice[idx])
 	}
 
 	return parameters
