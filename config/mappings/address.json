@@ -25,6 +25,10 @@
       },
       "attempt": {
         "type": "integer"
+      },
+      "meta": {
+        "type": "nested",
+        "properties": { }
       }
     }
   },

@@ -20,6 +20,8 @@ type Address struct {
 
 	MultiSig *MultiSig `json:"multisig,omitempty"`
 
+	Meta map[string]string `json:"meta"`
+
 	// Transient
 	RichList RichList `json:"rich_list,omitempty"`
 }
