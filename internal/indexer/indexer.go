@@ -99,7 +99,7 @@ func (i indexer) index(height, target uint64, option IndexOption.IndexOption) er
 		start := time.Now()
 
 		if option == IndexOption.SingleIndex {
-			i.addressIndexer.Index(height, height, txs)
+			i.addressIndexer.Index(height, height, txs, option)
 			return
 		}
 
@@ -112,7 +112,7 @@ func (i indexer) index(height, target uint64, option IndexOption.IndexOption) er
 			if option == IndexOption.BatchIndex {
 				from = height - i.elastic.GetBulkIndexSize() + 1
 			}
-			i.addressIndexer.Index(from, height, txs)
+			i.addressIndexer.Index(from, height, txs, option)
 		}
 		zap.L().With(
 			zap.Duration("elapsed", time.Since(start)),

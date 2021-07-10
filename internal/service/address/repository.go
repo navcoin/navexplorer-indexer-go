@@ -154,6 +154,8 @@ func (r repository) CreateAddress(hash string, createdBlock uint64, createdTime 
 }
 
 func (r repository) GetOrCreateAddress(hash string) explorer.Address {
+	zap.L().With(zap.String("hash", hash)).Info("AddressRepository: GetOrCreateAddress")
+
 	result, err := r.elastic.GetClient().
 		Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
