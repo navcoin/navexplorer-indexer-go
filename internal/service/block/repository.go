@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	"go.uber.org/zap"
 	"io"
@@ -104,7 +103,6 @@ func (r repository) GetTransactionsByBlock(block *explorer.Block) ([]*explorer.B
 	for _, hit := range result.Hits.Hits {
 		var tx *explorer.BlockTransaction
 		if err = json.Unmarshal(hit.Source, &tx); err != nil {
-			raven.CaptureError(err, nil)
 			return nil, err
 		}
 		txs = append(txs, tx)
@@ -243,7 +241,6 @@ func (r repository) GetAllTransactionsThatIncludeAddress(hash string) ([]explore
 		for _, hit := range results.Hits.Hits {
 			var tx explorer.BlockTransaction
 			if err = json.Unmarshal(hit.Source, &tx); err != nil {
-				raven.CaptureError(err, nil)
 				return nil, err
 			}
 			txs = append(txs, tx)

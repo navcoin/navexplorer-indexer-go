@@ -3,9 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/log"
-	"github.com/getsentry/raven-go"
 	"github.com/joho/godotenv"
-	"go.uber.org/zap"
 	"math/big"
 	"os"
 	"strconv"
@@ -30,7 +28,6 @@ type Config struct {
 	Navcoind           NavcoindConfig
 	ElasticSearch      ElasticSearchConfig
 	ZeroMq             ZeroMqConfig
-	Sentry             SentryConfig
 	RabbitMq           RabbitMqConfig
 }
 
@@ -64,19 +61,10 @@ type RabbitMqConfig struct {
 	Port     int
 }
 
-type SentryConfig struct {
-	Active bool
-	DSN    string
-}
-
 func Init() {
 	err := godotenv.Load()
 	if err != nil {
-		zap.L().With(zap.Error(err)).Fatal("Unable to init config")
-	}
-
-	if Get().Sentry.Active {
-		_ = raven.SetDSN(Get().Sentry.DSN)
+		fmt.Println("Unable to init config")
 	}
 
 	initLogger()
@@ -127,10 +115,6 @@ func Get() *Config {
 			Password: getString("RABBITMQ_PASSWORD", "user"),
 			Host:     getString("RABBITMQ_HOST", "localhost"),
 			Port:     getInt("RABBITMQ_PORT", 5672),
-		},
-		Sentry: SentryConfig{
-			Active: getBool("SENTRY_ACTIVE", false),
-			DSN:    getString("SENTRY_DSN", ""),
 		},
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/NavExplorer/navcoind-go"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	"go.uber.org/zap"
 )
 
@@ -45,7 +44,6 @@ func (i indexer) Update(blockCycle explorer.BlockCycle, block *explorer.Block) {
 
 		navP, err := i.navcoin.GetProposal(p.Hash)
 		if err != nil {
-			raven.CaptureError(err, nil)
 			zap.L().With(zap.String("proposal", p.Hash), zap.Error(err)).Fatal("Failed to find active proposal")
 		}
 

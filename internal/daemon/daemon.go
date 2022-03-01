@@ -5,7 +5,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer/IndexOption"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/sarulabs/dingo/v3"
 	"go.uber.org/zap"
 	"time"
 )
@@ -34,7 +33,7 @@ func Execute() {
 func initialize() {
 	config.Init()
 
-	container, _ = dic.NewContainer(dingo.App)
+	container, _ = dic.NewContainer()
 	container.GetElastic().InstallMappings()
 	container.GetSoftforkService().InitSoftForks()
 	container.GetDaoConsensusService().InitConsensusParameters()

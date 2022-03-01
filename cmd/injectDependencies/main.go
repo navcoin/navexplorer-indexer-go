@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/ZilDuck/zilliqa-chain-indexer/internal/config/di"
-	"os"
-
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config/di"
 	"github.com/sarulabs/dingo/v4"
+	"os"
 )
 
 func main() {

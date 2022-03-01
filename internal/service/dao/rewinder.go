@@ -4,7 +4,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao/consultation"
-	"github.com/getsentry/raven-go"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +30,6 @@ func (r rewinder) Rewind(height uint64) error {
 	}
 
 	if err := r.consensusRewinder.Rewind(passedConsultations); err != nil {
-		raven.CaptureError(err, nil)
 		return err
 	}
 

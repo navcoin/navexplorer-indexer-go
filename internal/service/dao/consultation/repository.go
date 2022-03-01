@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	"go.uber.org/zap"
 )
@@ -71,7 +70,6 @@ func (r repository) GetPassedConsultations(maxHeight uint64) ([]*explorer.Consul
 		Sort("updatedOnBlock", true).
 		Do(context.Background())
 	if err != nil {
-		raven.CaptureError(err, nil)
 		return nil, err
 	}
 

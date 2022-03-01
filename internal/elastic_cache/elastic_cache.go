@@ -11,7 +11,6 @@ import (
 
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
-	"github.com/getsentry/raven-go"
 	"github.com/olivere/elastic/v7"
 	"github.com/patrickmn/go-cache"
 	"go.uber.org/zap"
@@ -134,7 +133,6 @@ func (i index) createIndex(index string, mapping []byte) error {
 
 	exists, err := client.IndexExists(index).Do(ctx)
 	if err != nil {
-		raven.CaptureError(err, nil)
 		return err
 	}
 
@@ -142,7 +140,6 @@ func (i index) createIndex(index string, mapping []byte) error {
 		zap.S().Infof("ElasticCache: Deleting index %s", index)
 		_, err = client.DeleteIndex(index).Do(ctx)
 		if err != nil {
-			raven.CaptureError(err, nil)
 			return err
 		}
 		exists = false
@@ -151,7 +148,6 @@ func (i index) createIndex(index string, mapping []byte) error {
 	if !exists {
 		createIndex, err := client.CreateIndex(index).BodyString(string(mapping)).Do(ctx)
 		if err != nil {
-			raven.CaptureError(err, nil)
 			return err
 		}
 
