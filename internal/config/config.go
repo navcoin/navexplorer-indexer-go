@@ -11,7 +11,6 @@ import (
 )
 
 type Config struct {
-	Logging            bool
 	LogPath            string
 	Network            string
 	Index              string
@@ -76,7 +75,6 @@ func initLogger() {
 
 func Get() *Config {
 	return &Config{
-		Logging:            getBool("LOGGING", false),
 		LogPath:            getString("LOG_PATH", "/app/logs"),
 		Network:            getString("NAVCOIND_NETWORK", "mainnet"),
 		Index:              getString("INDEX_NAME", "xxx"),
