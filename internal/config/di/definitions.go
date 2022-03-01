@@ -5,7 +5,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/queue"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao"
@@ -18,7 +17,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/softfork/signal"
 	"github.com/NavExplorer/subscriber"
 	"github.com/patrickmn/go-cache"
-	"github.com/sarulabs/dingo/v3"
+	"github.com/sarulabs/dingo/v4"
 	"go.uber.org/zap"
 	"time"
 )
@@ -80,7 +79,6 @@ var Definitions = []dingo.Def{
 		Name: "indexer",
 		Build: func(
 			elastic elastic_cache.Index,
-			publisher queue.Publisher,
 			blockIndexer block.Indexer,
 			blockService block.Service,
 			addressIndexer address.Indexer,
@@ -88,7 +86,7 @@ var Definitions = []dingo.Def{
 			daoIndexer dao.Indexer,
 			rewinder indexer.Rewinder,
 		) (indexer.Indexer, error) {
-			return indexer.NewIndexer(elastic, publisher, blockIndexer, blockService, addressIndexer, softForkIndexer, daoIndexer, rewinder), nil
+			return indexer.NewIndexer(elastic, blockIndexer, blockService, addressIndexer, softForkIndexer, daoIndexer, rewinder), nil
 		},
 	},
 	{
@@ -273,30 +271,6 @@ var Definitions = []dingo.Def{
 		Name: "subscriber",
 		Build: func() (*subscriber.Subscriber, error) {
 			return subscriber.NewSubscriber(config.Get().ZeroMq.Address), nil
-		},
-	},
-	{
-		Name: "queue.publisher",
-		Build: func() (queue.Publisher, error) {
-			return queue.NewPublisher(
-				config.Get().Network,
-				config.Get().Index,
-				config.Get().RabbitMq.User,
-				config.Get().RabbitMq.Password,
-				config.Get().RabbitMq.Host,
-				config.Get().RabbitMq.Port,
-			), nil
-		},
-	},
-	{
-		Name: "queue.consumer",
-		Build: func() (*queue.Consumer, error) {
-			return queue.NewConsumer(
-				config.Get().RabbitMq.User,
-				config.Get().RabbitMq.Password,
-				config.Get().RabbitMq.Host,
-				config.Get().RabbitMq.Port,
-			), nil
 		},
 	},
 }

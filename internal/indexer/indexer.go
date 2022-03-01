@@ -2,11 +2,9 @@ package indexer
 
 import (
 	"errors"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/indexer/IndexOption"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/queue"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/internal/service/dao"
@@ -23,7 +21,6 @@ type Indexer interface {
 
 type indexer struct {
 	elastic         elastic_cache.Index
-	publisher       queue.Publisher
 	blockIndexer    block.Indexer
 	blockService    block.Service
 	addressIndexer  address.Indexer
@@ -34,7 +31,6 @@ type indexer struct {
 
 func NewIndexer(
 	elastic elastic_cache.Index,
-	publisher queue.Publisher,
 	blockIndexer block.Indexer,
 	blockService block.Service,
 	addressIndexer address.Indexer,
@@ -44,7 +40,6 @@ func NewIndexer(
 ) Indexer {
 	return indexer{
 		elastic,
-		publisher,
 		blockIndexer,
 		blockService,
 		addressIndexer,
@@ -59,8 +54,6 @@ func (i indexer) SingleIndex() {
 	if err != nil && err.Error() != "-8: Block height out of range" {
 		zap.L().With(zap.Error(err)).Fatal("Failed to index subscribed block")
 	}
-
-	i.publisher.PublishToQueue("indexed.block", fmt.Sprintf("%d", i.blockService.GetLastBlockIndexed().Height))
 }
 
 func (i indexer) Index(option IndexOption.IndexOption, target uint64) error {
