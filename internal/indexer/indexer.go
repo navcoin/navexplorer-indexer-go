@@ -79,7 +79,7 @@ func (i indexer) Index(option IndexOption.IndexOption, target uint64) error {
 
 func (i indexer) index(height, target uint64, option IndexOption.IndexOption) error {
 	start := time.Now()
-	b, txs, header, err := i.blockIndexer.Index(height, option)
+	b, txs, _, err := i.blockIndexer.Index(height, option)
 	if err != nil {
 		return err
 	}
