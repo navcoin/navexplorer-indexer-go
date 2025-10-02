@@ -124,16 +124,16 @@ func (i indexer) index(height, target uint64, option IndexOption.IndexOption) er
 		).Info("Index softforks")
 	}()
 
-	go func() {
-		defer wg.Done()
-		start := time.Now()
-		i.daoIndexer.Index(b, txs, header)
-
-		zap.L().With(
-			zap.Duration("elapsed", time.Since(start)),
-			zap.Uint64("height", height),
-		).Info("Index dao")
-	}()
+	// go func() {
+	// 	defer wg.Done()
+	// 	start := time.Now()
+	// 	i.daoIndexer.Index(b, txs, header)
+	//
+	// 	zap.L().With(
+	// 		zap.Duration("elapsed", time.Since(start)),
+	// 		zap.Uint64("height", height),
+	// 	).Info("Index dao")
+	// }()
 
 	wg.Wait()
 
