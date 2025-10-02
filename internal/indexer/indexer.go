@@ -85,7 +85,7 @@ func (i indexer) index(height, target uint64, option IndexOption.IndexOption) er
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
