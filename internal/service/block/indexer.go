@@ -304,6 +304,12 @@ func (i indexer) updateSupply(block *explorer.Block, txs []explorer.BlockTransac
 		}
 	}
 
+	if block.Height < 8111113 {
+		block.SupplyBalance.Private = 0;
+	} else if block.Height == 8111113 {
+		block.SupplyBalance.Private = 112679768126406;
+	}
+
 	if lastBlockIndexed := i.service.GetLastBlockIndexed(); lastBlockIndexed != nil {
 		block.SupplyChange.Public = int64(block.SupplyBalance.Public) - int64(lastBlockIndexed.SupplyBalance.Public)
 		block.SupplyChange.Private = int64(block.SupplyBalance.Private) - int64(lastBlockIndexed.SupplyBalance.Private)
